@@ -183,11 +183,16 @@ retropocket-99in1/
 | Maze Muncher | ✅ 10 variantes | Cruceta (puedes pulsar el giro antes de llegar al cruce) |
 | Cyber Snake | ✅ 10 variantes | Cruceta para girar, mantener A para acelerar |
 | Brick Breaker | ✅ 10 variantes | ◀ ▶ mover la paleta (▲ la acelera), A lanzar la bola |
-| Road Racer, Tank Battle, Space Shooter, Frog Crossing, Flappy Pixel, Memory Matrix | Próximamente | — |
+| Road Racer | ✅ 10 variantes | ◀ ▶ cambiar de carril, ▲ acelerar, ▼ frenar, A disparar (ARMADO) |
+| Tank Battle | ✅ 10 variantes | Cruceta para moverte, A disparar |
+| Space Shooter | ✅ 10 variantes | ◀ ▶ mover la nave, A disparar |
+| Frog Crossing | ✅ 10 variantes | Cruceta: un salto por pulsación |
+| Flappy Pixel | ✅ 9 variantes | A o ▲ aletear |
+| Memory Matrix | ✅ 8 variantes | Cruceta para pulsar los botones; en matriz y parejas, cruceta mover y A elegir |
 
-Cada motor trae su propia IA para el modo demo, y todos respetan el giro **contrarreloj** del desafío diario (`timeLimit`, gestionado por `BaseCartridge`).
+Los 99 slots ya tienen juego. Cada motor trae su propia IA para el modo demo, y todos respetan el giro **contrarreloj** del desafío diario (`sessionTime`, gestionado por `BaseCartridge`). En Frog Crossing y Memory Matrix, `timeLimit` es el tiempo de cada rana o de cada respuesta, no de la partida.
 
-Las variantes de cada motor y todas las claves de `variantConfig` están documentadas en `src/core/Catalog99.js`. Mientras un motor no exista en `src/games/`, sus slots aparecen como **PRÓXIMAMENTE** en el menú; en cuanto se añade el archivo, Vite lo detecta automáticamente.
+Las variantes de cada motor y todas las claves de `variantConfig` están documentadas en `src/core/Catalog99.js`. Si un motor no existiera en `src/games/`, sus slots aparecerían como **PRÓXIMAMENTE** en el menú; en cuanto se añade el archivo, Vite lo detecta automáticamente.
 
 ## Cómo crear un motor de juego
 

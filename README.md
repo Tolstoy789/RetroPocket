@@ -175,6 +175,18 @@ retropocket-99in1/
 | 83–91 | Flappy Pixel (esquivar obstáculos) | `src/games/FlappyPixel.js` |
 | 92–99 | Memory Matrix (memoria y reflejos) | `src/games/MemoryMatrix.js` |
 
+### Motores disponibles
+
+| Motor | Estado | Controles |
+|---|---|---|
+| Block Drop | ✅ 12 variantes | ◀ ▶ mover, ▼ bajar rápido, ▲ caída instantánea, A girar, B girar al revés |
+| Maze Muncher | ✅ 10 variantes | Cruceta (puedes pulsar el giro antes de llegar al cruce) |
+| Cyber Snake | ✅ 10 variantes | Cruceta para girar, mantener A para acelerar |
+| Brick Breaker | ✅ 10 variantes | ◀ ▶ mover la paleta (▲ la acelera), A lanzar la bola |
+| Road Racer, Tank Battle, Space Shooter, Frog Crossing, Flappy Pixel, Memory Matrix | Próximamente | — |
+
+Cada motor trae su propia IA para el modo demo, y todos respetan el giro **contrarreloj** del desafío diario (`timeLimit`, gestionado por `BaseCartridge`).
+
 Las variantes de cada motor y todas las claves de `variantConfig` están documentadas en `src/core/Catalog99.js`. Mientras un motor no exista en `src/games/`, sus slots aparecen como **PRÓXIMAMENTE** en el menú; en cuanto se añade el archivo, Vite lo detecta automáticamente.
 
 ## Cómo crear un motor de juego

@@ -1231,7 +1231,7 @@ export class ConsoleEngine {
     if (!this.bootScene) this.bootScene = pickBootScene(this.settings.boot);
     const icons = this.menu.catalog.engines.map((engine) => engine.icon[0]);
     this.bootScene.draw(g, this.stateTime, icons);
-    g.text('V0.4', SCREEN_WIDTH - 4, SCREEN_HEIGHT - 8, { align: 'right', color: '#7a7a8c' });
+    g.text('V0.5', SCREEN_WIDTH - 4, SCREEN_HEIGHT - 8, { align: 'right', color: '#7a7a8c' });
   }
 
   /** Logotipo de la consola (arranque y pantalla de atracción). */

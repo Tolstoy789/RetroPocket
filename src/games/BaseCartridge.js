@@ -52,6 +52,7 @@ export class BaseCartridge {
     this.level = 1;
     this.lives = 1;
     this.time = 0;
+    this.timeLimit = 0;
     this.finished = false;
     this.highScore = this.storage.getHighScore(slot.key ?? slot.number);
     this.beatHighScore = false;
@@ -73,12 +74,17 @@ export class BaseCartridge {
     this.rng = createRng(this.slot.seed ?? Date.now());
     this.lives = Number.isFinite(this.config.lives) ? this.config.lives : 1;
     this.level = Number.isFinite(this.config.startLevel) ? this.config.startLevel : 1;
+    this.timeLimit = this.config.timeLimit > 0 ? this.config.timeLimit : 0;
     this.reset();
   }
 
   tick(dt) {
     if (this.finished) return;
     this.time += dt;
+    if (this.timeLimit > 0 && this.time >= this.timeLimit) {
+      this.onTimeUp();
+      return;
+    }
     this._runTimers(dt);
     if (this.finished) return;
     this.update(dt);
@@ -121,6 +127,12 @@ export class BaseCartridge {
   onPause() {}
 
   onResume() {}
+
+  /** Se acaba el tiempo en los modos contrarreloj (config.timeLimit): por defecto, partida superada. */
+  onTimeUp() {
+    this.sound.sfx('levelup');
+    this.win({ message: 'TIEMPO' });
+  }
 
   onDestroy() {}
 
@@ -167,6 +179,11 @@ export class BaseCartridge {
   }
 
   // ---------- Utilidades de partida ----------
+
+  /** Segundos que quedan en los modos contrarreloj (0 si no hay límite). */
+  get timeLeft() {
+    return this.timeLimit > 0 ? Math.max(0, this.timeLimit - this.time) : 0;
+  }
 
   addScore(points) {
     this.score = Math.max(0, Math.floor(this.score + points));
@@ -300,6 +317,7 @@ export class BaseCartridge {
       gfx.text('♥'.repeat(Math.min(5, this.lives)) || '-', x + width, cy + 7, { align: 'right', color: 'red' });
       cy += 17;
     }
+    if (this.timeLimit > 0) line('TIEMPO', String(Math.ceil(this.timeLeft)));
     if (o.extra) {
       for (const [label, value] of o.extra) line(label, value);
     }

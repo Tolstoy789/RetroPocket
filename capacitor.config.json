@@ -1,0 +1,19 @@
+{
+  "appId": "com.retropocket.console99",
+  "appName": "RetroPocket 99-in-1",
+  "webDir": "dist",
+  "backgroundColor": "#1b1d2a",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}

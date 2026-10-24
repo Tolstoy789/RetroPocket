@@ -1,0 +1,18 @@
+{
+  "name": "RetroPocket 99-in-1",
+  "short_name": "RetroPocket",
+  "description": "Consola portátil virtual 99-in-1 estilo Brick Game, 100% offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#1b1d2a",
+  "theme_color": "#1b1d2a",
+  "lang": "es",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

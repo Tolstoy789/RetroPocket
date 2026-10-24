@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es" data-skin="retro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#1b1d2a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="RetroPocket 99-in-1: consola portátil virtual estilo Brick Game, 100% offline." />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <title>RetroPocket 99-in-1</title>
+  </head>
+  <body>
+    <main class="console" id="console">
+      <section class="console__top">
+        <div class="bezel">
+          <div class="bezel__label">
+            <span class="bezel__led" id="power-led" aria-hidden="true"></span>
+            <span class="skin-only skin-only--retro">DOT MATRIX WITH STEREO SOUND</span>
+            <span class="skin-only skin-only--future">HOLO MATRIX · QUANTUM SOUND</span>
+            <span class="skin-only skin-only--crystal">CLEAR CASE · DOT MATRIX</span>
+          </div>
+          <div class="screen" id="screen">
+            <canvas id="lcd" aria-label="Pantalla de la consola"></canvas>
+          </div>
+        </div>
+        <h1 class="brand">
+          <span class="brand__name">RetroPocket</span>
+          <span class="brand__model">99&nbsp;in&nbsp;1</span>
+          <span class="brand__tag skin-only skin-only--future">NEO</span>
+          <span class="brand__tag brand__tag--crystal skin-only skin-only--crystal">CLEAR</span>
+        </h1>
+      </section>
+
+      <section class="console__controls" aria-label="Controles">
+        <div class="dpad" id="dpad" role="group" aria-label="Cruceta">
+          <button class="dpad__btn dpad__btn--up" data-action="UP" aria-label="Arriba"></button>
+          <button class="dpad__btn dpad__btn--left" data-action="LEFT" aria-label="Izquierda"></button>
+          <span class="dpad__center" aria-hidden="true"></span>
+          <button class="dpad__btn dpad__btn--right" data-action="RIGHT" aria-label="Derecha"></button>
+          <button class="dpad__btn dpad__btn--down" data-action="DOWN" aria-label="Abajo"></button>
+        </div>
+
+        <div class="actions" id="actions" role="group" aria-label="Botones de acción">
+          <div class="actions__item actions__item--b">
+            <button class="action-btn" data-action="B" aria-label="Botón B">B</button>
+          </div>
+          <div class="actions__item actions__item--a">
+            <button class="action-btn" data-action="A" aria-label="Botón A">A</button>
+          </div>
+        </div>
+
+        <div class="system" role="group" aria-label="Botones de sistema">
+          <div class="system__item">
+            <button class="system-btn" data-action="SOUND" aria-label="Sonido"></button>
+            <span class="system__label">SOUND</span>
+          </div>
+          <div class="system__item">
+            <button class="system-btn" data-action="START" aria-label="Start / Pausa"></button>
+            <span class="system__label">START</span>
+          </div>
+          <div class="system__item">
+            <button class="system-btn system-btn--reset" data-action="RESET" aria-label="Reset"></button>
+            <span class="system__label">RESET</span>
+          </div>
+        </div>
+
+        <div class="speaker" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </section>
+    </main>
+
+    <noscript>RetroPocket 99-in-1 necesita JavaScript activado.</noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

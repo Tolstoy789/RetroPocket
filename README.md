@@ -64,7 +64,7 @@ Cada `git push` ejecuta `.github/workflows/android-apk.yml`, que:
 
 1. Instala Node 22 y las dependencias.
 2. Compila la web con Vite.
-3. Instala Java 21 y el Android SDK.
+3. Instala Java 21 (el Android SDK ya viene en las máquinas de GitHub).
 4. Crea el proyecto Android si no existe, le pone el icono de la app (`build/android-icons.js`) y ejecuta `npx cap sync android`.
 5. Compila `app-debug.apk` con Gradle.
 6. Lo publica como *Artifact* descargable.

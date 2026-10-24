@@ -275,7 +275,7 @@ export const ENGINES = [
       { label: '3 CASAS', desc: 'Solo tres huecos de llegada.', config: { homes: 3 } },
       { label: 'CORRIENTE', desc: 'El rio arrastra con fuerza.', config: { riverSpeed: 1.5 } },
       { label: 'UNA VIDA', desc: 'Una sola rana.', config: { lives: 1 } },
-      { label: 'EXTREMO', desc: 'Rapido, denso y sin tiempo.', config: { trafficSpeed: 1.4, riverSpeed: 1.4, trafficDensity: 1.4, timeLimit: 20 } }
+      { label: 'EXTREMO', desc: 'Rapido, denso y 20 s por rana.', config: { trafficSpeed: 1.4, riverSpeed: 1.4, trafficDensity: 1.4, timeLimit: 20 } }
     ],
     icon: [
       ['#......#', '.#.##.#.', '..####..', '.######.', '..####..', '.#.##.#.', '#......#', '........'],
@@ -381,7 +381,8 @@ export const DAILY_TWISTS = [
     label: 'CONTRARRELOJ',
     desc: 'lo maximo en 60 segundos.',
     apply: (c) => {
-      c.timeLimit = 60;
+      // Duración de la partida; los motores con tiempo por turno conservan su config.timeLimit.
+      c.sessionTime = 60;
     }
   },
   {

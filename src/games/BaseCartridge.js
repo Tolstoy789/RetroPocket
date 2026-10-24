@@ -74,7 +74,7 @@ export class BaseCartridge {
     this.rng = createRng(this.slot.seed ?? Date.now());
     this.lives = Number.isFinite(this.config.lives) ? this.config.lives : 1;
     this.level = Number.isFinite(this.config.startLevel) ? this.config.startLevel : 1;
-    this.timeLimit = this.config.timeLimit > 0 ? this.config.timeLimit : 0;
+    this.timeLimit = this.config.sessionTime > 0 ? this.config.sessionTime : this.config.timeLimit > 0 ? this.config.timeLimit : 0;
     this.reset();
   }
 
@@ -128,7 +128,7 @@ export class BaseCartridge {
 
   onResume() {}
 
-  /** Se acaba el tiempo en los modos contrarreloj (config.timeLimit): por defecto, partida superada. */
+  /** Se acaba el tiempo en los modos contrarreloj (config.timeLimit o el sessionTime del desafío diario): por defecto, partida superada. */
   onTimeUp() {
     this.sound.sfx('levelup');
     this.win({ message: 'TIEMPO' });
@@ -295,6 +295,23 @@ export class BaseCartridge {
         gfx.cell(x + c * size, y + r * size, size, v ? (v === true ? 'on' : v) : 'off');
       }
     }
+  }
+
+  /**
+   * Marcador superior de 14 px para los juegos a pantalla completa: puntos y récord a la izquierda,
+   * nivel (o tiempo, o `center`) en el centro, vidas y slot a la derecha.
+   * @param {object} [o] { center: string, lives: boolean }
+   */
+  drawTopBar(gfx, o = {}) {
+    const w = this.width;
+    gfx.rect(0, 0, w, 14, 'bg');
+    gfx.text(String(this.score).padStart(6, '0'), 2, 2);
+    gfx.text(`R ${String(Math.max(this.highScore, this.score)).padStart(6, '0')}`, 2, 8, { color: 'mid' });
+    const center = o.center ?? (this.timeLimit > 0 ? `T ${Math.ceil(this.timeLeft)}` : `NV ${this.level}`);
+    gfx.text(center, w / 2, 2, { align: 'center' });
+    if (o.lives !== false) gfx.text('♥'.repeat(Math.max(0, Math.min(5, this.lives))), w - 2, 2, { align: 'right', color: 'red' });
+    gfx.text(`${this.slot.daily ? 'HOY' : this.slot.code} ${this.slot.label}`, w - 2, 8, { align: 'right', color: 'mid' });
+    gfx.rect(0, 14, w, 1, 'mid');
   }
 
   /**

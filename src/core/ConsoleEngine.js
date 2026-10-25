@@ -16,6 +16,7 @@ import { Jukebox } from './Jukebox.js';
 import { Progress } from './Progress.js';
 import { achievementColor } from './Achievements.js';
 import { renderShareCard } from './ShareCard.js';
+import { normalizeText, translate, setLanguage, getLanguage, resolveLanguage } from './i18n.js';
 
 /* global __APP_VERSION__ */
 export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'DEV';
@@ -125,15 +126,6 @@ const GLYPHS = {
 
 const GLYPH_W = 3;
 const GLYPH_H = 5;
-
-/** Quita acentos y pasa a mayúsculas para que todo el texto use la fuente 3x5. */
-function normalizeText(text) {
-  return String(text)
-    .replace(/ñ/gi, 'N')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toUpperCase();
-}
 
 /** Caracteres de un texto que la fuente 3x5 no tiene (se dibujarían como '?'). Lo usan las pruebas. */
 export function missingGlyphs(text) {
@@ -347,20 +339,26 @@ export class Gfx {
     }
   }
 
-  textWidth(text, scale = 1, spacing = 1) {
-    const len = normalizeText(text).length;
-    return len === 0 ? 0 : len * (GLYPH_W + spacing) * scale - spacing * scale;
+  /** Ancho en píxeles de un texto ya traducido (como lo dibuja text()). `raw`: no se traduce. */
+  textWidth(text, scale = 1, spacing = 1, raw = false) {
+    return this._measure(normalizeText(raw ? text : translate(text)), scale, spacing);
+  }
+
+  _measure(str, scale, spacing) {
+    return str.length === 0 ? 0 : str.length * (GLYPH_W + spacing) * scale - spacing * scale;
   }
 
   /**
-   * Texto con la fuente 3x5.
-   * @param {object} [o] { color, align: 'left'|'center'|'right', scale, spacing, shadow }
+   * Texto con la fuente 3x5, en el idioma de la consola (ver i18n.js).
+   * @param {object} [o] { color, align: 'left'|'center'|'right', scale, spacing, shadow,
+   *   raw: true para lo que no se traduce (iniciales, códigos o un texto ya traducido) }
    */
   text(text, x, y, o = {}) {
     const scale = o.scale || 1;
     const spacing = o.spacing ?? 1;
-    const str = normalizeText(text);
-    const w = this.textWidth(str, scale, spacing);
+    if (Gfx.textLog && !o.raw) Gfx.textLog.add(String(text));
+    const str = normalizeText(o.raw ? text : translate(text));
+    const w = this._measure(str, scale, spacing);
     let cx = Math.floor(o.align === 'center' ? x - w / 2 : o.align === 'right' ? x - w : x);
     const cy = Math.floor(y);
     if (o.shadow) this._drawText(str, cx + scale, cy + scale, scale, spacing, o.shadow);
@@ -426,6 +424,9 @@ export class Gfx {
     this.frame(x + 2, y + 2, w - 4, h - 4, 'mid');
   }
 }
+
+/** Las pruebas apuntan aquí (un Set) todos los textos que se dibujan, para comprobar que tienen traducción. */
+Gfx.textLog = null;
 
 // ---------------------------------------------------------------------------
 // Rejilla de fondo de las pantallas de sistema (las animaciones de arranque están en BootScenes.js).
@@ -649,6 +650,10 @@ export class ConsoleEngine {
   /** Aplica todos los ajustes guardados a la pantalla, el sonido y los controles. */
   applySettings() {
     const s = this.settings;
+    const language = getLanguage();
+    setLanguage(resolveLanguage(s.lang));
+    // El menú guarda la descripción ya partida en líneas: se rehace en el idioma nuevo.
+    if (this.menu && getLanguage() !== language) this.menu.onEnter();
     this.gfx.setColorblind(s.colorblind);
     this.gfx.setHighContrast(s.contrast === 'high');
     this.setTheme(s.theme);
@@ -1959,7 +1964,7 @@ export class ConsoleEngine {
         const highlight = i + 1 === r.rank && Math.floor(this.time * 3) % 2 === 0;
         const color = highlight ? 'yellow' : 'ink';
         g.text(`${i + 1}.`, x + 10, ry, { color: 'mid' });
-        g.text(row ? row.name || '---' : '---', x + 22, ry, { color });
+        g.text(row ? row.name || '---' : '---', x + 22, ry, { color, raw: true });
         g.text(row ? String(row.score).padStart(7, '0') : '-------', x + w - 10, ry, { align: 'right', color });
       }
     }

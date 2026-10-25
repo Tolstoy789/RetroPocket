@@ -8,6 +8,7 @@
 import { ACTIONS } from './InputManager.js';
 import { SCREEN_WIDTH } from './ConsoleEngine.js';
 import { MenuPreview } from './MenuPreview.js';
+import { translate } from './i18n.js';
 
 // Vite incluye solo los motores que existan en src/games/. Si un archivo todavía no está,
 // el slot aparece en el menú como "PRÓXIMAMENTE" y la consola muestra "CARTUCHO NO INSERTADO".
@@ -657,7 +658,7 @@ export class CatalogMenu {
     this.highName = best ? best.name || '' : '';
     this.stars = this.catalog.starsFor(slot, this.highScore);
     this.installed = this.catalog.isInstalled(slot);
-    this.descLines = wrapText(slot.desc, 34).slice(0, 2);
+    this.descLines = wrapText(translate(slot.desc), 34).slice(0, 2);
     this.completed = this.catalog.completedCount(storage);
     this.favorite = !slot.daily && storage.isFavorite(slot.number);
     this.streak = slot.daily && this.engine.progress ? this.engine.progress.streakInfo() : null;
@@ -769,7 +770,9 @@ export class CatalogMenu {
 
     // Columna izquierda: número de slot con flechas, nombre, variante, estrellas y récord
     const numberY = 18;
-    g.text(slot.code, lx + Math.round(this.slide), numberY, { align: 'center', scale: 4, color: slot.daily ? 'yellow' : engineDef.color });
+    // El número a escala 4; si no cabe entre las flechas (HOY en inglés es TODAY), a escala 3 y centrado.
+    const codeScale = g.textWidth(slot.code, 4) <= 52 ? 4 : 3;
+    g.text(slot.code, lx + Math.round(this.slide), numberY + (4 - codeScale) * 3, { align: 'center', scale: codeScale, color: slot.daily ? 'yellow' : engineDef.color });
     g.text('◀', 2, numberY + 7, { color: this.arrowFlash.left > 0 ? 'ink' : 'mid' });
     g.text('▶', 63, numberY + 7, { color: this.arrowFlash.right > 0 ? 'ink' : 'mid' });
 
@@ -788,7 +791,7 @@ export class CatalogMenu {
       if (this.favorite) g.text('♥', 6, 71, { color: 'magenta' });
       g.text('RECORD', lx, 81, { align: 'center', color: 'mid' });
       g.text(String(this.highScore).padStart(7, '0'), lx, 90, { align: 'center' });
-      if (this.highName) g.text(this.highName, lx, 99, { align: 'center', color: 'mid' });
+      if (this.highName) g.text(this.highName, lx, 99, { align: 'center', color: 'mid', raw: true });
     } else if (blink) {
       g.text('PROXIMAMENTE', lx, 76, { align: 'center', color: 'red' });
     }
@@ -824,7 +827,7 @@ export class CatalogMenu {
 
     // Descripción
     this.descLines.forEach((line, i) => {
-      g.text(line, cx, 138 + i * 8, { align: 'center', color: 'mid' });
+      g.text(line, cx, 138 + i * 8, { align: 'center', color: 'mid', raw: true });
     });
 
     // Barra de posición 00-99

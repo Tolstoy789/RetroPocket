@@ -485,7 +485,7 @@ export default class MemoryMatrix extends BaseCartridge {
     else if (this.phase === 'show') text = this.mode === 'pairs' ? 'MEMORIZA' : 'MIRA';
     else if (this.phase === 'input') text = this.mode === 'grid' ? `QUEDAN ${this.targets.size - this.found.size}` : this.mode === 'pairs' ? `FALLOS ${this.misses}/${this.maxMisses}` : 'TU TURNO';
     else if (this.phase === 'peek') text = `FALLOS ${this.misses}/${this.maxMisses}`;
-    else if (this.phase === 'reflex' || this.phase === 'reflexWait') text = 'RAPIDO';
+    else if (this.phase === 'reflex' || this.phase === 'reflexWait') text = '¡RAPIDO!';
     else if (this.phase === 'good') text = 'BIEN';
     else if (this.phase === 'fail') text = this.failMessage;
     g.text(text, this.width / 2, y, { align: 'center', color: this.phase === 'fail' ? 'red' : 'ink' });

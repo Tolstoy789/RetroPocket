@@ -15,6 +15,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Gestos sobre la pantalla** (Opciones → *Gestos*): deslizar el dedo sobre la pantalla hace de cruceta y tocarla pulsa A, para móviles pequeños o jugar con una mano.
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
 - **Guardar la partida al salir:** al pausar (con START, el botón atrás o al cambiar de app) la partida se guarda entera. Si Android cierra la app o cierras la pestaña, al volver a abrirla la consola pregunta si quieres **continuar** donde lo dejaste (A) o descartarla (B dos veces). Funciona en los 99 juegos, en el desafío diario, en la carrera y a dos jugadores.
+- **En español y en inglés** (Opciones → *Idioma*): en *AUTO* la consola sigue el idioma del teléfono (español también con catalán, gallego o euskera; inglés con cualquier otro). Se traducen todas las pantallas, los 99 juegos, los logros, los avisos, el mensaje al compartir y las etiquetas para el lector de pantalla.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
 - **Favoritos y recientes:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
 - **Modo carrera:** recorre las 99 etapas en orden; superar una (1 estrella) desbloquea la siguiente y cada 10 hay un **jefe** (velocidad 2 y 2 estrellas). Mapa de 10×10 con las etapas superadas, los jefes y el trofeo final.
@@ -28,7 +29,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, ahorro de batería, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), idioma, contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, ahorro de batería, copiar y pegar récords, y borrar récords.
 - **Ahorro de batería** (Opciones → *Ahorro batería*): dibuja a 30 fps, no vuelve a mostrar una imagen que no ha cambiado (en un menú quieto o en una pausa la pantalla apenas se redibuja) y quita el brillo de los temas de tubo, que es lo más caro de dibujar. En *AUTO* se activa solo con menos del 20 % de batería y sin cargador. Además, en las pantallas de 90 y 120 Hz la consola ya no dibuja más de 60 veces por segundo, porque la lógica va a 60.
 - **Versión web** en GitHub Pages, publicada desde el mismo workflow en cada cambio de `main`: se juega en el navegador y se puede instalar como app.
 - **Pruebas automáticas** en cada push: los 99 cartuchos se juegan en Node con la IA y pulsando botones al azar, y la consola entera se maneja en Chromium; si algo falla, no se compila el APK.
@@ -257,6 +258,12 @@ Las 99 etapas son los 99 slots en orden. Una etapa se supera con **1 estrella**;
 
 START en la pantalla de fin de partida dibuja con `<canvas>` una tarjeta PNG de 720×1040: la consola con el tema y el color de carcasa que estés usando (los colores se leen de las variables CSS del tema), la última imagen de la partida con un panel de puntos, estrellas, nivel y fecha, y la marca. En Android se guarda en la caché de la app (`@capacitor/filesystem`) y se abre el menú de compartir del sistema (`@capacitor/share`); en la web se usa la Web Share API y, si el navegador no comparte archivos, se descarga el PNG. Todo se hace en el móvil, sin servidor.
 
+## Idioma
+
+El código escribe todos sus textos en español y `Gfx.text()` los traduce al dibujarlos (`translate()` de `src/core/i18n.js`), así que los motores y las pantallas no saben en qué idioma están. La traducción se busca así: el texto entero en el diccionario de `src/core/lang/en.js`; si no está, los patrones de `EN_PATTERNS` (textos con números o con otro orden, como `¡GANA EL JUGADOR 2!` → `PLAYER 2 WINS!`); y si tampoco, cada trozo que sí esté en el diccionario (`05 SIN BORDES` → `05 NO WALLS`). Lo que no se dibuja con la fuente de la consola (el mensaje al compartir, el título del menú de compartir) usa `localize('español', 'english')`, y las etiquetas `aria-label` de la página se cambian con `EN_DOM`.
+
+**Añadir un texto:** escríbelo en español donde haga falta y pon su traducción en `src/core/lang/en.js`, en mayúsculas y con las letras de la fuente 3x5. No hace falta nada más: `npm test` juega los 99 juegos y `npm run test:e2e` recorre todas las pantallas en inglés, y fallan si queda alguna palabra en español, si una traducción es bastante más larga que el original o si algo se sale de la pantalla. Lo que no se debe traducir (iniciales, nombres de la tabla) se dibuja con `{ raw: true }`.
+
 ## Pruebas automáticas
 
 `npm test` usa el ejecutor de pruebas de Node (`node --test`) y carga el código del juego con Vite (`tools/autoplay.js`), sin navegador:
@@ -268,9 +275,10 @@ START en la pantalla de fin de partida dibuja con `<canvas>` una tarjeta PNG de 
 | `tests/progress.test.js` | Los 40 logros, racha, contadores, carcasas, copia de seguridad `RP99-` y datos guardados corruptos |
 | `tests/sound.test.js` | Las 21 pistas (32 corcheas, notas válidas), que existen todos los efectos que pide el código, y todo sonando en chip y beeper con un Web Audio de mentira que se queja como el de verdad |
 | `tests/savestate.test.js` | Guardar la partida: en los 99 slots (con la IA y con botones al azar) se guarda a mitad de partida, se carga en un cartucho nuevo y las dos partidas tienen que seguir idénticas durante 10 s |
+| `tests/i18n.test.js` | El traductor, *AUTO* con el idioma del teléfono, y que tienen traducción completa (sin palabras en español, con letras de la fuente y sin alargarse) el catálogo, los 60 desafíos diarios siguientes, los logros, los temas, los avisos y todo lo que dibujan los 99 juegos jugados con la IA y al azar |
 | `tests/cartridges.test.js` | Los 99 slots jugados 30 s con la IA y 30 s pulsando botones al azar, misma semilla = misma partida, 21 desafíos diarios, velocidad 5 desde el nivel 9 y los jefes de la carrera. Se dibuja en un lienzo que falla si recibe coordenadas no válidas o letras que la fuente no tiene |
 
-`npm run test:e2e` (`tests/e2e/console.test.js`) arranca el servidor de Vite y maneja la consola con el teclado en Chromium (Playwright): menú, PREPARADO, una partida y la pausa de cada motor, récord con iniciales, opciones, galería de temas, jukebox, la pantalla de START, desafío diario, carrera, modo demo, dos jugadores, ahorro de batería y giro de pantalla. Falla si la página registra cualquier error.
+`npm run test:e2e` (`tests/e2e/console.test.js`) arranca el servidor de Vite y maneja la consola con el teclado en Chromium (Playwright): menú, PREPARADO, una partida y la pausa de cada motor, récord con iniciales, opciones, galería de temas, jukebox, la pantalla de START, desafío diario, carrera, modo demo, dos jugadores, ahorro de batería, partida guardada, idioma y giro de pantalla. Para el idioma, `tests/e2e/tour.js` dibuja cada estado de cada pantalla (las 100 posiciones del menú, cada fila de Opciones con todos sus valores, cada tema, logro, etapa y mes...) en español y en inglés, y comprueba que todos los textos tienen traducción y que en inglés no se sale ninguno que en español cabía. Falla si la página registra cualquier error.
 
 ## Música y sonido
 
@@ -287,6 +295,7 @@ retropocket-99in1/
 ├── .github/workflows/android-apk.yml   # Compila el APK en cada push
 ├── docs/dificultad.md                  # Informe de dificultad de los 99 slots
 ├── tests/                              # Pruebas automáticas (npm test y npm run test:e2e)
+│   └── e2e/tour.js                     # Recorre todas las pantallas para la prueba de idioma
 ├── tools/
 │   ├── autoplay.js                     # Juega slots en Node (IA del modo demo o botones al azar)
 │   └── difficulty.js                   # Informe de dificultad y metas de estrellas propuestas
@@ -309,6 +318,8 @@ retropocket-99in1/
 │   │   ├── ShareCard.js       # Tarjeta PNG para compartir una puntuación
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
 │   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, jugadores, controles y favorito)
+│   │   ├── i18n.js            # Idioma: AUTO/ES/EN y traducción de los textos al dibujarlos
+│   │   ├── lang/en.js         # Diccionario y patrones del inglés
 │   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa, portapapeles y compartir imagen
 │   │   └── BootScenes.js      # Las 3 animaciones de arranque y su turno de 2 días
 │   ├── games/
@@ -382,7 +393,7 @@ export default class CyberSnake extends BaseCartridge {
 }
 ```
 
-Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()`, las estadísticas `track()` y `peak()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Si devuelve `true` en `get autoFire()`, mantener A repite la pulsación cada 0,15 s (autodisparo). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño.
+Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()`, las estadísticas `track()` y `peak()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Si devuelve `true` en `get autoFire()`, mantener A repite la pulsación cada 0,15 s (autodisparo). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño. Los textos se escriben en español; su traducción al inglés va en `src/core/lang/en.js` (ver [Idioma](#idioma)).
 
 **Guardar la partida:** `saveState()` guarda todos los campos propios del cartucho y `loadState()` los recupera con el azar en el mismo punto, sin que el motor tenga que hacer nada si su estado son datos (números, textos, listas, objetos, `Map`, `Set`). Si el estado apunta a constantes del módulo (direcciones, formas de piezas), decláralas en `static get saveConstants() { return { DIRS, SHAPES }; }` para que al cargar sigan siendo el mismo objeto; lo que `reset()` vuelve a crear y no se puede guardar (un lienzo pintado de antemano) va en `static get transient() { return ['campo']; }`, y los temporizadores se crean con el nombre de un método: `this.after(1.2, 'gameOver', { message: 'FIN' })`. `npm test` comprueba en todos los slots que una partida cargada sigue igual que la original.
 

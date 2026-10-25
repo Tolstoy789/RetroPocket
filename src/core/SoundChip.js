@@ -61,6 +61,14 @@ const SFX = {
     { wave: 'triangle', freq: 1047, duration: 0.25, delay: 0.28, volume: 0.6 }
   ],
   tick: [{ wave: 'pulse12', freq: 2000, duration: 0.015, volume: 0.25 }],
+  // Logro desbloqueado: arpegio rápido, destello agudo y acorde final con vibrato.
+  achievement: [
+    ...['E5', 'G#5', 'B5', 'E6'].map((freq, i) => ({ wave: 'pulse25', freq, duration: 0.07, delay: i * 0.06, volume: 0.45 })),
+    { wave: 'pulse12', freq: 'B6', duration: 0.05, delay: 0.3, volume: 0.22 },
+    { wave: 'pulse12', freq: 'E7', duration: 0.14, delay: 0.36, volume: 0.22 },
+    { wave: 'triangle', freq: 'E6', duration: 0.45, delay: 0.3, volume: 0.55, vibrato: 8 },
+    { wave: 'triangle', freq: 'E4', duration: 0.45, delay: 0.3, volume: 0.45 }
+  ],
   // Jingles de las tres animaciones de arranque (BootScenes.js), sincronizados con la imagen.
   bootBrick: [
     ...[0, 1, 2, 3, 4, 5].map((i) => ({ wave: 'triangle', freq: 160, slideTo: 60, duration: 0.08, delay: 0.25 + i * 0.08, volume: 0.7 })),

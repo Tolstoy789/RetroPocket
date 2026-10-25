@@ -45,6 +45,7 @@ export default class RoadRacer extends BaseCartridge {
     this.crash = null;
     this.nextLevelAt = 1500;
     this.aiTimer = 0;
+    this.topKmh = 0;
   }
 
   _laneX(lane) {
@@ -116,6 +117,11 @@ export default class RoadRacer extends BaseCartridge {
     if (this.isDown(ACTIONS.DOWN)) target = this.minSpeed * 0.6;
     if (c.fuel && this.fuel <= 0) target = 0;
     this.speed += (target - this.speed) * Math.min(1, dt * 3);
+    const kmh = Math.round(this.speed);
+    if (kmh > this.topKmh) {
+      this.topKmh = kmh;
+      this.peak('kmh', kmh);
+    }
 
     const move = this.speed * dt;
     this.distance += move;
@@ -165,6 +171,8 @@ export default class RoadRacer extends BaseCartridge {
     }
 
     for (const car of this.cars) car.y += this.speed * car.rel * dt;
+    const overtaken = this.cars.filter((car) => car.y >= this.height + 4 && !car.dead && !car.oncoming).length;
+    if (overtaken) this.track('overtakes', overtaken);
     this.cars = this.cars.filter((car) => car.y < this.height + 4 && !car.dead);
     for (const can of this.cans) can.y += this.speed * dt;
     this.cans = this.cans.filter((can) => can.y < this.height && !can.taken);

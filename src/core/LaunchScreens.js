@@ -1,8 +1,8 @@
 // src/core/LaunchScreens.js
-// Pantallas entre el menú y la partida:
-//   LaunchScreen  → "PREPARADO": controles del motor, VELOCIDAD (1-5) y NIVEL inicial (1-9) al estilo
-//                   de las Brick Game originales, y marcar el juego como favorito.
-//   MyGamesScreen → "MIS JUEGOS": favoritos y últimos juegos jugados, para volver a ellos rápido.
+// Pantalla entre el menú y la partida:
+//   LaunchScreen → "PREPARADO": controles del motor, VELOCIDAD (1-5) y NIVEL inicial (1-9) al estilo
+//                  de las Brick Game originales, y marcar el juego como favorito.
+// Los favoritos y los últimos juegos están en la pestaña JUEGOS de HubScreen.js.
 
 import { ACTIONS } from './InputManager.js';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ConsoleEngine.js';
@@ -148,104 +148,5 @@ export class LaunchScreen {
 
     if (Math.floor(this.time * 2) % 2 === 0) g.text('A O START: ¡A JUGAR!', cx, 168, { align: 'center' });
     g.text('▲▼ ELEGIR  ◀▶ CAMBIAR  B VOLVER', cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
-  }
-}
-
-// ---------------------------------------------------------------------------
-// MyGamesScreen
-// ---------------------------------------------------------------------------
-
-const LIST_TOP = 22;
-const LIST_ROW = 12;
-const LIST_VISIBLE = 12;
-
-export class MyGamesScreen {
-  constructor(engine) {
-    this.engine = engine;
-    this.items = [];
-    this.index = 0;
-    this.time = 0;
-  }
-
-  onEnter() {
-    const { storage, catalog } = this.engine;
-    const favorites = storage.getFavorites();
-    const recent = storage.getRecent().filter((n) => !favorites.includes(n));
-    this.items = [
-      ...favorites.map((n) => ({ slot: catalog.getSlot(n), favorite: true })),
-      ...recent.map((n) => ({ slot: catalog.getSlot(n), favorite: false }))
-    ].filter((item) => item.slot);
-    this.index = 0;
-    this.time = 0;
-  }
-
-  handleAction({ action, pressed, repeat }) {
-    if (!pressed) return;
-    const e = this.engine;
-    const count = this.items.length;
-    switch (action) {
-      case ACTIONS.UP:
-        if (count) this.index = (this.index + count - 1) % count;
-        e.sound.sfx('move');
-        break;
-      case ACTIONS.DOWN:
-        if (count) this.index = (this.index + 1) % count;
-        e.sound.sfx('move');
-        break;
-      case ACTIONS.A:
-        if (repeat || !count) return;
-        e.sound.sfx('confirm');
-        e.menu.jumpTo(this.items[this.index].slot.number);
-        e.openLaunch(this.items[this.index].slot);
-        break;
-      case ACTIONS.B:
-      case ACTIONS.START:
-        if (repeat) return;
-        e.sound.sfx('back');
-        e.closeToMenu();
-        break;
-      default:
-        break;
-    }
-  }
-
-  update(dt) {
-    this.time += dt;
-  }
-
-  render(g) {
-    const cx = SCREEN_WIDTH / 2;
-    g.clear();
-    g.rect(0, 0, SCREEN_WIDTH, 13, 'ink');
-    g.text('MIS JUEGOS', cx, 4, { align: 'center', color: 'bg' });
-
-    if (!this.items.length) {
-      g.text('TODAVIA NO HAY NADA', cx, 70, { align: 'center' });
-      g.text('LOS JUEGOS QUE JUEGUES', cx, 88, { align: 'center', color: 'mid' });
-      g.text('APARECEN AQUI. PARA FIJAR', cx, 96, { align: 'center', color: 'mid' });
-      g.text('UNO, MARCALO FAVORITO EN', cx, 104, { align: 'center', color: 'mid' });
-      g.text('LA PANTALLA PREPARADO.', cx, 112, { align: 'center', color: 'mid' });
-      g.text('B VOLVER', cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
-      return;
-    }
-
-    const first = Math.max(0, Math.min(this.items.length - LIST_VISIBLE, this.index - Math.floor(LIST_VISIBLE / 2)));
-    const favoritesCount = this.items.filter((item) => item.favorite).length;
-    this.items.forEach((item, i) => {
-      if (i < first || i >= first + LIST_VISIBLE) return;
-      const y = LIST_TOP + (i - first) * LIST_ROW;
-      const selected = i === this.index;
-      if (selected) {
-        g.rect(4, y - 3, SCREEN_WIDTH - 8, LIST_ROW - 1, 'ghost');
-        g.text('▶', 7, y, { color: Math.floor(this.time * 4) % 2 ? 'ink' : 'mid' });
-      }
-      const { slot } = item;
-      g.text(item.favorite ? '♥' : ' ', 14, y, { color: 'magenta' });
-      g.text(slot.code, 21, y, { color: slot.engine.color });
-      g.text(`${slot.engine.name} ${slot.label}`, 32, y, { color: selected ? 'ink' : 'mid' });
-      if (i === favoritesCount && favoritesCount > 0) g.rect(14, y - 4, SCREEN_WIDTH - 28, 1, 'mid');
-    });
-    g.text('♥ FAVORITOS   RESTO: RECIENTES', cx, SCREEN_HEIGHT - 20, { align: 'center', color: 'mid' });
-    g.text('▲▼ ELEGIR  A JUGAR  B VOLVER', cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
   }
 }

@@ -363,6 +363,7 @@ export default class BlockDrop extends BaseCartridge {
       this.burst(FIELD_X + (COLS * CELL) / 2, FIELD_Y + y * CELL + 4, { color: 'yellow', count: 10, speed: 70, spread: Math.PI * 2 });
     }
     if (rows.length >= 4) {
+      this.track('tetris');
       this.sound.sfx('levelup');
       this.shake(3, 0.3);
       this.flash('white', 0.2, 0.5);
@@ -384,6 +385,7 @@ export default class BlockDrop extends BaseCartridge {
     }
     const before = this.lines;
     this.lines += rows.length;
+    this.track('lines', rows.length);
 
     if (this.config.goalLines > 0 && this.lines >= this.config.goalLines) {
       const bonus = Math.max(0, Math.round(6000 - this.time * 25));

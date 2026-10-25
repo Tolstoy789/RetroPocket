@@ -326,6 +326,7 @@ export default class TankBattle extends BaseCartridge {
         e.dead = 0.5;
         this.destroyed++;
         this.addScore(100 * this.level);
+        this.track('tanks');
         this.sound.sfx('explode');
         this.shake(2, 0.2);
         this.input.vibrate('medium');
@@ -408,6 +409,7 @@ export default class TankBattle extends BaseCartridge {
     if (this.destroyed >= this.config.enemyCount && !this.stageClear && this.baseAlive) {
       this.stageClear = { timer: 0 };
       this.addScore(1000 * this.level);
+      this.track('stages');
       this.sound.melody('start');
     }
   }

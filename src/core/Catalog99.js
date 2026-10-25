@@ -578,6 +578,8 @@ function wrapText(text, maxChars) {
 }
 
 const POSITIONS = TOTAL_SLOTS + 1;
+// Llama de la racha del desafío diario (el mismo dibujo que el logro RACHA DE 7).
+const STREAK_FLAME = ['...#...', '..##...', '..###..', '.##+##.', '.#+++#.', '.#+++#.', '..###..'];
 
 export class CatalogMenu {
   constructor(engine, catalog, initialSlot = 1) {
@@ -613,9 +615,10 @@ export class CatalogMenu {
     this.descLines = wrapText(slot.desc, 34).slice(0, 2);
     this.completed = this.catalog.completedCount(storage);
     this.favorite = !slot.daily && storage.isFavorite(slot.number);
+    this.streak = slot.daily && this.engine.progress ? this.engine.progress.streakInfo() : null;
   }
 
-  /** Coloca el menú en un slot (por ejemplo, al elegirlo en MIS JUEGOS). */
+  /** Coloca el menú en un slot (por ejemplo, al elegirlo en la pestaña JUEGOS). */
   jumpTo(number) {
     this.index = Math.max(0, Math.min(TOTAL_SLOTS, number));
     this.slide = 0;
@@ -678,7 +681,7 @@ export class CatalogMenu {
         break;
       case ACTIONS.START:
         sound.sfx('select');
-        this.engine.openMyGames();
+        this.engine.openHub();
         break;
       case ACTIONS.B:
         sound.sfx('select');
@@ -720,6 +723,13 @@ export class CatalogMenu {
     g.text(slot.code, cx + Math.round(this.slide), numberY, { align: 'center', scale: 5, color: slot.daily ? 'yellow' : engineDef.color });
     g.text('◀', 12, numberY + 6, { scale: 2, color: this.arrowFlash.left > 0 ? 'ink' : 'mid' });
     g.text('▶', SCREEN_WIDTH - 18, numberY + 6, { scale: 2, color: this.arrowFlash.right > 0 ? 'ink' : 'mid' });
+
+    // Racha del desafío diario junto al número
+    if (this.streak && this.streak.current > 0) {
+      const sx = SCREEN_WIDTH - 24;
+      g.sprite(STREAK_FLAME, sx, numberY + 18, { colors: { '#': 'orange', '+': 'yellow' } });
+      g.text(String(this.streak.current), sx + 3, numberY + 27, { align: 'center', color: this.streak.playedToday ? 'ink' : 'mid' });
+    }
 
     // Nombre del motor y variante
     if (slot.daily) {
@@ -766,6 +776,6 @@ export class CatalogMenu {
 
     // Ayuda de controles
     g.text('◀▶ JUEGO   ▲▼ MOTOR   A JUGAR', cx, 175, { align: 'center', color: 'mid' });
-    g.text('B OPCIONES   START MIS JUEGOS', cx, 184, { align: 'center', color: 'mid' });
+    g.text('B OPCIONES  START JUEGOS Y LOGROS', cx, 184, { align: 'center', color: 'mid' });
   }
 }

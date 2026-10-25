@@ -8,9 +8,13 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Estrellas** (1-3 por slot), contador de juegos superados X/99 y **tabla top 5 con iniciales** en cada slot.
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
-- **Favoritos y MIS JUEGOS:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
+- **Favoritos y recientes:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
+- **37 logros con vitrina:** 17 generales (estrellas, horas de juego, rachas, explorar los 10 motores...) y 2 por motor (*Cuatro de golpe*, *Festín*, *Jefe caído*...). Cada uno tiene su icono dibujado en la matriz LCD y suena una fanfarria propia al conseguirlo.
+- **Racha del desafío diario:** días seguidos jugando el slot 00, calendario del mes con los días jugados y estrellas especiales a los 7 y 30 días.
+- **Estadísticas:** tiempo jugado total y por motor, partidas, récords batidos, motor favorito y contadores acumulados (líneas, fantasmas, ladrillos, naves...).
+- **Colores de carcasa desbloqueables:** 6 colores para la carcasa *Retro* y 4 tintes para la *Cristal*, como premio de algunos logros.
 - **Block Drop con reglas modernas:** guardar pieza (A+B), 3 piezas siguientes, bolsa de 7 y giros con los empujes estándar.
-- **Copia de seguridad:** Opciones → *Copiar récords* genera un código con récords, ajustes y favoritos; *Pegar récords* lo restaura en otro móvil.
+- **Copia de seguridad:** Opciones → *Copiar récords* genera un código con récords, ajustes, favoritos, logros, racha y estadísticas; *Pegar récords* lo restaura en otro móvil.
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
@@ -121,9 +125,18 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 | Volumen (OFF / LOW / HIGH) | SOUND | M | Select |
 | Volver al menú | RESET | Retroceso, Esc | Home |
 
-**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **MIS JUEGOS** (favoritos y recientes).
+**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **juegos y logros** (ver abajo).
 
 **PREPARADO:** ▲ ▼ eligen VELOCIDAD, NIVEL o FAVORITO, ◀ ▶ los cambian y A o START empiezan la partida. Se recuerda la última elección de cada motor. El desafío diario se juega directamente, sin cambios, para que sea igual para todos.
+
+**Juegos y logros (START en el menú):** ◀ ▶ cambian de pestaña y B o START vuelven al menú.
+
+| Pestaña | Qué hay | Controles |
+|---|---|---|
+| JUEGOS | Favoritos (♥) y últimos juegos jugados | ▲ ▼ eligen, A abre PREPARADO |
+| LOGROS | Vitrina con los 37 logros: icono, descripción, progreso, fecha y premio | ▲ ▼ recorren la vitrina |
+| RACHA | Días seguidos con el desafío diario, mejor racha, estrellas de 7 y 30 días y calendario del mes | ▲ ▼ cambian de mes, A juega el desafío de hoy |
+| DATOS | Tiempo jugado (total y por motor), partidas, estrellas, motor favorito y contadores | ▲ ▼ desplazan |
 
 **Opciones:** ▲ ▼ eligen, ◀ ▶ (o A) cambian el valor, B vuelve. Todo se guarda al momento.
 
@@ -147,7 +160,7 @@ Pensada para sesiones largas con una o dos manos:
 
 ## Temas visuales
 
-Un tema es solo una "piel": `ConsoleEngine.setTheme()` cambia la carcasa, la pantalla y el sonido, y nada de la lógica de juego. En **Opciones → Tema**, ◀▶ cambia de tema al momento y **A** abre la **galería**: al moverte, la consola entera se viste con el tema (carcasa, pantalla y sonido); **A** lo guarda y **B** vuelve al que tenías.
+Un tema es solo una "piel": `ConsoleEngine.setTheme()` cambia la carcasa, la pantalla y el sonido, y nada de la lógica de juego. En **Opciones → Tema**, ◀▶ cambia de tema al momento y **A** abre la **galería**: al moverte con ◀▶, la consola entera se viste con el tema (carcasa, pantalla y sonido); en *Retro* y *Cristal*, ▲▼ prueban los colores de carcasa; **A** lo guarda y **B** vuelve al que tenías.
 
 | Tema | Carcasa | Pantalla | Sonido |
 |---|---|---|---|
@@ -163,9 +176,37 @@ Un tema es solo una "piel": `ConsoleEngine.setTheme()` cambia la carcasa, la pan
 | Papel | Libreta de rayas | Tinta de bolígrafo sobre cuadrícula | Pulso seco |
 | Estacional | Otoño (sep-nov), invierno (dic-feb), primavera (mar-may) o verano (jun-ago) | Paleta de la estación | Jingle de la estación al encender |
 
+### Colores de carcasa
+
+Algunos logros regalan un color nuevo de carcasa. En la galería se pueden ver todos, pero los bloqueados solo se guardan al conseguir su logro (la galería dice cuál).
+
+| Carcasa | Color | Logro que lo desbloquea |
+|---|---|---|
+| Retro | Amarilla | De serie |
+| Retro | Roja (con A y B azul marino) | Primera estrella |
+| Retro | Azul | Explorador (juega a los 10 motores) |
+| Retro | Verde | 30 estrellas |
+| Retro | Blanca | Cien partidas |
+| Retro | Negra | 100 estrellas |
+| Retro | Dorada (con brillo metálico) | Los 99 (juega los 99 slots) |
+| Cristal | Violeta | De serie |
+| Cristal | Hielo | Racha de 7 |
+| Cristal | Menta | Maratón (1 hora de juego) |
+| Cristal | Fuego | Diez perfectos (3 estrellas en 10 slots) |
+| Cristal | Humo | Racha de 30 |
+
 La opción **Daltonismo** cambia los colores de los temas a color (Futurista, Arcade, Vaporwave, Papel y Estacional) por una paleta Okabe-Ito distinguible con protanopía y deuteranopía. **Botones grandes** agranda la cruceta y los botones táctiles.
 
-Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `gfx.cell()`; cada tema decide cómo se ven. Los temas están en `src/core/Themes.js`: paleta, estilo de celda (`brick`, `neon`, `solid` o `sketch`), timbre de `SoundChip` y rótulos de la carcasa. Si un motor necesita dibujar distinto según la pantalla, puede mirar `gfx.palette.colorful` (los colores se distinguen entre sí) y `gfx.palette.dark` (fondo oscuro). La carcasa se controla con los atributos `data-skin` y `data-season` de `<html>` en `console.css`.
+Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `gfx.cell()`; cada tema decide cómo se ven. Los temas están en `src/core/Themes.js`: paleta, estilo de celda (`brick`, `neon`, `solid` o `sketch`), timbre de `SoundChip` y rótulos de la carcasa. Si un motor necesita dibujar distinto según la pantalla, puede mirar `gfx.palette.colorful` (los colores se distinguen entre sí) y `gfx.palette.dark` (fondo oscuro). La carcasa se controla con los atributos `data-skin`, `data-season` y `data-shell` de `<html>` en `console.css`.
+
+## Logros, racha y estadísticas
+
+`src/core/Progress.js` lleva las estadísticas, los logros y la racha. La consola le avisa del inicio y el fin de cada partida y del tiempo jugado (sin contar la pausa ni el modo demo), y los motores le envían sus contadores con dos llamadas de `BaseCartridge`:
+
+- `this.track('lines', 4)` suma a un contador (en la partida y en el total).
+- `this.peak('kmh', 180)` guarda una mejor marca.
+
+Los logros están en `src/core/Achievements.js`: cada uno mira una estadística (`games`, `stars`, `streak`, `total:lines`, `best:kmh`...) y se desbloquea al llegar a su meta. Todo se guarda en `localStorage` con `saveExtra()`, así que entra en la copia de seguridad. La racha cuenta los días en que terminas el desafío diario y sigue viva hasta el final del día siguiente.
 
 ## Estructura
 
@@ -178,12 +219,15 @@ retropocket-99in1/
 │   │   ├── ConsoleEngine.js   # Bucle de paso fijo, estados, canvas, Gfx y efectos (FxLayer)
 │   │   ├── SoundChip.js       # Sintetizador 8-bit y música en bucle (Web Audio API)
 │   │   ├── InputManager.js    # Multitáctil, teclado, mandos y vibración
-│   │   ├── StorageManager.js  # Récords (top 5 con iniciales) y ajustes en localStorage
+│   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes y datos extra en localStorage
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario y menú de selección
-│   │   ├── Themes.js          # Los 11 temas: paletas, estilo de celda, sonido y rótulos
-│   │   ├── ThemeGallery.js    # Galería de temas con vista previa
+│   │   ├── Themes.js          # Los 11 temas (paletas, celdas, sonido, rótulos) y colores de carcasa
+│   │   ├── ThemeGallery.js    # Galería de temas y carcasas con vista previa
+│   │   ├── Progress.js        # Estadísticas, logros y racha del desafío diario
+│   │   ├── Achievements.js    # Los 37 logros: meta, icono y descripción
+│   │   ├── HubScreen.js       # START en el menú: JUEGOS, LOGROS, RACHA y DATOS
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
-│   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, controles) y MIS JUEGOS
+│   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, controles y favorito)
 │   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa y portapapeles
 │   │   └── BootScenes.js      # Las 3 animaciones de arranque y su turno de 2 días
 │   ├── games/
@@ -257,7 +301,7 @@ export default class CyberSnake extends BaseCartridge {
 }
 ```
 
-Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño.
+Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()`, las estadísticas `track()` y `peak()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño.
 
 ## Licencia
 

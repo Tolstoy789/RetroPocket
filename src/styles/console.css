@@ -806,8 +806,33 @@ button:focus-visible {
 
 /* ---------- Modo cristal (carcasa translúcida) ---------- */
 
+/* El tinte del plástico va en variables para que los colores desbloqueables (data-shell) lo cambien. */
+[data-skin="crystal"] {
+  --glass-hi: rgba(190, 160, 255, 0.55);
+  --glass-mid: rgba(120, 80, 200, 0.5);
+  --glass-low: rgba(70, 40, 130, 0.6);
+  --glass-deep: rgba(60, 30, 120, 0.8);
+  --glass-edge: rgba(50, 25, 100, 0.6);
+  --glass-tint: rgba(160, 130, 230, 0.45);
+  --glass-btn: rgba(200, 170, 255, 0.6);
+  --glass-btn-low: rgba(110, 70, 190, 0.75);
+  --glass-sys: rgba(150, 120, 220, 0.6);
+  --glass-bezel-a: rgba(40, 30, 70, 0.85);
+  --glass-bezel-b: rgba(25, 18, 45, 0.9);
+  --glass-text: #d8ccff;
+  --glass-accent: #b9a6ff;
+  --glass-label: #f1ebff;
+  --glass-speaker: rgba(30, 15, 60, 0.35);
+  --glass-page-a: #3a2d5c;
+  --glass-page-b: #140f22;
+  --glass-led: #7dffb0;
+  --tag-bg: rgba(255, 255, 255, 0.85);
+  --tag-fg: #3a2266;
+  --tag-glow: transparent;
+}
+
 [data-skin="crystal"] body {
-  background: radial-gradient(circle at 50% 25%, #3a2d5c 0%, #140f22 75%);
+  background: radial-gradient(circle at 50% 25%, var(--glass-page-a) 0%, var(--glass-page-b) 75%);
 }
 
 [data-skin="crystal"] .console {
@@ -818,51 +843,45 @@ button:focus-visible {
     linear-gradient(90deg, transparent 0 74%, rgba(120, 255, 190, 0.14) 74% 74.6%, transparent 74.6% 100%),
     radial-gradient(circle at 30% 70%, rgba(40, 120, 70, 0.35) 0 9%, transparent 9.5%),
     radial-gradient(circle at 72% 64%, rgba(40, 120, 70, 0.3) 0 7%, transparent 7.5%),
-    linear-gradient(160deg, rgba(190, 160, 255, 0.55) 0%, rgba(120, 80, 200, 0.5) 50%, rgba(70, 40, 130, 0.6) 100%);
+    linear-gradient(160deg, var(--glass-hi) 0%, var(--glass-mid) 50%, var(--glass-low) 100%);
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.25),
-    inset 0 -6px 0 rgba(50, 25, 100, 0.6),
+    inset 0 -6px 0 var(--glass-edge),
     0 20px 50px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(2px);
 }
 
 [data-skin="crystal"] .bezel {
-  background: linear-gradient(180deg, rgba(40, 30, 70, 0.85) 0%, rgba(25, 18, 45, 0.9) 100%);
+  background: linear-gradient(180deg, var(--glass-bezel-a) 0%, var(--glass-bezel-b) 100%);
 }
 
 [data-skin="crystal"] .bezel__label {
-  color: #d8ccff;
+  color: var(--glass-text);
 }
 
 [data-skin="crystal"] .bezel__label::after {
-  background: linear-gradient(90deg, #ffffff 0 50%, #b9a6ff 50% 100%);
+  background: linear-gradient(90deg, #ffffff 0 50%, var(--glass-accent) 50% 100%);
   opacity: 0.6;
 }
 
 [data-skin="crystal"] .bezel__led.is-on {
-  background: #7dffb0;
-  box-shadow: 0 0 8px #7dffb0;
+  background: var(--glass-led);
+  box-shadow: 0 0 8px var(--glass-led);
 }
 
 [data-skin="crystal"] .brand {
   color: #ffffff;
-  text-shadow: 0 1px 0 rgba(60, 30, 120, 0.6);
+  text-shadow: 0 1px 0 var(--glass-edge);
 }
 
 [data-skin="crystal"] .brand__model {
   color: #ffe08a;
 }
 
-[data-skin="crystal"] {
-  --tag-bg: rgba(255, 255, 255, 0.85);
-  --tag-fg: #3a2266;
-  --tag-glow: transparent;
-}
-
 [data-skin="crystal"] .dpad__btn,
 [data-skin="crystal"] .dpad__center {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(160, 130, 230, 0.45) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, var(--glass-tint) 100%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
 }
 
@@ -881,29 +900,196 @@ button:focus-visible {
 
 [data-skin="crystal"] .action-btn {
   color: rgba(255, 255, 255, 0.9);
-  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.75) 0%, rgba(200, 170, 255, 0.6) 40%, rgba(110, 70, 190, 0.75) 100%);
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.75) 0%, var(--glass-btn) 40%, var(--glass-btn-low) 100%);
   box-shadow:
-    0 4px 0 rgba(60, 30, 120, 0.8),
+    0 4px 0 var(--glass-deep),
     0 7px 10px rgba(0, 0, 0, 0.35);
 }
 
 [data-skin="crystal"] .action-btn.is-pressed {
   box-shadow:
-    0 1px 0 rgba(60, 30, 120, 0.8),
+    0 1px 0 var(--glass-deep),
     0 2px 4px rgba(0, 0, 0, 0.35);
 }
 
 [data-skin="crystal"] .system-btn {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(150, 120, 220, 0.6) 100%);
-  box-shadow: 0 3px 0 rgba(60, 30, 120, 0.8);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, var(--glass-sys) 100%);
+  box-shadow: 0 3px 0 var(--glass-deep);
 }
 
 [data-skin="crystal"] .system__label {
-  color: #f1ebff;
+  color: var(--glass-label);
 }
 
 [data-skin="crystal"] .speaker span {
-  background: rgba(30, 15, 60, 0.35);
+  background: var(--glass-speaker);
+}
+
+/* =====================================================================
+   COLORES DE CARCASA DESBLOQUEABLES (data-shell, ver SHELLS en Themes.js)
+   Retro: cambia el plástico; Cristal: cambia el tinte del plástico translúcido.
+   ===================================================================== */
+
+[data-skin="retro"][data-shell="red"] {
+  --shell: #d8443a;
+  --shell-light: #ee6d5f;
+  --shell-dark: #a52a22;
+  --shell-shadow: #6e1712;
+  --label: #4a0f0b;
+  --brand: #1d2a66;
+  --btn-red: #2c3049;
+  --btn-red-dark: #14162a;
+}
+
+/* En la roja, los botones A y B son azul marino para que no se pierdan sobre la carcasa. */
+[data-skin="retro"][data-shell="red"] .action-btn {
+  background: radial-gradient(circle at 35% 30%, #6c7499 0%, var(--btn-red) 45%, var(--btn-red-dark) 100%);
+}
+
+[data-skin="retro"][data-shell="blue"] {
+  --shell: #3a6fd8;
+  --shell-light: #6b97ef;
+  --shell-dark: #2550a8;
+  --shell-shadow: #15306e;
+  --label: #0d1f4a;
+  --brand: #fff2b8;
+}
+
+[data-skin="retro"][data-shell="green"] {
+  --shell: #4fae4a;
+  --shell-light: #7dd071;
+  --shell-dark: #357d31;
+  --shell-shadow: #1e4a1b;
+  --label: #10300e;
+  --brand: #1d2a66;
+}
+
+[data-skin="retro"][data-shell="white"] {
+  --shell: #e9e7e1;
+  --shell-light: #ffffff;
+  --shell-dark: #bdb9ae;
+  --shell-shadow: #85817a;
+  --label: #4a4740;
+  --brand: #283a8c;
+}
+
+[data-skin="retro"][data-shell="black"] {
+  --shell: #2a2b31;
+  --shell-light: #46474f;
+  --shell-dark: #17181c;
+  --shell-shadow: #050506;
+  --label: #b8bac8;
+  --brand: #e5c33a;
+}
+
+[data-skin="retro"][data-shell="black"] .brand {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+[data-skin="retro"][data-shell="black"] .brand__model {
+  color: #f06b6d;
+}
+
+[data-skin="retro"][data-shell="gold"] {
+  --shell: #d9a520;
+  --shell-light: #f6d77a;
+  --shell-dark: #a4760c;
+  --shell-shadow: #6a4a05;
+  --label: #4a3304;
+  --brand: #5b1d1d;
+}
+
+/* El dorado lleva un brillo metálico en diagonal. */
+[data-skin="retro"][data-shell="gold"] .console {
+  background: linear-gradient(160deg, #fff1b8 0%, #e7b730 22%, #c08a12 46%, #f3cf5c 64%, #b88410 84%, #8e6306 100%);
+}
+
+[data-skin="crystal"][data-shell="ice"] {
+  --glass-hi: rgba(205, 242, 255, 0.6);
+  --glass-mid: rgba(110, 190, 235, 0.5);
+  --glass-low: rgba(45, 115, 175, 0.62);
+  --glass-deep: rgba(20, 70, 120, 0.8);
+  --glass-edge: rgba(20, 70, 120, 0.6);
+  --glass-tint: rgba(140, 210, 245, 0.45);
+  --glass-btn: rgba(170, 228, 255, 0.6);
+  --glass-btn-low: rgba(50, 130, 195, 0.75);
+  --glass-sys: rgba(120, 195, 235, 0.6);
+  --glass-bezel-a: rgba(20, 45, 70, 0.85);
+  --glass-bezel-b: rgba(10, 25, 42, 0.9);
+  --glass-text: #cdefff;
+  --glass-accent: #8fd8ff;
+  --glass-label: #effaff;
+  --glass-speaker: rgba(10, 40, 70, 0.35);
+  --glass-page-a: #24475e;
+  --glass-page-b: #0a1620;
+  --glass-led: #9ff3ff;
+  --tag-fg: #164a72;
+}
+
+[data-skin="crystal"][data-shell="mint"] {
+  --glass-hi: rgba(195, 255, 225, 0.58);
+  --glass-mid: rgba(90, 205, 150, 0.5);
+  --glass-low: rgba(30, 125, 90, 0.62);
+  --glass-deep: rgba(10, 80, 55, 0.8);
+  --glass-edge: rgba(10, 80, 55, 0.6);
+  --glass-tint: rgba(130, 225, 180, 0.45);
+  --glass-btn: rgba(160, 240, 200, 0.6);
+  --glass-btn-low: rgba(35, 140, 100, 0.75);
+  --glass-sys: rgba(110, 210, 165, 0.6);
+  --glass-bezel-a: rgba(18, 55, 42, 0.85);
+  --glass-bezel-b: rgba(8, 32, 24, 0.9);
+  --glass-text: #cbffe6;
+  --glass-accent: #8cf0bf;
+  --glass-label: #effff6;
+  --glass-speaker: rgba(10, 60, 40, 0.35);
+  --glass-page-a: #1f4a39;
+  --glass-page-b: #0a1812;
+  --glass-led: #d6ff7d;
+  --tag-fg: #145a3c;
+}
+
+[data-skin="crystal"][data-shell="fire"] {
+  --glass-hi: rgba(255, 215, 150, 0.6);
+  --glass-mid: rgba(240, 115, 60, 0.52);
+  --glass-low: rgba(160, 40, 30, 0.64);
+  --glass-deep: rgba(105, 22, 12, 0.8);
+  --glass-edge: rgba(105, 22, 12, 0.6);
+  --glass-tint: rgba(250, 160, 110, 0.45);
+  --glass-btn: rgba(255, 185, 130, 0.62);
+  --glass-btn-low: rgba(185, 55, 35, 0.75);
+  --glass-sys: rgba(240, 140, 90, 0.6);
+  --glass-bezel-a: rgba(65, 22, 14, 0.85);
+  --glass-bezel-b: rgba(38, 12, 8, 0.9);
+  --glass-text: #ffe0c6;
+  --glass-accent: #ffb27a;
+  --glass-label: #fff3ea;
+  --glass-speaker: rgba(80, 20, 10, 0.35);
+  --glass-page-a: #5c2a1c;
+  --glass-page-b: #1a0a06;
+  --glass-led: #ffd36b;
+  --tag-fg: #7a2412;
+}
+
+[data-skin="crystal"][data-shell="smoke"] {
+  --glass-hi: rgba(225, 225, 235, 0.48);
+  --glass-mid: rgba(120, 120, 135, 0.52);
+  --glass-low: rgba(38, 38, 48, 0.72);
+  --glass-deep: rgba(12, 12, 18, 0.85);
+  --glass-edge: rgba(12, 12, 18, 0.6);
+  --glass-tint: rgba(170, 170, 185, 0.42);
+  --glass-btn: rgba(190, 190, 205, 0.58);
+  --glass-btn-low: rgba(55, 55, 68, 0.8);
+  --glass-sys: rgba(150, 150, 165, 0.58);
+  --glass-bezel-a: rgba(30, 30, 36, 0.88);
+  --glass-bezel-b: rgba(14, 14, 18, 0.92);
+  --glass-text: #e2e2ec;
+  --glass-accent: #a8a8bc;
+  --glass-label: #f2f2f8;
+  --glass-speaker: rgba(0, 0, 0, 0.4);
+  --glass-page-a: #2f2f38;
+  --glass-page-b: #0c0c10;
+  --glass-led: #ff6b6b;
+  --tag-fg: #2a2a33;
 }
 
 /* ---------- Bolsillo clásico: gris claro, cruceta negra y botones granate ---------- */

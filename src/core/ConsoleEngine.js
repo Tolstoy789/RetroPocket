@@ -1,15 +1,19 @@
 // src/core/ConsoleEngine.js
 // Corazón de la consola: bucle de juego con paso fijo (deltaTime), máquina de estados,
 // gestión del <canvas> (búfer de 144x192 escalado a toda la pantalla), la librería gráfica Gfx
-// (con los temas de Themes.js), la capa de efectos FxLayer y las pantallas de sistema.
+// (con los temas de Themes.js), la capa de efectos FxLayer, las pantallas de sistema y el aviso de
+// logros (Progress.js lleva las estadísticas, los logros y la racha del desafío diario).
 
 import { ACTIONS } from './InputManager.js';
 import { OptionsScreen, InitialsScreen, AttractScreen } from './Screens.js';
-import { LaunchScreen, MyGamesScreen } from './LaunchScreens.js';
+import { LaunchScreen } from './LaunchScreens.js';
+import { HubScreen } from './HubScreen.js';
 import { BOOT_DURATION, pickBootScene } from './BootScenes.js';
-import { THEMES, getTheme, normalizeTheme } from './Themes.js';
+import { THEMES, getTheme, normalizeTheme, shellsFor } from './Themes.js';
 import { ThemeGallery } from './ThemeGallery.js';
 import { SEASON_JINGLE_TIME } from './SoundChip.js';
+import { Progress } from './Progress.js';
+import { achievementColor } from './Achievements.js';
 
 /* global __APP_VERSION__ */
 export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'DEV';
@@ -24,7 +28,7 @@ export const STATES = Object.freeze({
   OPTIONS: 'options',
   THEMES: 'themes',
   LAUNCH: 'launch',
-  MYGAMES: 'mygames',
+  HUB: 'hub',
   ATTRACT: 'attract',
   DEMO: 'demo',
   INITIALS: 'initials',
@@ -412,6 +416,8 @@ const DEMO_DURATION = 25;
 const RESET_HOLD = 0.7; // segundos manteniendo RESET para salir de una partida
 const BREAK_EVERY = 30 * 60; // aviso de descanso cada 30 minutos de juego
 const MENU_IDLE_FOR_DEMO = 20;
+const BANNER_TIME = 3; // segundos que se ve el aviso de logro
+const BANNER_SLIDE = 0.18;
 
 // ---------------------------------------------------------------------------
 // FxLayer: sacudida de pantalla, destellos y partículas. Disponible para todos los cartuchos.
@@ -558,7 +564,10 @@ export class ConsoleEngine {
     this.resetHold = 0;
     this.playTime = 0;
     this.breakNotice = false;
+    this.achievementQueue = [];
+    this.banner = null;
 
+    this.progress = new Progress(storage, catalog);
     this.settings = storage.getSettings();
     this.applySettings();
 
@@ -566,7 +575,7 @@ export class ConsoleEngine {
     this.options = new OptionsScreen(this);
     this.themeGallery = new ThemeGallery(this);
     this.launchScreen = new LaunchScreen(this);
-    this.myGames = new MyGamesScreen(this);
+    this.hub = new HubScreen(this);
     this.initials = new InitialsScreen(this);
     this.attract = new AttractScreen(this);
 
@@ -706,10 +715,12 @@ export class ConsoleEngine {
   }
 
   /**
-   * Aplica un tema a la pantalla, la carcasa (atributos data-skin y data-season), los rótulos de la
-   * carcasa y el sonido. No lo guarda: la galería lo usa para la vista previa.
+   * Aplica un tema a la pantalla, la carcasa (atributos data-skin, data-season y data-shell), los
+   * rótulos de la carcasa y el sonido. No lo guarda: la galería lo usa para la vista previa.
+   * @param {string} theme
+   * @param {string} [shell] Color de carcasa (SHELLS en Themes.js); por defecto, el guardado.
    */
-  setTheme(theme) {
+  setTheme(theme, shell = this.savedShell(theme)) {
     this.gfx.setTheme(theme);
     this.theme = this.gfx.theme;
     const def = this.gfx.themeDef;
@@ -718,6 +729,10 @@ export class ConsoleEngine {
     root.dataset.skin = this.theme;
     if (def.season) root.dataset.season = def.season;
     else delete root.dataset.season;
+    const shells = shellsFor(this.theme);
+    this.shell = shells.some((s) => s.id === shell) ? shell : shells[0]?.id || '';
+    if (shells.length && this.shell !== shells[0].id) root.dataset.shell = this.shell;
+    else delete root.dataset.shell;
     this.screenEl.style.background = this.gfx.palette.bg;
     this.sound.setFlavor(def.sound);
     const label = document.getElementById('bezel-text');
@@ -729,6 +744,27 @@ export class ConsoleEngine {
     }
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', def.chrome);
+  }
+
+  /** Color de carcasa guardado para un tema ('' = el de serie; también si está bloqueado). */
+  savedShell(theme) {
+    const id = normalizeTheme(theme);
+    const shell = this.settings?.shells?.[id];
+    return shell && this.progress.isShellUnlocked(id, shell) ? shell : '';
+  }
+
+  /** Guarda el color de carcasa de un tema. */
+  saveShell(theme, shell) {
+    this.updateSetting('shells', { ...(this.settings.shells || {}), [normalizeTheme(theme)]: shell });
+  }
+
+  /** Tras restaurar una copia de seguridad: recarga logros y estadísticas y la carcasa elegida. */
+  onDataImported() {
+    this.progress.load();
+    this.achievementQueue = [];
+    this.banner = null;
+    this.setTheme(this.settings.theme);
+    this.menu.onEnter();
   }
 
   /** Pasa al tema siguiente o al anterior y lo guarda. */
@@ -800,13 +836,13 @@ export class ConsoleEngine {
     this._setState(STATES.LAUNCH);
   }
 
-  /** MIS JUEGOS: favoritos y recientes. */
-  openMyGames() {
-    this.myGames.onEnter();
-    this._setState(STATES.MYGAMES);
+  /** START en el menú: JUEGOS (favoritos y recientes), LOGROS, RACHA y DATOS. */
+  openHub(tab = 'games') {
+    this.hub.open(tab);
+    this._setState(STATES.HUB);
   }
 
-  /** Vuelve al menú sin tocar la música (desde PREPARADO o MIS JUEGOS). */
+  /** Vuelve al menú sin tocar la música (desde PREPARADO o la pantalla de START). */
   closeToMenu() {
     this.menu.onEnter();
     this._setState(STATES.MENU);
@@ -882,6 +918,7 @@ export class ConsoleEngine {
       this._setState(STATES.DEMO);
       return;
     }
+    this.progress.onGameStart(slot);
     this.sound.melody('start');
     this.sound.playMusic(slot.engine.id);
     this._setState(STATES.PLAYING);
@@ -931,6 +968,7 @@ export class ConsoleEngine {
       previousStars: this.catalog.starsFor(slot, previousBest),
       table: this.storage.getScores(slot.key)
     };
+    this.progress.onGameEnd(slot, this.result, previousBest);
     this.sound.stopMusic();
     if (submit.isHighScore) {
       this.sound.melody('record');
@@ -968,6 +1006,7 @@ export class ConsoleEngine {
     }
     this.cartridge = null;
     this.result = null;
+    this.progress.endSession();
     this.sound.stopEffects();
   }
 
@@ -1041,8 +1080,8 @@ export class ConsoleEngine {
         this.launchScreen.handleAction(e);
         break;
 
-      case STATES.MYGAMES:
-        this.myGames.handleAction(e);
+      case STATES.HUB:
+        this.hub.handleAction(e);
         break;
 
       case STATES.INITIALS:
@@ -1108,6 +1147,7 @@ export class ConsoleEngine {
     if (document.hidden) {
       this.input.releaseAll();
       this.pause();
+      if (this.progress.dirty) this.progress.save();
       this.sound.suspend();
       this.platform?.suspend();
     } else {
@@ -1133,7 +1173,7 @@ export class ConsoleEngine {
         this.themeGallery.cancel();
         return true;
       case STATES.LAUNCH:
-      case STATES.MYGAMES:
+      case STATES.HUB:
         this.closeToMenu();
         return true;
       case STATES.INITIALS:
@@ -1177,8 +1217,8 @@ export class ConsoleEngine {
       case STATES.LAUNCH:
         this.launchScreen.update(dt);
         break;
-      case STATES.MYGAMES:
-        this.myGames.update(dt);
+      case STATES.HUB:
+        this.hub.update(dt);
         break;
       case STATES.INITIALS:
         this.initials.update(dt);
@@ -1196,6 +1236,7 @@ export class ConsoleEngine {
         break;
       case STATES.PLAYING:
         this._tickCartridge(dt, false);
+        this.progress.onPlayTick(dt);
         if (this.resetHold > 0) {
           this.resetHold += dt;
           if (this.resetHold >= RESET_HOLD) {
@@ -1216,9 +1257,26 @@ export class ConsoleEngine {
         break;
     }
 
+    this._updateBanner(dt);
+
     if (this.led) {
       const blink = this.state === STATES.PAUSED ? Math.floor(this.time * 2) % 2 === 0 : true;
       this.led.classList.toggle('is-on', this.state !== STATES.BOOT ? blink : this.stateTime > BOOT_LED_ON);
+    }
+  }
+
+  /** Aviso de logro: los recién conseguidos se muestran de uno en uno con su sonido. */
+  _updateBanner(dt) {
+    const fresh = this.progress.takeFresh();
+    if (fresh.length) this.achievementQueue.push(...fresh);
+    if (this.banner) {
+      this.banner.time += dt;
+      if (this.banner.time >= BANNER_TIME) this.banner = null;
+    }
+    if (!this.banner && this.achievementQueue.length && this.state !== STATES.BOOT) {
+      this.banner = { achievement: this.achievementQueue.shift(), time: 0 };
+      this.sound.sfx('achievement');
+      this.input.vibrate('light');
     }
   }
 
@@ -1254,8 +1312,8 @@ export class ConsoleEngine {
       case STATES.LAUNCH:
         this.launchScreen.render(g);
         break;
-      case STATES.MYGAMES:
-        this.myGames.render(g);
+      case STATES.HUB:
+        this.hub.render(g);
         break;
       case STATES.ATTRACT:
         this.attract.render(g);
@@ -1292,6 +1350,7 @@ export class ConsoleEngine {
       default:
         g.clear();
     }
+    this._renderBanner(g);
     this._renderToast(g);
   }
 
@@ -1431,6 +1490,24 @@ export class ConsoleEngine {
     g.text('CARTUCHO NO', SCREEN_WIDTH / 2, 98, { align: 'center', color: 'red' });
     g.text('INSERTADO', SCREEN_WIDTH / 2, 106, { align: 'center', color: 'red' });
     if (Math.floor(this.stateTime * 2) % 2 === 0) g.text('PULSA UN BOTON', SCREEN_WIDTH / 2, 124, { align: 'center' });
+  }
+
+  /** Aviso de logro: baja desde arriba con el icono y el nombre, y vuelve a subir. */
+  _renderBanner(g) {
+    const b = this.banner;
+    if (!b) return;
+    const a = b.achievement;
+    const h = 22;
+    const slide = Math.max(0, Math.min(1, b.time / BANNER_SLIDE, (BANNER_TIME - b.time) / BANNER_SLIDE));
+    const x = 3;
+    const y = Math.round(-h + slide * (h + 2));
+    const w = SCREEN_WIDTH - 6;
+    g.rect(x, y, w, h, 'bg');
+    g.frame(x, y, w, h, 'yellow');
+    g.frame(x + 2, y + 2, w - 4, h - 4, 'mid');
+    g.sprite(a.icon, x + 5, y + 4, { scale: 2, colors: { '#': achievementColor(a), '+': 'mid' } });
+    g.text('★ LOGRO DESBLOQUEADO', x + 23, y + 5, { color: 'yellow' });
+    g.text(a.name, x + 23, y + 13);
   }
 
   _renderToast(g) {

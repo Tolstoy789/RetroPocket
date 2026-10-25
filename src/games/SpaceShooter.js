@@ -362,6 +362,7 @@ export default class SpaceShooter extends BaseCartridge {
           this.destroyedInWave++;
           const bonus = e.state === 'dive' ? 2 : 1;
           this.addScore(e.points * bonus * this.level);
+          this.track('ships');
           this.sound.sfx('hit');
           this.burst(e.x + e.w / 2, e.y + e.h / 2, { color: ROW_COLORS[e.row % ROW_COLORS.length], count: 10, speed: 45 });
         }
@@ -394,6 +395,7 @@ export default class SpaceShooter extends BaseCartridge {
         if (b.hp <= 0) {
           this.boss = null;
           this.addScore(1000 * this.level);
+          this.track('bosses');
           this.sound.sfx('explode');
           this.shake(5, 0.6);
           this.flash('white', 0.3, 0.6);

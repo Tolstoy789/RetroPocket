@@ -21,7 +21,7 @@ function boot() {
   const storage = new StorageManager();
   const settings = storage.getSettings();
   const sound = new SoundChip({ volumeLevel: settings.volume });
-  const input = new InputManager({ root, dpad, actionsZone, haptics: settings.haptics });
+  const input = new InputManager({ root, dpad, actionsZone, screen, haptics: settings.haptics });
   const catalog = new Catalog99();
   const platform = new PlatformBridge();
 

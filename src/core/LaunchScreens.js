@@ -1,7 +1,7 @@
 // src/core/LaunchScreens.js
 // Pantalla entre el menú y la partida:
 //   LaunchScreen → "PREPARADO": controles del motor, VELOCIDAD (1-5) y NIVEL inicial (1-9) al estilo
-//                  de las Brick Game originales, y marcar el juego como favorito.
+//                  de las Brick Game originales, JUGADORES (1, o 2 por turnos) y marcar el juego como favorito.
 // Los favoritos y los últimos juegos están en la pestaña JUEGOS de HubScreen.js.
 
 import { ACTIONS } from './InputManager.js';
@@ -10,8 +10,11 @@ import { LAUNCH_SPEEDS, MAX_START_LEVEL } from './Catalog99.js';
 
 const ROW_SPEED = 0;
 const ROW_LEVEL = 1;
-const ROW_FAVORITE = 2;
-const ROWS = 3;
+const ROW_PLAYERS = 2;
+const ROW_FAVORITE = 3;
+const ROWS = 4;
+const ROW_TOP = 111;
+const ROW_H = 11;
 
 export class LaunchScreen {
   constructor(engine) {
@@ -21,6 +24,7 @@ export class LaunchScreen {
     this.time = 0;
     this.speed = 1;
     this.level = 1;
+    this.players = 1;
     this.favorite = false;
   }
 
@@ -32,6 +36,7 @@ export class LaunchScreen {
     const prefs = storage.getLaunchPrefs(slot.engine.id);
     this.speed = prefs.speed;
     this.level = prefs.level;
+    this.players = 1;
     this.favorite = storage.isFavorite(slot.number);
   }
 
@@ -41,6 +46,8 @@ export class LaunchScreen {
       this.speed = Math.max(1, Math.min(LAUNCH_SPEEDS.length, this.speed + dir));
     } else if (this.index === ROW_LEVEL) {
       this.level = Math.max(1, Math.min(MAX_START_LEVEL, this.level + dir));
+    } else if (this.index === ROW_PLAYERS) {
+      this.players = this.players === 1 ? 2 : 1;
     } else {
       this.favorite = e.storage.toggleFavorite(this.slot.number);
       e.toast(this.favorite ? 'AÑADIDO A FAVORITOS' : 'QUITADO DE FAVORITOS');
@@ -52,7 +59,9 @@ export class LaunchScreen {
   _play() {
     const e = this.engine;
     e.sound.sfx('confirm');
-    e.launch(e.catalog.customizeSlot(this.slot, { speed: this.speed, level: this.level }));
+    const slot = e.catalog.customizeSlot(this.slot, { speed: this.speed, level: this.level });
+    if (this.players === 2) e.startMatch(slot);
+    else e.launch(slot);
   }
 
   handleAction({ action, pressed, repeat }) {
@@ -69,7 +78,7 @@ export class LaunchScreen {
         break;
       case ACTIONS.LEFT:
       case ACTIONS.RIGHT:
-        if (repeat && this.index === ROW_FAVORITE) return;
+        if (repeat && (this.index === ROW_FAVORITE || this.index === ROW_PLAYERS)) return;
         this._change(action === ACTIONS.LEFT ? -1 : 1);
         break;
       case ACTIONS.A:
@@ -111,22 +120,23 @@ export class LaunchScreen {
     g.text('CONTROLES', cx, 78, { align: 'center', color: 'mid' });
     (engineDef.controls || []).forEach((line, i) => g.text(line, cx, 87 + i * 8, { align: 'center' }));
 
-    g.rect(8, 106, SCREEN_WIDTH - 16, 1, 'mid');
+    g.rect(8, 105, SCREEN_WIDTH - 16, 1, 'mid');
     const rows = [
       { label: 'VELOCIDAD', value: this.speed, max: LAUNCH_SPEEDS.length },
       { label: 'NIVEL', value: this.level, max: MAX_START_LEVEL },
-      { label: 'FAVORITO', text: this.favorite ? 'SI ♥' : 'NO' }
+      { label: 'JUGADORES', text: this.players === 2 ? '2 POR TURNOS' : '1', color: this.players === 2 ? 'cyan' : 'ink' },
+      { label: 'FAVORITO', text: this.favorite ? 'SI ♥' : 'NO', color: this.favorite ? 'magenta' : 'ink' }
     ];
     rows.forEach((row, i) => {
-      const y = 113 + i * 13;
+      const y = ROW_TOP + i * ROW_H;
       const selected = i === this.index;
       if (selected) {
-        g.rect(4, y - 3, SCREEN_WIDTH - 8, 11, 'ghost');
+        g.rect(4, y - 2, SCREEN_WIDTH - 8, ROW_H - 1, 'ghost');
         g.text('▶', 7, y, { color: Math.floor(this.time * 4) % 2 ? 'ink' : 'mid' });
       }
       g.text(row.label, 15, y, { color: selected ? 'ink' : 'mid' });
       if (row.text) {
-        g.text(row.text, SCREEN_WIDTH - 12, y, { align: 'right', color: this.favorite ? 'magenta' : 'ink' });
+        g.text(row.text, SCREEN_WIDTH - 12, y, { align: 'right', color: row.color });
       } else if (row.max <= 5) {
         for (let k = 0; k < row.max; k++) {
           const bx = SCREEN_WIDTH - 60 + k * 10;
@@ -144,9 +154,9 @@ export class LaunchScreen {
 
     const multiplier = 1 + (this.speed - 1) * 0.25;
     const bonus = multiplier > 1 ? `PUNTOS X${multiplier.toFixed(2).replace(/0$/, '')}` : 'PUNTOS NORMALES';
-    g.text(bonus, cx, 155, { align: 'center', color: multiplier > 1 ? 'yellow' : 'mid' });
+    g.text(bonus, cx, 158, { align: 'center', color: multiplier > 1 ? 'yellow' : 'mid' });
 
-    if (Math.floor(this.time * 2) % 2 === 0) g.text('A O START: ¡A JUGAR!', cx, 168, { align: 'center' });
+    if (Math.floor(this.time * 2) % 2 === 0) g.text('A O START: ¡A JUGAR!', cx, 169, { align: 'center' });
     g.text('▲▼ ELEGIR  ◀▶ CAMBIAR  B VOLVER', cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
   }
 }

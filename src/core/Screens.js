@@ -54,6 +54,8 @@ export class OptionsScreen {
         change: () => e.updateSetting('bigButtons', !e.settings.bigButtons)
       },
       { label: 'REPETICION', ...choice('repeat', ['slow', 'normal', 'fast'], ['LENTA', 'NORMAL', 'RAPIDA']) },
+      { label: 'GESTOS', ...toggle('gestures', (on) => on && e.toast('DESLIZA Y TOCA LA PANTALLA', 1.6)), hint: 'DESLIZAR = CRUCETA  TOCAR = A' },
+      { label: 'AUTODISPARO', ...toggle('autoFire'), hint: 'MANTEN A PARA DISPARAR SIN PARAR' },
       { label: 'CONTRASTE', ...choice('contrast', ['normal', 'high'], ['NORMAL', 'ALTO']) },
       { label: 'ESTELA LCD', ...toggle('ghosting') },
       { label: 'MUSICA', ...level('music') },

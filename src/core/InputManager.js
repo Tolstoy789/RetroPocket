@@ -72,6 +72,10 @@ const DPAD_DEAD_ZONE = 0.15;
 // Zona entre A y B (en proporción de la distancia B→A) donde el pulgar pulsa ambos a la vez.
 const AB_BOTH_FROM = 0.36;
 const AB_BOTH_TO = 0.64;
+// Gestos sobre la pantalla: el dedo hace de palanca a partir de esta distancia (proporción del ancho)
+// desde donde tocó, y un toque corto sin moverse es el botón A.
+const GESTURE_ZONE = 0.07;
+const GESTURE_TAP = 0.3;
 
 export class InputManager {
   /**
@@ -80,12 +84,16 @@ export class InputManager {
    * @param {HTMLElement} [options.dpad] Contenedor de la cruceta (permite deslizar el dedo entre direcciones).
    * @param {HTMLElement} [options.actionsZone] Zona de A/B: toda el área cuenta, se puede deslizar
    *   el pulgar de un botón a otro y el punto medio pulsa los dos a la vez.
+   * @param {HTMLElement} [options.screen] Pantalla: con los gestos activados, deslizar el dedo sobre ella
+   *   hace de cruceta y tocarla es el botón A.
    * @param {boolean} [options.haptics] Activar vibración al pulsar.
    */
-  constructor({ root, dpad = null, actionsZone = null, haptics = true } = {}) {
+  constructor({ root, dpad = null, actionsZone = null, screen = null, haptics = true } = {}) {
     this.root = root || document.body;
     this.dpad = dpad;
     this.actionsZone = actionsZone;
+    this.screen = screen;
+    this.gesturesEnabled = false;
     this.repeatDelay = REPEAT_SPEEDS.normal[0];
     this.repeatRate = REPEAT_SPEEDS.normal[1];
     this.hapticsEnabled = haptics;
@@ -211,6 +219,11 @@ export class InputManager {
 
   setHaptics(enabled) {
     this.hapticsEnabled = !!enabled;
+  }
+
+  /** Gestos sobre la pantalla (deslizar = cruceta, tocar = A). */
+  setGestures(enabled) {
+    this.gesturesEnabled = !!enabled;
   }
 
   /** Vibración corta. intensity: 'light' | 'medium' | 'heavy'. */
@@ -359,6 +372,9 @@ export class InputManager {
     } else if (this.actionsZone && this.actionsZone.contains(e.target)) {
       kind = 'ab';
       owner = this.actionsZone;
+    } else if (this.gesturesEnabled && this.screen && this.screen.contains(e.target)) {
+      kind = 'screen';
+      owner = this.screen;
     } else {
       owner = e.target.closest('[data-action]');
       if (owner) kind = 'button';
@@ -370,7 +386,7 @@ export class InputManager {
     } catch {
       // El puntero ya no existe.
     }
-    const entry = { kind, actions: [], button: kind === 'button' ? owner.dataset.action : null };
+    const entry = { kind, actions: [], button: kind === 'button' ? owner.dataset.action : null, x: e.clientX, y: e.clientY, time: performance.now(), moved: false };
     this.pointerActions.set(e.pointerId, entry);
     this._setPointerActions(e.pointerId, entry, this._actionsAt(entry, e));
   }
@@ -386,6 +402,11 @@ export class InputManager {
     if (!entry) return;
     this.pointerActions.delete(e.pointerId);
     this._setPointerActions(e.pointerId, entry, []);
+    // Un toque corto en la pantalla, sin arrastrar, es el botón A.
+    if (entry.kind === 'screen' && !entry.moved && e.type === 'pointerup' && performance.now() - entry.time < GESTURE_TAP * 1000) {
+      this._press(ACTIONS.A, `ptr:${e.pointerId}`);
+      this._release(ACTIONS.A, `ptr:${e.pointerId}`);
+    }
   }
 
   _actionsAt(entry, e) {
@@ -394,7 +415,34 @@ export class InputManager {
       return dir ? [dir] : [];
     }
     if (entry.kind === 'ab') return this._abActions(e);
+    if (entry.kind === 'screen') {
+      const dir = this._gestureDirection(entry, e);
+      return dir ? [dir] : [];
+    }
     return [entry.button];
+  }
+
+  /**
+   * Palanca virtual sobre la pantalla: la dirección es la del dedo respecto al punto de apoyo, que lo sigue
+   * si se aleja mucho (así se cambia de dirección sin volver al centro). Mantener el dedo desplazado es
+   * como mantener la cruceta, con la misma auto-repetición.
+   */
+  _gestureDirection(entry, e) {
+    const zone = Math.max(12, this.screen.getBoundingClientRect().width * GESTURE_ZONE);
+    let dx = e.clientX - entry.x;
+    let dy = e.clientY - entry.y;
+    const distance = Math.hypot(dx, dy);
+    const reach = zone * 2;
+    if (distance > reach) {
+      entry.x += dx * (1 - reach / distance);
+      entry.y += dy * (1 - reach / distance);
+      dx = e.clientX - entry.x;
+      dy = e.clientY - entry.y;
+    }
+    if (Math.hypot(dx, dy) < zone) return null;
+    entry.moved = true;
+    if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? ACTIONS.RIGHT : ACTIONS.LEFT;
+    return dy > 0 ? ACTIONS.DOWN : ACTIONS.UP;
   }
 
   /** Suelta las acciones que el dedo ya no toca y pulsa las nuevas. */

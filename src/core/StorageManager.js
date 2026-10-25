@@ -26,6 +26,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   flashes: true, // destellos de pantalla completa (y brillo y barrido de los temas de tubo)
   ghosting: true, // estela de LCD: los píxeles tardan un poco en apagarse
   beeper: false, // modo beeper: una sola voz cuadrada, como el altavoz piezo de las maquinitas
+  autoFire: true, // mantener A dispara solo (Space Shooter, Tank Battle y Road Racer ARMADO)
+  gestures: false, // deslizar y tocar sobre la pantalla como cruceta y botón A
   breakReminder: true, // aviso de descanso cada 30 min de juego
   boot: 'auto', // animación de arranque: 'auto' (cambia cada 2 días) | 'brick' | 'neon' | 'cartridge'
   fullscreen: true, // Android: oculta las barras del sistema

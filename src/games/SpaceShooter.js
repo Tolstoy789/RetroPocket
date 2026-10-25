@@ -450,6 +450,10 @@ export default class SpaceShooter extends BaseCartridge {
     this.sound.melody('start');
   }
 
+  get autoFire() {
+    return true;
+  }
+
   onInput({ action, pressed }) {
     if (!pressed || this.player.dead > 0 || this.waveClear) return;
     if (action === ACTIONS.A || action === ACTIONS.B || action === ACTIONS.UP) {

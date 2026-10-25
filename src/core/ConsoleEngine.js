@@ -42,8 +42,12 @@ export const STATES = Object.freeze({
   PLAYING: 'playing',
   PAUSED: 'paused',
   GAMEOVER: 'gameover',
-  NOCART: 'nocart'
+  NOCART: 'nocart',
+  RESUME: 'resume' // «Continuar» la partida guardada al salir
 });
+
+/** Versión del formato de la partida guardada (ver _saveGame). */
+const SUSPEND_VERSION = 1;
 
 // ---------------------------------------------------------------------------
 // Fuente de píxeles 3x5 dibujada por código.
@@ -596,6 +600,9 @@ export class ConsoleEngine {
     this.loadToken = 0;
     this.result = null;
     this.match = null; // partida a 2 jugadores por turnos (ver startMatch)
+    this.saved = false; // la partida en pausa está guardada (ver _saveGame)
+    this.resumeOffer = null; // partida guardada que se ofrece al arrancar
+    this.resumeConfirm = false;
     this.turnBadge = 0;
     this.toastText = '';
     this.toastTime = 0;
@@ -973,6 +980,107 @@ export class ConsoleEngine {
     if (jingle) this.sound.sfx(jingle);
     this.sound.playMusic('menu', { delay: jingle ? SEASON_JINGLE_TIME : 0 });
     this._setState(STATES.MENU);
+    if (fromBoot) this._offerResume();
+  }
+
+  // ---------- Partida guardada («Continuar») ----------
+
+  /**
+   * Guarda la partida en pausa para seguirla aunque se cierre la app (Android la cierra a veces en
+   * segundo plano). Se llama al pausar; la partida guardada se borra al seguir jugando, al salir al
+   * menú, al reiniciar y al terminar, así que solo existe mientras la partida está en pausa.
+   */
+  _saveGame() {
+    const cart = this.cartridge;
+    const slot = this.currentSlot;
+    this.saved = false;
+    if (!cart || !slot || cart.demo || cart.finished) return;
+    try {
+      const m = this.match;
+      this.saved = this.storage.setSuspended({
+        version: SUSPEND_VERSION,
+        date: new Date().toISOString(),
+        slot: {
+          number: slot.number,
+          day: slot.daily ? slot.day : null,
+          stage: slot.career?.stage || 0,
+          speed: slot.launchSpeed || 1,
+          level: slot.launchLevel || 1,
+          seed: m ? slot.seed : null
+        },
+        score: Math.floor(cart.score),
+        level: cart.level,
+        counters: this.progress.session?.counters || {},
+        match: m ? { round: m.round, scores: m.scores, stars: m.stars, wins: m.wins } : null,
+        cart: cart.saveState()
+      });
+    } catch (err) {
+      console.error('[RetroPocket] No se pudo guardar la partida:', err);
+    }
+  }
+
+  /** El slot de una partida guardada, construido igual que cuando se empezó (o null si ya no existe). */
+  _savedSlot(info) {
+    if (!info || typeof info !== 'object') return null;
+    let slot = null;
+    if (typeof info.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(info.day)) {
+      const [y, m, d] = info.day.split('-').map(Number);
+      slot = this.catalog.dailyChallenge(new Date(y, m - 1, d, 12));
+    } else if (info.stage > 0) {
+      slot = this.catalog.careerSlot(info.stage);
+    } else {
+      const base = this.catalog.getSlot(info.number);
+      slot = base && this.catalog.customizeSlot(base, { speed: info.speed, level: info.level });
+    }
+    if (slot && Number.isInteger(info.seed)) slot = Object.freeze({ ...slot, seed: info.seed });
+    return slot;
+  }
+
+  /** Al llegar al menú tras el arranque, si quedó una partida en pausa, pregunta si se sigue. */
+  _offerResume() {
+    const saved = this.storage.getSuspended();
+    if (!saved) return;
+    const slot = saved.version === SUSPEND_VERSION ? this._savedSlot(saved.slot) : null;
+    if (!slot || !this.catalog.isInstalled(slot)) {
+      this.storage.clearSuspended();
+      return;
+    }
+    this.resumeOffer = { saved, slot };
+    this.resumeConfirm = false;
+    this._setState(STATES.RESUME);
+  }
+
+  /** A en «Continuar»: carga la partida guardada y la deja en pausa, lista para seguir. */
+  continueSaved() {
+    const offer = this.resumeOffer;
+    this.resumeOffer = null;
+    if (!offer) return;
+    const { saved, slot } = offer;
+    const m = saved.match;
+    this.match =
+      m && Array.isArray(m.scores) && Array.isArray(m.stars) && Array.isArray(m.wins)
+        ? { slot, round: m.round || 1, scores: m.scores.slice(0, 1), stars: m.stars.slice(0, 1), wins: m.wins.slice(0, 2) }
+        : null;
+    this.launch(slot, { restore: saved });
+  }
+
+  /** B en «Continuar»: la primera vez pide confirmación y la segunda borra la partida. */
+  _resumeBack() {
+    if (this.resumeConfirm) {
+      this._discardSaved();
+      return;
+    }
+    this.resumeConfirm = true;
+    this.sound.sfx('error');
+  }
+
+  /** Borra la partida guardada y se queda en el menú. */
+  _discardSaved() {
+    this.storage.clearSuspended();
+    this.resumeOffer = null;
+    this.sound.sfx('back');
+    this.toast('PARTIDA DESCARTADA', 1.4);
+    this._setState(STATES.MENU);
   }
 
   openOptions() {
@@ -1050,9 +1158,10 @@ export class ConsoleEngine {
   /**
    * Carga e inicia un cartucho.
    * @param {number|object} slotRef Número 1..99 o un slot ya construido (por ejemplo, el desafío diario).
-   * @param {{ demo?: boolean }} [options] demo = la consola juega sola y no guarda puntuaciones.
+   * @param {{ demo?: boolean, restore?: object }} [options] demo = la consola juega sola y no guarda
+   *   puntuaciones; restore = partida guardada (ver _saveGame) que se carga en lugar de empezar de cero.
    */
-  async launch(slotRef, { demo = false } = {}) {
+  async launch(slotRef, { demo = false, restore = null } = {}) {
     const slot = typeof slotRef === 'object' && slotRef ? slotRef : this.catalog.getSlot(slotRef);
     if (!slot) return;
     if (this.match && (demo || slot !== this.match.slot)) this.match = null;
@@ -1089,10 +1198,17 @@ export class ConsoleEngine {
     try {
       this.cartridge = new CartridgeClass(this, slot);
       this.cartridge.demo = demo;
-      this.cartridge.init();
+      if (restore) this.cartridge.loadState(restore.cart);
+      else this.cartridge.init();
     } catch (err) {
       console.error(`[RetroPocket] Error iniciando ${slot.engine.file}:`, err);
       this.cartridge = null;
+      if (restore) {
+        this.storage.clearSuspended();
+        this.goToMenu();
+        this.toast('NO SE PUDO CARGAR LA PARTIDA', 2);
+        return;
+      }
       if (demo) {
         this.startAttract();
         return;
@@ -1107,6 +1223,18 @@ export class ConsoleEngine {
       this.sound.stopMusic();
       this.demoTime = 0;
       this._setState(STATES.DEMO);
+      return;
+    }
+    if (restore) {
+      // Partida recuperada: se queda en pausa con la música parada, y START (o CONTINUAR) la sigue.
+      this.progress.resumeSession(slot, restore.counters);
+      this.turnBadge = 0;
+      this.sound.playMusic(trackFor(slot.engine.id, this.cartridge.level));
+      this.sound.pauseMusic();
+      this.cartridge.onPause();
+      this.saved = true;
+      this._setState(STATES.PAUSED);
+      this.toast('PARTIDA RECUPERADA', 1.6);
       return;
     }
     this.progress.onGameStart(slot);
@@ -1160,6 +1288,7 @@ export class ConsoleEngine {
     this.sound.pauseMusic();
     this.cartridge?.onPause();
     this._setState(STATES.PAUSED);
+    this._saveGame();
   }
 
   resume() {
@@ -1168,6 +1297,8 @@ export class ConsoleEngine {
     this.sound.sfx('select');
     this.sound.resumeMusic();
     this.cartridge?.onResume();
+    this.storage.clearSuspended();
+    this.saved = false;
     this._setState(STATES.PLAYING);
   }
 
@@ -1195,6 +1326,8 @@ export class ConsoleEngine {
       table: this.storage.getScores(slot.key)
     };
     this.result.career = this.progress.onGameEnd(slot, this.result, previousBest);
+    this.storage.clearSuspended();
+    this.saved = false;
     if (this.match) this._recordTurn(this.result);
     const career = this.result.career;
     this.sound.stopMusic();
@@ -1229,6 +1362,8 @@ export class ConsoleEngine {
 
   _unloadCartridge() {
     this.loadToken++;
+    if (this.cartridge && !this.cartridge.demo) this.storage.clearSuspended();
+    this.saved = false;
     if (this.cartridge) {
       try {
         this.cartridge.destroy();
@@ -1322,6 +1457,19 @@ export class ConsoleEngine {
 
       case STATES.INITIALS:
         this.initials.handleAction(e);
+        break;
+
+      case STATES.RESUME:
+        if (!pressed || repeat || this.stateTime < 0.3) return;
+        if (action === ACTIONS.A || action === ACTIONS.START) {
+          this.sound.sfx('confirm');
+          this.continueSaved();
+        } else if (action === ACTIONS.B) {
+          this._resumeBack();
+        } else if (this.resumeConfirm) {
+          this.resumeConfirm = false;
+          this.sound.sfx('move');
+        }
         break;
 
       case STATES.PLAYING:
@@ -1450,6 +1598,9 @@ export class ConsoleEngine {
         return true;
       case STATES.INITIALS:
         this.initials.confirm();
+        return true;
+      case STATES.RESUME:
+        this._resumeBack();
         return true;
       case STATES.GAMEOVER:
         if (this.result?.career) this.goToHub('career');
@@ -1624,6 +1775,10 @@ export class ConsoleEngine {
         this._renderCartridge(g);
         this.initials.render(g);
         break;
+      case STATES.RESUME:
+        this.menu.render(g);
+        this._renderResume(g);
+        break;
       case STATES.GAMEOVER:
         this._renderCartridge(g);
         this._renderGameOver(g);
@@ -1704,6 +1859,7 @@ export class ConsoleEngine {
     const y = (SCREEN_HEIGHT - h) / 2;
     g.panel(x, y, w, h);
     g.text('PAUSA', SCREEN_WIDTH / 2, y + 8, { align: 'center', scale: 2 });
+    if (this.saved) g.text('PARTIDA GUARDADA', SCREEN_WIDTH / 2, y + 21, { align: 'center', color: 'mid' });
     if (this.breakNotice) {
       g.panel(x - 8, y - 40, w + 16, 34);
       g.text('LLEVAS 30 MIN JUGANDO', SCREEN_WIDTH / 2, y - 32, { align: 'center', color: 'yellow' });
@@ -1717,6 +1873,46 @@ export class ConsoleEngine {
       if (selected) g.text('▶', x + 14, oy, { color: Math.floor(this.time * 4) % 2 ? 'ink' : 'mid' });
       g.text(label, x + 22, oy, { color: selected ? 'ink' : 'mid' });
     });
+  }
+
+  /** «Continuar»: la partida que quedó en pausa al cerrar la app, sobre el menú. */
+  _renderResume(g) {
+    const offer = this.resumeOffer;
+    if (!offer) return;
+    const { saved, slot } = offer;
+    const cx = SCREEN_WIDTH / 2;
+    const two = (n) => String(n).padStart(2, '0');
+    g.veil();
+    const w = 130;
+    const h = 116;
+    const x = Math.floor((SCREEN_WIDTH - w) / 2);
+    const y = Math.floor((SCREEN_HEIGHT - h) / 2);
+    g.panel(x, y, w, h);
+    g.text('PARTIDA GUARDADA', cx, y + 7, { align: 'center', color: 'yellow' });
+    g.text(slot.engine.name, cx, y + 18, { align: 'center', scale: 2, color: slot.engine.color });
+    let where = `JUEGO ${slot.code} ${slot.label}`;
+    if (slot.daily) where = `DESAFIO ${slot.day.slice(8)}/${slot.day.slice(5, 7)} ${slot.label}`;
+    else if (slot.career) where = `CARRERA ETAPA ${slot.career.stage}${slot.career.boss ? ' JEFE' : ''}`;
+    g.text(where, cx, y + 33, { align: 'center' });
+    g.text('PUNTOS', x + 10, y + 45, { color: 'mid' });
+    g.text(String(saved.score || 0).padStart(7, '0'), x + w - 10, y + 45, { align: 'right' });
+    g.text('NIVEL', x + 10, y + 54, { color: 'mid' });
+    g.text(two(saved.level || 1), x + w - 10, y + 54, { align: 'right' });
+    if (saved.match) g.text(`2 JUGADORES  RONDA ${saved.match.round || 1}  J${(saved.match.scores?.length || 0) + 1}`, cx, y + 65, { align: 'center', color: 'cyan' });
+    const date = new Date(saved.date);
+    if (!Number.isNaN(date.getTime())) {
+      const when = `${two(date.getDate())}/${two(date.getMonth() + 1)} ${two(date.getHours())}:${two(date.getMinutes())}`;
+      g.text(`EN PAUSA DESDE EL ${when}`, cx, y + 75, { align: 'center', color: 'mid' });
+    }
+    g.rect(x + 8, y + 86, w - 16, 1, 'mid');
+    if (this.resumeConfirm) {
+      g.text('¿BORRAR LA PARTIDA?', cx, y + 93, { align: 'center', color: 'red' });
+      g.text('B: BORRAR   A: CONTINUAR', cx, y + 103, { align: 'center', color: 'mid' });
+    } else {
+      const on = Math.floor(this.time * 2) % 2 === 0;
+      g.text('A: CONTINUAR', cx, y + 93, { align: 'center', color: on ? 'ink' : 'mid' });
+      g.text('B: DESCARTAR', cx, y + 103, { align: 'center', color: 'mid' });
+    }
   }
 
   /** Fila de 3 estrellas; las nuevas parpadean. */

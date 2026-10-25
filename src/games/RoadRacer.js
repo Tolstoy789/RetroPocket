@@ -23,6 +23,11 @@ const CAR_ONCOMING = ['#.#', '.#.', '###', '.#.'];
 const FUEL_CAN = ['.##.', '####', '#..#', '####'];
 
 export default class RoadRacer extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { CAR, CAR_ONCOMING, FUEL_CAN };
+  }
+
   reset() {
     const c = this.config;
     this.lanes = c.lanes >= 5 ? 5 : 3;

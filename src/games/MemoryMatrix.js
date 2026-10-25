@@ -38,6 +38,11 @@ const MODE_TITLE = { simon: 'REPITE', reverse: 'AL REVES', reflex: 'REFLEJOS', g
 const DIR_ACTIONS = [ACTIONS.UP, ACTIONS.RIGHT, ACTIONS.DOWN, ACTIONS.LEFT];
 
 export default class MemoryMatrix extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { PADS, SYMBOLS, MIXED_MODES, MODE_TITLE, DIR_ACTIONS };
+  }
+
   reset() {
     // config.timeLimit es el tiempo por respuesta, no de la partida.
     this.answerTime = this.config.timeLimit > 0 ? this.config.timeLimit : 0;

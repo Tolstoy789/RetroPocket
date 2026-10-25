@@ -63,6 +63,11 @@ function rotate(rows, dir) {
 }
 
 export default class TankBattle extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { DIRS, DIR_LIST, TANK_PLAYER, TANK_ENEMY, BASE, BASE_RUIN, BASE_TILE, PLAYER_SPAWN, ENEMY_SPAWNS };
+  }
+
   reset() {
     this._newStage();
   }
@@ -357,7 +362,7 @@ export default class TankBattle extends BaseCartridge {
     this.shake(5, 0.6);
     this.flash('red', 0.4, 0.6);
     this.input.vibrate('heavy');
-    this.after(1.2, () => this.gameOver({ message: 'BASE DESTRUIDA' }));
+    this.after(1.2, 'gameOver', { message: 'BASE DESTRUIDA' });
   }
 
   // ---------- Bucle ----------

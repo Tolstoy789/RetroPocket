@@ -38,6 +38,11 @@ const POWERS = [
 ];
 
 export default class BrickBreaker extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { HIT_COLORS, POWERS };
+  }
+
   reset() {
     this.paddle = { x: (LEFT + RIGHT) / 2, w: this.config.paddleWidth, wideTimer: 0 };
     this.slowTimer = 0;

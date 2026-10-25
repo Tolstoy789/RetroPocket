@@ -2,7 +2,8 @@
 // La consola entera en Chromium (Playwright) con el servidor de desarrollo de Vite, manejada con el
 // teclado como un jugador: arranque, menú, PREPARADO, una partida de cada motor con pausa, fin de partida
 // con iniciales, opciones, galería de temas, jukebox, juegos y logros, desafío diario, carrera, modo demo,
-// dos jugadores, ahorro de batería y giro de pantalla. Falla si la página registra cualquier error.
+// dos jugadores, ahorro de batería, guardar la partida al salir y giro de pantalla. Falla si la página
+// registra cualquier error.
 //
 //   npm run test:e2e   (la primera vez: npx playwright install chromium)
 
@@ -273,6 +274,63 @@ step('ahorro de batería: dibuja a 30 fps y no repite imágenes iguales', async 
   assert.ok(rendered <= 66, `dibujó ${rendered} fotogramas en 2 s`);
   assert.ok(shown <= rendered, `mostró ${shown} de ${rendered}`);
   await engine(() => window.retropocket.updateSetting('battery', 'off'));
+});
+
+step('guardar la partida al salir: se cierra en pausa y al volver se continúa', async () => {
+  await engine(() => window.retropocket.menu.jumpTo(1));
+  await press('KeyZ', 250);
+  await press('KeyZ');
+  await waitState('playing');
+  await hold('ArrowLeft', 300);
+  await page.waitForTimeout(1500);
+  await press('Enter');
+  await waitState('paused');
+  const paused = await engine(() => ({ score: window.retropocket.cartridge.score, time: window.retropocket.cartridge.time, saved: window.retropocket.saved }));
+  assert.ok(paused.saved, 'se guardó al pausar');
+  assert.ok(await engine(() => window.retropocket.storage.getSuspended() !== null));
+
+  // Se cierra la app con la partida en pausa (recargar la página es lo mismo para la consola).
+  await page.reload();
+  await page.waitForFunction(() => window.retropocket?.state === 'boot', null, { timeout: 15000 });
+  await page.waitForTimeout(500);
+  await press('Enter');
+  await waitState('resume');
+  await page.waitForTimeout(400);
+  await press('KeyZ');
+  await waitState('paused');
+  const back = await engine(() => ({ number: window.retropocket.currentSlot.number, score: window.retropocket.cartridge.score, time: window.retropocket.cartridge.time }));
+  assert.equal(back.number, 1);
+  assert.equal(back.score, paused.score);
+  assert.equal(back.time, paused.time, 'la partida sigue en el mismo instante');
+  await press('Enter');
+  await waitState('playing');
+  assert.equal(await engine(() => window.retropocket.storage.getSuspended()), null, 'al seguir jugando se borra');
+
+  // Descartar: B pide confirmación y la segunda B la borra.
+  await press('Enter');
+  await waitState('paused');
+  await page.reload();
+  await page.waitForFunction(() => window.retropocket?.state === 'boot', null, { timeout: 15000 });
+  await page.waitForTimeout(500);
+  await press('Enter');
+  await waitState('resume');
+  await page.waitForTimeout(400);
+  await press('KeyX');
+  assert.equal(await state(), 'resume', 'la primera B solo pregunta');
+  await press('KeyX');
+  await waitState('menu');
+  assert.equal(await engine(() => window.retropocket.storage.getSuspended()), null);
+
+  // Salir al menú desde la pausa también la borra.
+  await engine(() => window.retropocket.launch(window.retropocket.catalog.getSlot(63)));
+  await waitState('playing');
+  await press('Enter');
+  await waitState('paused');
+  await press('ArrowDown');
+  await press('ArrowDown');
+  await press('KeyZ');
+  await waitState('menu');
+  assert.equal(await engine(() => window.retropocket.storage.getSuspended()), null);
 });
 
 step('girar la pantalla y volver', async () => {

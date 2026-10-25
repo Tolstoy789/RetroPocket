@@ -18,25 +18,49 @@
 // mejor marca (ver Progress.js y Achievements.js). En el modo demo no cuentan.
 // En el desafío diario this.rng usa la semilla del día: misma partida para todos.
 // Disparo automático: los motores de disparos devuelven true en `get autoFire()` y mantener A repite el disparo.
+//
+// Guardar la partida al salir: saveState() guarda todos los campos propios del cartucho (salvo los de
+// NOT_STATE) y loadState() los recupera, con el azar en el mismo punto. Para que funcione en un motor:
+//   - el estado son datos (números, textos, listas, objetos, Map, Set); lo que reset() vuelve a crear
+//     (un lienzo pintado de antemano...) se lista en `static get transient() { return ['campo']; }`;
+//   - las constantes del módulo que el estado referencia (direcciones, formas) se declaran en
+//     `static saveConstants = { DIRS, SHAPES }` para que al cargar sigan siendo el mismo objeto;
+//   - los temporizadores se crean con un nombre de método: this.after(1.2, 'gameOver', { message }).
+// tests/savestate.test.js comprueba en los 99 slots que una partida cargada sigue igual que la original.
 
 import { ACTIONS } from '../core/InputManager.js';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../core/ConsoleEngine.js';
+import { encodeState, decodeState } from '../core/SaveState.js';
 
 export { ACTIONS, SCREEN_WIDTH, SCREEN_HEIGHT };
 
 const AUTO_FIRE_DELAY = 0.25; // segundos con A pulsado antes de que empiece el disparo automático
 const AUTO_FIRE_RATE = 0.15; // segundos entre disparos automáticos
 
-/** Generador pseudoaleatorio con semilla (mulberry32): partidas reproducibles si se desea. */
+/** Campos que pone el constructor o la consola: no son estado de la partida y no se guardan. */
+const NOT_STATE = new Set(['engine', 'slot', 'config', 'sound', 'input', 'storage', 'width', 'height', 'highScore', 'demo', 'rng', '_timers']);
+const SAVE_VERSION = 1;
+
+/**
+ * Generador pseudoaleatorio con semilla (mulberry32): partidas reproducibles si se desea.
+ * `rng.state` lee o cambia el punto de la secuencia (para guardar y recuperar partidas).
+ */
 export function createRng(seed = Date.now()) {
   let a = seed >>> 0;
-  return function rng() {
+  const rng = function rng() {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  Object.defineProperty(rng, 'state', {
+    get: () => a,
+    set: (value) => {
+      a = value >>> 0;
+    }
+  });
+  return rng;
 }
 
 export class BaseCartridge {
@@ -112,6 +136,38 @@ export class BaseCartridge {
     this.onDestroy();
   }
 
+  /**
+   * Estado de la partida como datos JSON, para seguir otro día (ver «Guardar la partida al salir» arriba).
+   * Lanza un error si el estado tiene algo que no se puede guardar.
+   */
+  saveState() {
+    const transient = new Set(this.constructor.transient || []);
+    const fields = {};
+    for (const key of Object.keys(this)) {
+      if (!NOT_STATE.has(key) && !transient.has(key)) fields[key] = this[key];
+    }
+    const timers = this._timers.map((timer) => {
+      if (!timer.call) throw new TypeError(`${this.constructor.name}: los temporizadores de una partida guardable se crean con un nombre de método`);
+      return { remaining: timer.remaining, interval: timer.interval, call: timer.call };
+    });
+    const options = { constants: this.constructor.saveConstants || {}, path: this.constructor.name };
+    return { version: SAVE_VERSION, rng: this.rng.state, state: encodeState({ fields, timers }, options) };
+  }
+
+  /** Recupera en un cartucho recién creado una partida guardada con saveState(). */
+  loadState(saved) {
+    if (!saved || saved.version !== SAVE_VERSION) throw new TypeError('Partida guardada de otra versión');
+    this.init();
+    const { fields, timers } = decodeState(saved.state, { constants: this.constructor.saveConstants || {} });
+    for (const key of Object.keys(fields)) {
+      if (!NOT_STATE.has(key)) this[key] = fields[key];
+    }
+    this._timers = [];
+    for (const timer of timers) this._addTimer(timer.remaining, timer.interval, timer.call[0], timer.call[1]);
+    this.rng.state = saved.rng;
+    this.onRestore();
+  }
+
   // ---------- Ganchos para los juegos ----------
 
   /** Prepara una partida nueva (tablero, posiciones, etc.). */
@@ -135,6 +191,9 @@ export class BaseCartridge {
   onPause() {}
 
   onResume() {}
+
+  /** Tras cargar una partida guardada, por si el motor tiene que rehacer algo que no se guarda (`static transient`). */
+  onRestore() {}
 
   /** Se acaba el tiempo en los modos contrarreloj (config.timeLimit o el sessionTime del desafío diario): por defecto, partida superada. */
   onTimeUp() {
@@ -268,16 +327,22 @@ export class BaseCartridge {
 
   // ---------- Temporizadores (avanzan solo mientras se juega) ----------
 
-  /** Ejecuta fn tras `seconds`. Devuelve un id para cancelar. */
-  after(seconds, fn) {
-    const timer = { remaining: seconds, interval: 0, fn, id: Symbol('timer') };
-    this._timers.push(timer);
-    return timer.id;
+  /**
+   * Ejecuta fn tras `seconds`. Devuelve un id para cancelar. `fn` puede ser el nombre de un método
+   * (con sus argumentos detrás): así el temporizador se puede guardar con la partida.
+   */
+  after(seconds, fn, ...args) {
+    return this._addTimer(seconds, 0, fn, args);
   }
 
-  /** Ejecuta fn cada `seconds`. Devuelve un id para cancelar. */
-  every(seconds, fn) {
-    const timer = { remaining: seconds, interval: seconds, fn, id: Symbol('timer') };
+  /** Ejecuta fn cada `seconds` (o el método `fn` con `args`). Devuelve un id para cancelar. */
+  every(seconds, fn, ...args) {
+    return this._addTimer(seconds, seconds, fn, args);
+  }
+
+  _addTimer(remaining, interval, fn, args) {
+    const call = typeof fn === 'string' ? [fn, args] : null;
+    const timer = { remaining, interval, fn: call ? () => this[fn](...args) : fn, call, id: Symbol('timer') };
     this._timers.push(timer);
     return timer.id;
   }

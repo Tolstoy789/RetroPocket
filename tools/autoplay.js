@@ -88,12 +88,13 @@ function randomSource(seed) {
 }
 
 /**
- * Juega una partida. `seconds` es el tope de tiempo de juego; `renderEvery` > 0 dibuja cada N pasos en `gfx`.
- * Con `input: 'ai'` juega la IA del modo demo; con `input: 'random'` se pulsan y sueltan botones al azar
- * (como un jugador, sin modo demo) y de vez en cuando se pausa y se reanuda.
- * Devuelve { score, level, seconds, ended, won, message }.
+ * Prepara una partida sin jugarla todavía. `input: 'ai'` juega la IA del modo demo; `input: 'random'` pulsa
+ * y suelta botones al azar (como un jugador, sin modo demo) y de vez en cuando pausa y reanuda; `inputSeed`
+ * cambia la secuencia de pulsaciones sin cambiar la partida.
+ * Devuelve { cart, result(), step(), releaseAll(), seconds() }: step() avanza 1/60 s y devuelve false al acabar.
+ * Con `cart` se juega un cartucho ya creado (por ejemplo, uno recuperado con loadState()).
  */
-export function playSlot(con, Cartridge, slot, { seed = 1, seconds = 120, gfx = null, renderEvery = 0, input = 'ai' } = {}) {
+export function startSlot(con, Cartridge, slot, { seed = 1, input = 'ai', inputSeed = seed, cart: given = null } = {}) {
   const fx = new con.FxLayer();
   const mute = () => 0;
   const held = new Set();
@@ -109,45 +110,80 @@ export function playSlot(con, Cartridge, slot, { seed = 1, seconds = 120, gfx = 
       if (!result) result = r;
     }
   };
-  const cart = new Cartridge(host, { ...slot, seed });
-  const random = input === 'random' ? randomSource(seed ^ 0x9e3779b9) : null;
-  const buttons = con.actions ? [con.actions.UP, con.actions.DOWN, con.actions.LEFT, con.actions.RIGHT, con.actions.A, con.actions.B, con.actions.C] : [];
+  const random = input === 'random' ? randomSource(inputSeed ^ 0x9e3779b9) : null;
+  const buttons = [con.actions.UP, con.actions.DOWN, con.actions.LEFT, con.actions.RIGHT, con.actions.A, con.actions.B, con.actions.C];
+  let cart = given;
+  if (cart) {
+    cart.engine = host;
+    cart.sound = host.sound;
+    cart.input = host.input;
+    cart.storage = host.storage;
+  } else {
+    cart = new Cartridge(host, { ...slot, seed });
+    cart.init();
+  }
   cart.demo = !random;
-  cart.init();
   let steps = 0;
-  const maxSteps = Math.round(seconds / STEP);
-  while (!result && steps < maxSteps) {
-    if (random) {
-      if (random() < 0.12) {
-        const action = buttons[Math.floor(random() * buttons.length)];
-        const pressed = !held.has(action);
-        if (pressed) held.add(action);
-        else held.delete(action);
-        cart.handleInput({ action, pressed, repeat: false });
-      } else if (held.size && random() < 0.05) {
-        const action = [...held][Math.floor(random() * held.size)];
-        cart.handleInput({ action, pressed: true, repeat: true });
+  return {
+    cart,
+    fx,
+    result: () => result,
+    seconds: () => steps * STEP,
+    /** Suelta todo lo pulsado (como hace la consola al pausar). */
+    releaseAll() {
+      for (const action of [...held]) {
+        held.delete(action);
+        cart.handleInput({ action, pressed: false, repeat: false });
       }
-      if (random() < 0.002) {
-        cart.onPause();
-        cart.onResume();
+    },
+    step() {
+      if (result) return false;
+      if (random) {
+        if (random() < 0.12) {
+          const action = buttons[Math.floor(random() * buttons.length)];
+          const pressed = !held.has(action);
+          if (pressed) held.add(action);
+          else held.delete(action);
+          cart.handleInput({ action, pressed, repeat: false });
+        } else if (held.size && random() < 0.05) {
+          const action = [...held][Math.floor(random() * held.size)];
+          cart.handleInput({ action, pressed: true, repeat: true });
+        }
+        if (random() < 0.002) {
+          cart.onPause();
+          cart.onResume();
+        }
+      } else {
+        cart.autopilot(STEP);
       }
-    } else {
-      cart.autopilot(STEP);
+      cart.tick(STEP);
+      fx.update(STEP);
+      steps++;
+      return !result;
     }
-    cart.tick(STEP);
-    fx.update(STEP);
-    steps++;
-    if (gfx && renderEvery > 0 && steps % renderEvery === 0) {
-      cart.render(gfx);
-      fx.render(gfx);
+  };
+}
+
+/**
+ * Juega una partida entera (ver startSlot). `seconds` es el tope de tiempo de juego; `renderEvery` > 0
+ * dibuja cada N pasos en `gfx`. Devuelve { score, level, seconds, ended, won, message }.
+ */
+export function playSlot(con, Cartridge, slot, { seconds = 120, gfx = null, renderEvery = 0, ...options } = {}) {
+  const game = startSlot(con, Cartridge, slot, options);
+  const maxSteps = Math.round(seconds / STEP);
+  for (let n = 1; n <= maxSteps && game.step(); n++) {
+    if (gfx && renderEvery > 0 && n % renderEvery === 0) {
+      game.cart.render(gfx);
+      game.fx.render(gfx);
     }
   }
+  const { cart } = game;
+  const result = game.result();
   cart.destroy();
   return {
     score: Math.floor(result ? result.score : cart.score),
     level: result ? result.level : cart.level,
-    seconds: steps * STEP,
+    seconds: game.seconds(),
     ended: !!result,
     won: !!result?.won,
     message: result?.message || ''

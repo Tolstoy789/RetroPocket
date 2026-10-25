@@ -128,6 +128,11 @@ function shapeSize(cells) {
 }
 
 export default class BlockDrop extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { COLORS, SHAPES, LINE_POINTS, KICKS, SRS_SPAWN, KICKS_JLSTZ, KICKS_I, SRS_STATES };
+  }
+
   reset() {
     const c = this.config;
     this.shapes = (SHAPES[c.pieceSet] || SHAPES.classic).map(parseShape);

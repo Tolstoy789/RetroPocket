@@ -55,6 +55,11 @@ function wrap(x) {
 }
 
 export default class FrogCrossing extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { FROG, SPLASH, FLY, CAR, RACER, TRUCK, TURTLE, ROAD_LANES, RIVER_LANES, KIND_W };
+  }
+
   reset() {
     // config.timeLimit es el tiempo de cada rana, no de la partida.
     this.frogTime = this.config.timeLimit > 0 ? this.config.timeLimit : 0;

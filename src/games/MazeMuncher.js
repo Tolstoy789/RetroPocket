@@ -142,6 +142,11 @@ const same = (a, b) => a && b && a.x === b.x && a.y === b.y;
 const opposite = (a, b) => a && b && a.x === -b.x && a.y === -b.y;
 
 export default class MazeMuncher extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { MAZES, ROTATION, DIRS, DIR_ORDER, GHOST_COLORS, MODE_SCHEDULE, FRUIT_AT, PLAYER_FRAMES, GHOST_FRAMES, SCARED_FRAMES, EYES, FRUIT };
+  }
+
   reset() {
     this.mazeIndex = 0;
     this._loadMaze();

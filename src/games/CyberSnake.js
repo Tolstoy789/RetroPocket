@@ -62,6 +62,11 @@ const BLOCKS = [
 const key = (x, y) => y * COLS + x;
 
 export default class CyberSnake extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { DIRS, DIR_LIST, MAZE, BLOCKS };
+  }
+
   reset() {
     const c = this.config;
     this.walls = new Set();

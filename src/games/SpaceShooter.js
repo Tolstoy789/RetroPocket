@@ -31,6 +31,11 @@ const ROCK_BIG = ['..####..', '.######.', '###.####', '########', '####.###', '#
 const ROCK_SMALL = ['.###.', '#####', '##.##', '#####', '.###.'];
 
 export default class SpaceShooter extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { ROW_COLORS, SHIP, INVADER, BUG, BOSS, ROCK_BIG, ROCK_SMALL };
+  }
+
   reset() {
     this.player = { x: this.width / 2, invuln: 1.5, dead: 0 };
     this.shots = [];

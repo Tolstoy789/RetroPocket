@@ -131,6 +131,17 @@ export class Progress {
     this._checkAll(['engines', 'slots', 'expert']);
   }
 
+  /** Sigue una partida guardada («Continuar»): vuelve la sesión con sus contadores, sin contarla como nueva. */
+  resumeSession(slot, counters = {}) {
+    const engineId = slot.engine.id;
+    if (!this.stats.perEngine[engineId]) this.stats.perEngine[engineId] = { time: 0, games: 0 };
+    const clean = {};
+    if (isObject(counters)) {
+      for (const [name, value] of Object.entries(counters)) if (Number.isFinite(value) && value > 0) clean[name] = value;
+    }
+    this.session = { engineId, counters: clean };
+  }
+
   /** Tiempo jugado (solo mientras se juega: no cuenta la pausa). */
   onPlayTick(dt) {
     if (!this.session) return;

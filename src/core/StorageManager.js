@@ -254,6 +254,26 @@ export class StorageManager {
     return rows.slice(0, limit);
   }
 
+  // ---------- Partida guardada («Continuar») ----------
+
+  /** Partida que quedó en pausa al salir (ver ConsoleEngine._saveGame), o null. No va en la copia de seguridad. */
+  getSuspended() {
+    const data = this._read('suspended', null);
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+  }
+
+  setSuspended(data) {
+    return this._write('suspended', data);
+  }
+
+  clearSuspended() {
+    try {
+      this.store.removeItem(this._key('suspended'));
+    } catch {
+      // Sin almacenamiento no hay nada que borrar.
+    }
+  }
+
   /** Borra los récords de un slot, o de todos si no se indica. */
   clearScores(slot) {
     if (slot === undefined) {

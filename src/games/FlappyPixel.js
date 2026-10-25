@@ -30,6 +30,11 @@ const BIRD = [
 const BIRD_DEAD = ['.###..', '#.#.#.', '##.###', '.####.', '......'];
 
 export default class FlappyPixel extends BaseCartridge {
+  /** Constantes que el estado de la partida referencia (para guardar y cargar partidas). */
+  static get saveConstants() {
+    return { BIRD, BIRD_DEAD };
+  }
+
   reset() {
     this.bird = { y: (TOP + GROUND) / 2, vy: 0, tilt: 0 };
     this.started = false;

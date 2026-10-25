@@ -14,6 +14,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Autodisparo:** en Space Shooter, Tank Battle y Road Racer *Armado*, mantener A dispara solo (se puede quitar en Opciones → *Autodisparo*).
 - **Gestos sobre la pantalla** (Opciones → *Gestos*): deslizar el dedo sobre la pantalla hace de cruceta y tocarla pulsa A, para móviles pequeños o jugar con una mano.
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
+- **Guardar la partida al salir:** al pausar (con START, el botón atrás o al cambiar de app) la partida se guarda entera. Si Android cierra la app o cierras la pestaña, al volver a abrirla la consola pregunta si quieres **continuar** donde lo dejaste (A) o descartarla (B dos veces). Funciona en los 99 juegos, en el desafío diario, en la carrera y a dos jugadores.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
 - **Favoritos y recientes:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
 - **Modo carrera:** recorre las 99 etapas en orden; superar una (1 estrella) desbloquea la siguiente y cada 10 hay un **jefe** (velocidad 2 y 2 estrellas). Mapa de 10×10 con las etapas superadas, los jefes y el trofeo final.
@@ -266,6 +267,7 @@ START en la pantalla de fin de partida dibuja con `<canvas>` una tarjeta PNG de 
 | `tests/storage.test.js` | Top 5 con iniciales, récords del desafío, ajustes, favoritos, recientes y preferencias de PREPARADO |
 | `tests/progress.test.js` | Los 40 logros, racha, contadores, carcasas, copia de seguridad `RP99-` y datos guardados corruptos |
 | `tests/sound.test.js` | Las 21 pistas (32 corcheas, notas válidas), que existen todos los efectos que pide el código, y todo sonando en chip y beeper con un Web Audio de mentira que se queja como el de verdad |
+| `tests/savestate.test.js` | Guardar la partida: en los 99 slots (con la IA y con botones al azar) se guarda a mitad de partida, se carga en un cartucho nuevo y las dos partidas tienen que seguir idénticas durante 10 s |
 | `tests/cartridges.test.js` | Los 99 slots jugados 30 s con la IA y 30 s pulsando botones al azar, misma semilla = misma partida, 21 desafíos diarios, velocidad 5 desde el nivel 9 y los jefes de la carrera. Se dibuja en un lienzo que falla si recibe coordenadas no válidas o letras que la fuente no tiene |
 
 `npm run test:e2e` (`tests/e2e/console.test.js`) arranca el servidor de Vite y maneja la consola con el teclado en Chromium (Playwright): menú, PREPARADO, una partida y la pausa de cada motor, récord con iniciales, opciones, galería de temas, jukebox, la pantalla de START, desafío diario, carrera, modo demo, dos jugadores, ahorro de batería y giro de pantalla. Falla si la página registra cualquier error.
@@ -294,7 +296,8 @@ retropocket-99in1/
 │   │   ├── ConsoleEngine.js   # Bucle de paso fijo, estados, canvas, Gfx y efectos (FxLayer)
 │   │   ├── SoundChip.js       # Sintetizador 8-bit, música en bucle (2 pistas por motor) y modo beeper
 │   │   ├── InputManager.js    # Multitáctil, gestos sobre la pantalla, teclado, mandos y vibración
-│   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes y datos extra en localStorage
+│   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes, partida guardada y datos extra en localStorage
+│   │   ├── SaveState.js       # Convierte el estado de una partida en JSON y al revés (Map, Set, ciclos, constantes)
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario, etapas de la carrera y menú
 │   │   ├── MenuPreview.js     # Miniatura animada del juego elegido en el menú (IA del modo demo)
 │   │   ├── Themes.js          # Los 11 temas (paletas, celdas, sonido, rótulos) y colores de carcasa
@@ -380,6 +383,8 @@ export default class CyberSnake extends BaseCartridge {
 ```
 
 Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()`, las estadísticas `track()` y `peak()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Si devuelve `true` en `get autoFire()`, mantener A repite la pulsación cada 0,15 s (autodisparo). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño.
+
+**Guardar la partida:** `saveState()` guarda todos los campos propios del cartucho y `loadState()` los recupera con el azar en el mismo punto, sin que el motor tenga que hacer nada si su estado son datos (números, textos, listas, objetos, `Map`, `Set`). Si el estado apunta a constantes del módulo (direcciones, formas de piezas), decláralas en `static get saveConstants() { return { DIRS, SHAPES }; }` para que al cargar sigan siendo el mismo objeto; lo que `reset()` vuelve a crear y no se puede guardar (un lienzo pintado de antemano) va en `static get transient() { return ['campo']; }`, y los temporizadores se crean con el nombre de un método: `this.after(1.2, 'gameOver', { message: 'FIN' })`. `npm test` comprueba en todos los slots que una partida cargada sigue igual que la original.
 
 ## Licencia
 

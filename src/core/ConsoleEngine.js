@@ -23,6 +23,9 @@ export const SCREEN_WIDTH = 144;
 export const SCREEN_HEIGHT = 192;
 const STEP = 1 / 60;
 const MAX_STEPS_PER_FRAME = 5;
+/** Ahorro de batería: dibujos por segundo como mucho, y por debajo de qué carga se activa solo (AUTO). */
+const SAVER_FPS = 30;
+const LOW_BATTERY = 0.2;
 
 export const STATES = Object.freeze({
   BOOT: 'boot',
@@ -126,6 +129,11 @@ function normalizeText(text) {
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toUpperCase();
+}
+
+/** Caracteres de un texto que la fuente 3x5 no tiene (se dibujarían como '?'). Lo usan las pruebas. */
+export function missingGlyphs(text) {
+  return [...new Set(normalizeText(text))].filter((ch) => !GLYPHS[ch]);
 }
 
 // ---------------------------------------------------------------------------
@@ -552,7 +560,8 @@ export class ConsoleEngine {
     this.buffer = document.createElement('canvas');
     this.buffer.width = SCREEN_WIDTH;
     this.buffer.height = SCREEN_HEIGHT;
-    this.gfx = new Gfx(this.buffer.getContext('2d', { alpha: false }), SCREEN_WIDTH, SCREEN_HEIGHT);
+    // willReadFrequently: el ahorro de batería lee el búfer para saber si la imagen ha cambiado.
+    this.gfx = new Gfx(this.buffer.getContext('2d', { alpha: false, willReadFrequently: true }), SCREEN_WIDTH, SCREEN_HEIGHT);
     this.fx = new FxLayer();
     this.scale = 1;
     // Estela de LCD: la imagen que se ve se acerca a la nueva poco a poco (ver _composeGhost).
@@ -575,6 +584,12 @@ export class ConsoleEngine {
     this.lastTimestamp = 0;
     this.running = false;
     this.rafId = 0;
+    // Dibujo: segundos desde el último fotograma mostrado, huella del último y cuánto lleva quieto.
+    this.renderWait = 0;
+    this.shownHash = 0;
+    this.stillTime = 0;
+    this.lowBattery = false;
+    this.frames = { rendered: 0, shown: 0 };
 
     this.cartridge = null;
     this.currentSlot = null;
@@ -609,6 +624,7 @@ export class ConsoleEngine {
 
     this._frame = this._frame.bind(this);
     this._onVisibility = this._onVisibility.bind(this);
+    this._watchBattery();
     this._resize = this._resize.bind(this);
 
     this.unsubscribeInput = input.onAction((e) => this._handleAction(e));
@@ -637,6 +653,7 @@ export class ConsoleEngine {
     this.fx.shakeEnabled = !!s.shake;
     this.fx.flashEnabled = !!s.flashes;
     this.input.setRepeatSpeed(s.repeat);
+    this.shownHash = 0; // la estela, el tubo o el tema pueden haber cambiado: hay que volver a mostrar
     document.documentElement.dataset.big = s.bigButtons ? '1' : '0';
     document.documentElement.dataset.fx = s.flashes ? 'on' : 'off';
     document.documentElement.dataset.hand = s.hand === 'left' ? 'left' : 'right';
@@ -702,9 +719,66 @@ export class ConsoleEngine {
     if (steps === MAX_STEPS_PER_FRAME) this.accumulator = 0;
 
     this.sound.updateMusic();
-    this._render();
-    this._present(dt);
+    this.renderWait += dt;
+    // Sin paso de lógica no hay nada nuevo que dibujar (pantallas de 90 o 120 Hz); con el ahorro de
+    // batería se dibuja a 30 fps como mucho y no se vuelve a mostrar una imagen que no ha cambiado.
+    const saver = this.batterySaver;
+    if (steps > 0 && (!saver || this.renderWait >= 1 / SAVER_FPS - 0.004)) {
+      const elapsed = this.renderWait;
+      this.renderWait = 0;
+      this._render();
+      this.frames.rendered++;
+      if (!saver || !this._unchanged(elapsed)) {
+        this._present(elapsed);
+        this.frames.shown++;
+      }
+    }
     this.rafId = requestAnimationFrame(this._frame);
+  }
+
+  /** ¿Está activo el ahorro de batería? (SI, o AUTO con poca carga y sin cargador) */
+  get batterySaver() {
+    const mode = this.settings.battery;
+    return mode === 'on' || (mode === 'auto' && this.lowBattery);
+  }
+
+  /** Para AUTO: vigila la carga con la Battery Status API, donde exista (Chrome y el WebView de Android). */
+  _watchBattery() {
+    if (typeof navigator === 'undefined' || typeof navigator.getBattery !== 'function') return;
+    navigator
+      .getBattery()
+      .then((battery) => {
+        const check = () => {
+          const low = !battery.charging && battery.level <= LOW_BATTERY;
+          if (low && !this.lowBattery && this.settings.battery === 'auto') this.toast('AHORRO DE BATERIA ACTIVADO', 2);
+          this.lowBattery = low;
+        };
+        check();
+        battery.addEventListener('levelchange', check);
+        battery.addEventListener('chargingchange', check);
+      })
+      .catch(() => {});
+  }
+
+  /**
+   * Ahorro de batería: ¿la imagen recién dibujada es la misma que ya se ve? Compara una huella del búfer
+   * de 144x192 (leerlo cuesta mucho menos que escalarlo a toda la pantalla). Tras un cambio se sigue
+   * mostrando hasta que se apaga la estela de LCD y termina la sacudida.
+   */
+  _unchanged(elapsed) {
+    const data = new Uint32Array(this.gfx.ctx.getImageData(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT).data.buffer);
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < data.length; i++) hash = Math.imul(hash ^ data[i], 0x01000193);
+    const same = hash === this.shownHash && this.fx.offsetX === 0 && this.fx.offsetY === 0;
+    this.shownHash = hash;
+    if (!same) {
+      this.stillTime = 0;
+      return false;
+    }
+    this.stillTime += elapsed;
+    // Tras 3 constantes de tiempo a la estela le queda un 5 %: no se nota que se corte ahí.
+    const tau = this.settings.ghosting ? this.themeInfo.ghost || 0 : 0;
+    return this.stillTime > tau * 3;
   }
 
   // ---------- Pantalla ----------
@@ -729,6 +803,7 @@ export class ConsoleEngine {
     this.canvas.style.width = `${w / dpr}px`;
     this.canvas.style.height = `${h / dpr}px`;
     this.ctx.imageSmoothingEnabled = false;
+    this.shownHash = 0; // cambiar el tamaño borra el lienzo visible
   }
 
   _present(dt) {
@@ -778,7 +853,8 @@ export class ConsoleEngine {
     const crt = this.themeInfo.crt;
     if (!crt || !this.settings.flashes) return;
     const ctx = this.ctx;
-    if (crt.bloom > 0 && this.bloomSupported) {
+    // El brillo difumina toda la pantalla en cada fotograma: es lo más caro de dibujar y el ahorro de batería lo quita.
+    if (crt.bloom > 0 && this.bloomSupported && !this.batterySaver) {
       const b = this.bloomCtx;
       b.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
       b.filter = 'blur(1.5px)';

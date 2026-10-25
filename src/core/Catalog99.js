@@ -603,7 +603,8 @@ export class Catalog99 {
 // Menú de selección 00-99 (00 = desafío diario)
 // ---------------------------------------------------------------------------
 
-function wrapText(text, maxChars) {
+/** Parte un texto en líneas de como mucho `maxChars` caracteres sin cortar palabras. */
+export function wrapText(text, maxChars) {
   const words = text.split(' ');
   const lines = [];
   let current = '';

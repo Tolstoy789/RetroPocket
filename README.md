@@ -2,7 +2,7 @@
 
 Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × variantes de reglas), que funciona **100% offline** en el navegador y en Android.
 
-- **Tres modos visuales con la misma lógica:** *Retro* (carcasa amarilla y LCD verde), *Futurista* (carcasa oscura con neón, celdas luminosas a color y sonido con eco) y *Cristal* (carcasa translúcida violeta con LCD gris).
+- **11 temas con la misma lógica:** *Retro*, *Futurista*, *Cristal*, *Bolsillo*, *Fósforo ámbar*, *Arcade*, *Madera 80s*, *Vaporwave*, *OLED nocturno*, *Papel* y *Estacional* (cambia solo con la estación). Cada uno trae su carcasa, su pantalla y su sonido, y se eligen en una galería con vista previa.
 - **Música chiptune** en bucle para el menú y cada motor, con volúmenes separados para música y efectos.
 - **Efectos de pantalla** para todos los juegos: sacudida, destellos y partículas.
 - **Estrellas** (1-3 por slot), contador de juegos superados X/99 y **tabla top 5 con iniciales** en cada slot.
@@ -14,7 +14,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** modo visual, música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
 - Todo el sonido se sintetiza en tiempo real con Web Audio API (pulso, triangular y ruido 8-bit).
@@ -145,19 +145,27 @@ Pensada para sesiones largas con una o dos manos:
 - **Aviso de descanso** cada 30 minutos de juego (pausa la partida y recomienda estirar manos y vista).
 - La partida se pausa sola al bloquear el móvil o cambiar de app, y el botón "atrás" de Android pausa en vez de salir.
 
-## Modos visuales
+## Temas visuales
 
-El modo es solo una "piel": `ConsoleEngine.setTheme()` cambia tres cosas a la vez y nada de la lógica de juego. Se elige en **Opciones → Modo**.
+Un tema es solo una "piel": `ConsoleEngine.setTheme()` cambia la carcasa, la pantalla y el sonido, y nada de la lógica de juego. En **Opciones → Tema**, ◀▶ cambia de tema al momento y **A** abre la **galería**: al moverte, la consola entera se viste con el tema (carcasa, pantalla y sonido); **A** lo guarda y **B** vuelve al que tenías.
 
-| | Retro | Futurista | Cristal |
+| Tema | Carcasa | Pantalla | Sonido |
 |---|---|---|---|
-| Carcasa | Amarilla, botones rojos | Oscura con bordes neón cian/magenta | Violeta translúcida con "circuitos" |
-| Pantalla | LCD verde, celdas de ladrillo | Fondo negro, colores neón, celdas luminosas | LCD gris azulado, celdas de ladrillo |
-| Sonido | Pulso 8-bit seco | Las mismas notas con eco espacial | Pulso 8-bit seco |
+| Retro | Amarilla, botones rojos | LCD verde, celdas de ladrillo | Pulso 8-bit seco |
+| Futurista | Oscura con bordes neón | Negro con celdas luminosas a color | Con eco espacial |
+| Cristal | Violeta translúcida con "circuitos" | LCD gris azulado, ladrillo | Pulso seco |
+| Bolsillo | Gris claro, cruceta negra, botones granate | 4 tonos de verde oliva, bloques de píxel | Seco y más grave |
+| Fósforo ámbar | Metal negro con tornillos | Ámbar con brillo y líneas de barrido | Seco con un zumbido leve de fondo |
+| Arcade | Madera negra con vinilo de rayas, botón rojo grande | Monitor a color con esquinas curvas y barrido | Eco corto de sala |
+| Madera 80s | Imitación madera, franja naranja, botones cromados | LCD sepia, ladrillo | Pulso seco |
+| Vaporwave | Degradado rosa y turquesa con rejilla | Celdas pastel luminosas | Con eco y un poco más lento |
+| OLED nocturno | Negro puro sin adornos | Negro y rojo tenue (no deslumbra a oscuras) | Volumen a la mitad |
+| Papel | Libreta de rayas | Tinta de bolígrafo sobre cuadrícula | Pulso seco |
+| Estacional | Otoño (sep-nov), invierno (dic-feb), primavera (mar-may) o verano (jun-ago) | Paleta de la estación | Jingle de la estación al encender |
 
-La opción **Daltonismo** cambia los colores del modo Futurista por una paleta Okabe-Ito distinguible con protanopía y deuteranopía. **Botones grandes** agranda la cruceta y los botones táctiles.
+La opción **Daltonismo** cambia los colores de los temas a color (Futurista, Arcade, Vaporwave, Papel y Estacional) por una paleta Okabe-Ito distinguible con protanopía y deuteranopía. **Botones grandes** agranda la cruceta y los botones táctiles.
 
-Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `gfx.cell()`; cada modo decide cómo se ven. La carcasa se controla con el atributo `data-skin` de `<html>` en `console.css`.
+Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `gfx.cell()`; cada tema decide cómo se ven. Los temas están en `src/core/Themes.js`: paleta, estilo de celda (`brick`, `neon`, `solid` o `sketch`), timbre de `SoundChip` y rótulos de la carcasa. Si un motor necesita dibujar distinto según la pantalla, puede mirar `gfx.palette.colorful` (los colores se distinguen entre sí) y `gfx.palette.dark` (fondo oscuro). La carcasa se controla con los atributos `data-skin` y `data-season` de `<html>` en `console.css`.
 
 ## Estructura
 
@@ -172,6 +180,8 @@ retropocket-99in1/
 │   │   ├── InputManager.js    # Multitáctil, teclado, mandos y vibración
 │   │   ├── StorageManager.js  # Récords (top 5 con iniciales) y ajustes en localStorage
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario y menú de selección
+│   │   ├── Themes.js          # Los 11 temas: paletas, estilo de celda, sonido y rótulos
+│   │   ├── ThemeGallery.js    # Galería de temas con vista previa
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
 │   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, controles) y MIS JUEGOS
 │   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa y portapapeles

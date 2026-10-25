@@ -341,7 +341,7 @@ export default class FlappyPixel extends BaseCartridge {
 
   draw(g) {
     g.clear();
-    const neon = g.palette.cellStyle === 'neon';
+    const colorful = g.palette.colorful;
     const type = this._type();
     const half = this._gap() / 2;
 
@@ -361,7 +361,7 @@ export default class FlappyPixel extends BaseCartridge {
         g.rect(x - 2, Math.round(gy + half), PIPE_W + 4, 2, 'ink');
       }
     } else if (type === 'cave') {
-      const fill = neon ? 'blue' : 'mid';
+      const fill = colorful ? 'blue' : 'mid';
       for (const s of this.cave) {
         const x = Math.round(s.x);
         g.rect(x, TOP, CAVE_STEP, Math.round(s.top) - TOP, fill);
@@ -379,8 +379,8 @@ export default class FlappyPixel extends BaseCartridge {
         for (const r of col.rocks) {
           const cx = Math.round(col.x + r.dx);
           const cy = Math.round(this._rockY(r));
-          g.circle(cx, cy, r.r, neon ? 'orange' : 'ink');
-          g.circle(cx - 2, cy - 2, Math.max(1, Math.floor(r.r / 3)), neon ? 'yellow' : 'mid');
+          g.circle(cx, cy, r.r, colorful ? 'orange' : 'ink');
+          g.circle(cx - 2, cy - 2, Math.max(1, Math.floor(r.r / 3)), colorful ? 'yellow' : 'mid');
         }
       }
     }

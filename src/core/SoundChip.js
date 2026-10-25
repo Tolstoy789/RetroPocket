@@ -82,7 +82,33 @@ const SFX = {
   blip1: [{ wave: 'pulse50', freq: 330, duration: 0.25, volume: 0.5 }],
   blip2: [{ wave: 'pulse50', freq: 440, duration: 0.25, volume: 0.5 }],
   blip3: [{ wave: 'pulse50', freq: 554, duration: 0.25, volume: 0.5 }],
-  blip4: [{ wave: 'pulse50', freq: 659, duration: 0.25, volume: 0.5 }]
+  blip4: [{ wave: 'pulse50', freq: 659, duration: 0.25, volume: 0.5 }],
+
+  // Jingles del tema estacional (al encender y en la galería de temas).
+  seasonAutumn: [
+    ...['A4', 'C5', 'E5', 'D#5', 'D5', 'C#5'].map((freq, i) => ({ wave: 'pulse25', freq, duration: 0.14, delay: i * 0.12, volume: 0.4, vibrato: 6 })),
+    { wave: 'triangle', freq: 'A2', duration: 0.7, delay: 0.76, volume: 0.6 },
+    { wave: 'pulse12', freq: 'A5', duration: 0.6, delay: 0.76, volume: 0.3, vibrato: 5 }
+  ],
+  seasonWinter: [
+    ...['G5', 'B5', 'D6', 'G6', 'D6', 'B5', 'D6'].map((freq, i) => ({ wave: 'triangle', freq, duration: 0.2, delay: i * 0.11, volume: 0.55 })),
+    ...['G6', 'B6', 'D7'].map((freq, i) => ({ wave: 'pulse12', freq, duration: 0.08, delay: 0.1 + i * 0.22, volume: 0.15 })),
+    ...[0, 1, 2, 3, 4, 5].map((i) => ({ wave: 'noise', duration: 0.03, delay: i * 0.13, volume: 0.12, filter: 9500 })),
+    { wave: 'triangle', freq: 'G6', duration: 0.6, delay: 0.82, volume: 0.5 },
+    { wave: 'pulse12', freq: 'G5', duration: 0.6, delay: 0.82, volume: 0.2 }
+  ],
+  seasonSpring: [
+    ...[0, 0.09, 0.32, 0.4].map((delay) => ({ wave: 'pulse12', freq: 2100, slideTo: 3300, duration: 0.06, delay, volume: 0.22 })),
+    ...['C5', 'E5', 'G5', 'A5', 'G5'].map((freq, i) => ({ wave: 'pulse25', freq, duration: 0.13, delay: 0.55 + i * 0.12, volume: 0.4 })),
+    { wave: 'pulse25', freq: 'C6', duration: 0.45, delay: 1.15, volume: 0.4 },
+    { wave: 'triangle', freq: 'C4', duration: 0.45, delay: 1.15, volume: 0.5 }
+  ],
+  seasonSummer: [
+    ...['C5', 'E5', 'G5', 'C6', 'G5', 'E5', 'G5'].map((freq, i) => ({ wave: 'triangle', freq, duration: 0.11, delay: i * 0.1, volume: 0.6 })),
+    ...['C4', 'G4', 'C4', 'G4'].map((freq, i) => ({ wave: 'pulse50', freq, duration: 0.08, delay: i * 0.2, volume: 0.25 })),
+    { wave: 'triangle', freq: 'C6', duration: 0.5, delay: 0.75, volume: 0.55 },
+    { wave: 'pulse25', freq: 'E6', duration: 0.5, delay: 0.75, volume: 0.3 }
+  ]
 };
 
 /** Melodías cortas (nota, duración en tiempos). */
@@ -92,6 +118,28 @@ const MELODIES = {
   record: { tempo: 240, wave: 'pulse25', notes: [['C5', 0.5], ['C5', 0.5], ['G5', 0.5], ['G5', 0.5], ['A5', 0.5], ['A5', 0.5], ['G5', 1], ['E5', 0.5], ['C6', 1.5]] },
   nocart: { tempo: 180, wave: 'pulse12', notes: [['E5', 0.5], ['C5', 0.5], ['-', 0.25], ['E5', 0.5], ['C5', 0.5]] }
 };
+
+/**
+ * Timbres de los temas (Themes.js). Cada uno cambia, sobre el pulso seco de 8 bits:
+ *   echo/delay/feedback → eco (nivel, retardo en s y realimentación);
+ *   smooth → los pulsos estrechos suenan como pulso del 50% (más suave);
+ *   pitch → multiplica todas las frecuencias; tempo → multiplica el tempo de la música;
+ *   gain → multiplica el volumen general; hum → zumbido de red eléctrica de fondo (nivel).
+ */
+const FLAVOR_DEFAULTS = Object.freeze({ echo: 0, delay: 0.14, feedback: 0.32, smooth: false, pitch: 1, tempo: 1, gain: 1, hum: 0 });
+
+export const FLAVORS = {
+  retro: {},
+  future: { echo: 0.45, smooth: true },
+  deep: { pitch: 0.84 },
+  hum: { hum: 0.05 },
+  hall: { echo: 0.3, delay: 0.06, feedback: 0.18 },
+  dreamy: { echo: 0.5, delay: 0.24, feedback: 0.38, smooth: true, pitch: 0.94, tempo: 0.88 },
+  soft: { gain: 0.5 }
+};
+
+/** Duración aproximada de los jingles de temporada, para esperar antes de la música del menú. */
+export const SEASON_JINGLE_TIME = 1.6;
 
 /** Niveles 0..3 para los buses de música y efectos (menú de ajustes). */
 export const BUS_LEVELS = [0, 0.35, 0.7, 1];
@@ -215,7 +263,11 @@ export class SoundChip {
     this.volumeIndex = index >= 0 ? index : 2;
     this.unlocked = false;
     this.flavor = 'retro';
+    this.flavorDef = { ...FLAVOR_DEFAULTS };
     this.echoWet = null;
+    this.echoDelay = null;
+    this.echoFeedback = null;
+    this.hum = null;
     this.sfxBus = null;
     this.musicBus = null;
     this.sfxLevel = 3;
@@ -253,7 +305,7 @@ export class SoundChip {
     compressor.connect(this.ctx.destination);
 
     this.master = this.ctx.createGain();
-    this.master.gain.value = this.volume;
+    this.master.gain.value = this._masterLevel();
     this.master.connect(compressor);
 
     // Buses separados para efectos y música (niveles del menú de ajustes).
@@ -264,11 +316,13 @@ export class SoundChip {
     this.musicBus.gain.value = BUS_LEVELS[this.musicLevel] * 0.55;
     this.musicBus.connect(this.master);
 
-    // Eco para el modo futurista: master → delay ↺ feedback → wet → compresor.
+    // Eco de los temas que lo usan: master → delay ↺ feedback → wet → compresor.
     const delay = this.ctx.createDelay(1);
-    delay.delayTime.value = 0.14;
+    delay.delayTime.value = this.flavorDef.delay;
     const feedback = this.ctx.createGain();
-    feedback.gain.value = 0.32;
+    feedback.gain.value = this.flavorDef.feedback;
+    this.echoDelay = delay;
+    this.echoFeedback = feedback;
     const tone = this.ctx.createBiquadFilter();
     tone.type = 'lowpass';
     tone.frequency.value = 3200;
@@ -280,10 +334,10 @@ export class SoundChip {
     feedback.connect(delay);
     tone.connect(this.echoWet);
     this.echoWet.connect(compressor);
-    this._applyFlavor();
 
     this._buildWaves();
     this._buildNoise();
+    this._applyFlavor();
     return this.ctx;
   }
 
@@ -322,23 +376,67 @@ export class SoundChip {
     }
   }
 
-  /**
-   * Timbre según el modo visual: 'retro' = pulso seco de 8 bits;
-   * 'future' = mismas notas con eco espacial y ondas más suaves.
-   */
+  /** Timbre del tema (ver FLAVORS): las mismas notas con otro eco, tono, tempo o volumen. */
   setFlavor(flavor) {
-    this.flavor = flavor === 'future' ? 'future' : 'retro';
+    this.flavor = FLAVORS[flavor] ? flavor : 'retro';
+    this.flavorDef = { ...FLAVOR_DEFAULTS, ...FLAVORS[this.flavor] };
     this._applyFlavor();
   }
 
   _applyFlavor() {
     if (!this.echoWet || !this.ctx) return;
-    this.echoWet.gain.setTargetAtTime(this.flavor === 'future' ? 0.45 : 0, this.ctx.currentTime, 0.02);
+    const now = this.ctx.currentTime;
+    const f = this.flavorDef;
+    this.echoWet.gain.setTargetAtTime(f.echo, now, 0.02);
+    this.echoDelay.delayTime.setTargetAtTime(f.delay, now, 0.02);
+    this.echoFeedback.gain.setTargetAtTime(f.feedback, now, 0.02);
+    this.master.gain.setTargetAtTime(this._masterLevel(), now, 0.02);
+    this._syncHum();
   }
 
-  /** En modo futurista los pulsos estrechos se suavizan a pulso del 50%. */
+  /** Zumbido grave y continuo de los aparatos con tubo (tema Fósforo ámbar). Va por el bus de efectos. */
+  _syncHum() {
+    const ctx = this.ctx;
+    const level = this.flavorDef.hum;
+    if (level > 0 && !this.hum) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 60;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 420;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxBus);
+      osc.start();
+      this.hum = { osc, filter, gain };
+    }
+    if (!this.hum) return;
+    const now = ctx.currentTime;
+    if (level > 0) {
+      this.hum.gain.gain.setTargetAtTime(level, now, 0.3);
+      return;
+    }
+    const { osc, filter, gain } = this.hum;
+    this.hum = null;
+    gain.gain.setTargetAtTime(0.0001, now, 0.1);
+    osc.stop(now + 0.6);
+    osc.onended = () => {
+      osc.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+    };
+  }
+
+  _masterLevel() {
+    return this.volume * this.flavorDef.gain;
+  }
+
+  /** Con el timbre suave los pulsos estrechos se convierten en pulso del 50%. */
   _wave(wave) {
-    if (this.flavor === 'future' && (wave === 'pulse12' || wave === 'pulse25')) return 'pulse50';
+    if (this.flavorDef.smooth && (wave === 'pulse12' || wave === 'pulse25')) return 'pulse50';
     return wave;
   }
 
@@ -381,7 +479,7 @@ export class SoundChip {
 
   _applyVolume() {
     if (this.master && this.ctx) {
-      this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.01);
+      this.master.gain.setTargetAtTime(this._masterLevel(), this.ctx.currentTime, 0.01);
     }
     if (this.muted) this.stopAll();
   }
@@ -451,9 +549,10 @@ export class SoundChip {
       } else {
         source.type = wave === 'triangle' || wave === 'sawtooth' ? wave : 'square';
       }
-      const freq = noteToFreq(v.freq) || 440;
+      const pitch = this.flavorDef.pitch;
+      const freq = (noteToFreq(v.freq) || 440) * pitch;
       source.frequency.setValueAtTime(freq, start);
-      if (v.slideTo) source.frequency.exponentialRampToValueAtTime(Math.max(20, noteToFreq(v.slideTo)), end);
+      if (v.slideTo) source.frequency.exponentialRampToValueAtTime(Math.max(20, noteToFreq(v.slideTo) * pitch), end);
       if (v.vibrato) {
         const lfo = ctx.createOscillator();
         const lfoGain = ctx.createGain();
@@ -497,7 +596,7 @@ export class SoundChip {
   melody(nameOrDef, { volume = 0.45 } = {}) {
     const def = typeof nameOrDef === 'string' ? MELODIES[nameOrDef] : nameOrDef;
     if (!def) return 0;
-    const beat = 60 / (def.tempo || 200);
+    const beat = 60 / ((def.tempo || 200) * this.flavorDef.tempo);
     let t = 0;
     for (const [note, beats] of def.notes) {
       const duration = beats * beat;
@@ -513,13 +612,17 @@ export class SoundChip {
 
   // ---------- Música ----------
 
-  /** Empieza a sonar una pista en bucle (ver MUSIC_TRACKS). Si ya suena, no hace nada. */
-  playMusic(id) {
+  /**
+   * Empieza a sonar una pista en bucle (ver MUSIC_TRACKS). Si ya suena, no hace nada.
+   * `delay` (s) deja sonar antes un jingle.
+   */
+  playMusic(id, { delay = 0 } = {}) {
     const track = PARSED_TRACKS[id] || PARSED_TRACKS.menu;
     const trackId = PARSED_TRACKS[id] ? id : 'menu';
     if (this.music.playing && this.music.id === trackId) return;
     this.stopMusic();
-    this.music = { track, id: trackId, step: 0, nextTime: 0, playing: true };
+    const waitUntil = delay > 0 ? performance.now() + delay * 1000 : 0;
+    this.music = { track, id: trackId, step: 0, nextTime: 0, playing: true, waitUntil };
   }
 
   /** Detiene la música (las notas ya programadas se cortan). */
@@ -549,8 +652,12 @@ export class SoundChip {
   updateMusic() {
     const m = this.music;
     if (!m.playing || !m.track || !this.ctx || this.ctx.state !== 'running') return;
+    if (m.waitUntil) {
+      if (performance.now() < m.waitUntil) return;
+      m.waitUntil = 0;
+    }
     const now = this.ctx.currentTime;
-    const stepDur = 60 / m.track.tempo / 2;
+    const stepDur = 60 / (m.track.tempo * this.flavorDef.tempo) / 2;
     if (m.nextTime < now) m.nextTime = now + 0.05;
     if (this.muted || this.musicLevel === 0) {
       while (m.nextTime < now + 0.2) {

@@ -1,11 +1,11 @@
 // src/core/Screens.js
 // Pantallas de sistema de la consola:
-//   OptionsScreen  → menú de ajustes (modo visual, volúmenes, vibración, accesibilidad, borrar récords)
+//   OptionsScreen  → menú de ajustes (tema, volúmenes, vibración, accesibilidad, copia de récords)
 //   InitialsScreen → introducir 3 iniciales al entrar en el top 5 de un slot
 //   AttractScreen  → modo atracción: logo, récords, galería de juegos y demos jugadas por la consola
 
 import { ACTIONS } from './InputManager.js';
-import { SCREEN_WIDTH, SCREEN_HEIGHT, PALETTES } from './ConsoleEngine.js';
+import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ConsoleEngine.js';
 
 const YES_NO = (v) => (v ? 'SI' : 'NO');
 
@@ -46,7 +46,7 @@ export class OptionsScreen {
       }
     });
     return [
-      { label: 'MODO', value: () => PALETTES[e.theme].name, change: (dir) => e.cycleTheme(dir) },
+      { label: 'TEMA', value: () => e.themeInfo.name, change: (dir) => e.cycleTheme(dir), action: () => this._openThemes(), hint: '◀▶ CAMBIAR  A GALERIA  B SALIR' },
       { label: 'MANO', ...choice('hand', ['right', 'left'], ['DIESTRO', 'ZURDO']) },
       {
         label: 'BOTONES',
@@ -89,6 +89,11 @@ export class OptionsScreen {
   _exit() {
     this.engine.sound.sfx('back');
     this.engine.closeOptions();
+  }
+
+  _openThemes() {
+    this.engine.sound.sfx('confirm');
+    this.engine.openThemes();
   }
 
   /** Copia de seguridad: copia un código con récords, ajustes, favoritos y logros. */
@@ -219,7 +224,8 @@ export class OptionsScreen {
       }
     });
 
-    g.text('▲▼ ELEGIR  ◀▶ CAMBIAR  B SALIR', cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
+    const hint = this.items[this.index].hint || '▲▼ ELEGIR  ◀▶ CAMBIAR  B SALIR';
+    g.text(hint, cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
   }
 }
 

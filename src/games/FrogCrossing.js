@@ -344,7 +344,7 @@ export default class FrogCrossing extends BaseCartridge {
 
   draw(g) {
     g.clear();
-    const neon = g.palette.cellStyle === 'neon';
+    const colorful = g.palette.colorful;
 
     for (let row = 0; row < ROWS; row++) {
       const y = TOP + row * ROW;
@@ -358,11 +358,11 @@ export default class FrogCrossing extends BaseCartridge {
         }
         this._drawCars(g, lane, y);
       } else {
-        if (neon) g.rect(0, y, this.width, ROW, 'ghost');
+        if (colorful) g.rect(0, y, this.width, ROW, 'ghost');
         const shift = Math.floor(this.time * 6) % 12;
         for (let x = -12 + shift; x < this.width; x += 12) {
-          g.rect(x, y + 3, 4, 1, neon ? 'blue' : 'ghost');
-          g.rect(x + 6, y + 8, 4, 1, neon ? 'blue' : 'ghost');
+          g.rect(x, y + 3, 4, 1, colorful ? 'blue' : 'ghost');
+          g.rect(x + 6, y + 8, 4, 1, colorful ? 'blue' : 'ghost');
         }
         this._drawRiver(g, lane, y);
       }

@@ -1,12 +1,15 @@
 // src/core/ConsoleEngine.js
 // Corazón de la consola: bucle de juego con paso fijo (deltaTime), máquina de estados,
 // gestión del <canvas> (búfer de 144x192 escalado a toda la pantalla), la librería gráfica Gfx
-// (modos Retro, Futurista y Cristal), la capa de efectos FxLayer y las pantallas de sistema.
+// (con los temas de Themes.js), la capa de efectos FxLayer y las pantallas de sistema.
 
 import { ACTIONS } from './InputManager.js';
 import { OptionsScreen, InitialsScreen, AttractScreen } from './Screens.js';
 import { LaunchScreen, MyGamesScreen } from './LaunchScreens.js';
 import { BOOT_DURATION, pickBootScene } from './BootScenes.js';
+import { THEMES, getTheme, normalizeTheme } from './Themes.js';
+import { ThemeGallery } from './ThemeGallery.js';
+import { SEASON_JINGLE_TIME } from './SoundChip.js';
 
 /* global __APP_VERSION__ */
 export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'DEV';
@@ -19,6 +22,7 @@ export const STATES = Object.freeze({
   BOOT: 'boot',
   MENU: 'menu',
   OPTIONS: 'options',
+  THEMES: 'themes',
   LAUNCH: 'launch',
   MYGAMES: 'mygames',
   ATTRACT: 'attract',
@@ -30,95 +34,6 @@ export const STATES = Object.freeze({
   GAMEOVER: 'gameover',
   NOCART: 'nocart'
 });
-
-// ---------------------------------------------------------------------------
-// Modos visuales: los juegos usan nombres de color y la consola decide cómo se ven.
-//   retro  → LCD verde con celdas de ladrillo, carcasa amarilla clásica.
-//   future → pantalla neón a color con celdas luminosas, carcasa futurista oscura.
-//   crystal → carcasa translúcida violeta con LCD gris azulado.
-// La lógica de los juegos es idéntica en ambos modos.
-// ---------------------------------------------------------------------------
-
-export const PALETTES = {
-  retro: {
-    name: 'RETRO',
-    cellStyle: 'brick',
-    on: 'ink',
-    bg: '#9ead86',
-    ghost: '#8f9e78',
-    mid: '#5d6b4f',
-    ink: '#1d2b1a',
-    red: '#1d2b1a',
-    green: '#1d2b1a',
-    blue: '#1d2b1a',
-    yellow: '#3b4a33',
-    cyan: '#3b4a33',
-    magenta: '#3b4a33',
-    orange: '#3b4a33',
-    white: '#1d2b1a',
-    overlay: 'rgba(158, 173, 134, 0.82)',
-    highContrast: { bg: '#a9b991', ghost: '#a0b088', mid: '#3a4830', ink: '#081206', yellow: '#1f2c19', cyan: '#1f2c19', magenta: '#1f2c19', orange: '#1f2c19' }
-  },
-  future: {
-    name: 'FUTURISTA',
-    cellStyle: 'neon',
-    on: 'cyan',
-    bg: '#04040c',
-    ghost: '#121633',
-    mid: '#5a68b8',
-    ink: '#eaf6ff',
-    red: '#ff2e63',
-    green: '#00ff9c',
-    blue: '#2e8bff',
-    yellow: '#f9f871',
-    cyan: '#00f0ff',
-    magenta: '#ff2bd6',
-    orange: '#ff8a00',
-    white: '#ffffff',
-    overlay: 'rgba(4, 4, 12, 0.8)',
-    // Paleta Okabe-Ito adaptada a fondo oscuro: distinguible con protanopía y deuteranopía.
-    colorblind: {
-      red: '#ff7a1a',
-      green: '#2fd3a8',
-      blue: '#56b4e9',
-      cyan: '#a6e3ff',
-      yellow: '#f0e442',
-      magenta: '#e08ac0',
-      orange: '#e69f00'
-    },
-    highContrast: { bg: '#000000', ghost: '#0a0c1c', mid: '#9aa6ff', ink: '#ffffff' }
-  },
-  crystal: {
-    name: 'CRISTAL',
-    cellStyle: 'brick',
-    on: 'ink',
-    bg: '#b7c2c8',
-    ghost: '#a8b3ba',
-    mid: '#66727c',
-    ink: '#262b45',
-    red: '#262b45',
-    green: '#262b45',
-    blue: '#262b45',
-    yellow: '#454b66',
-    cyan: '#454b66',
-    magenta: '#454b66',
-    orange: '#454b66',
-    white: '#262b45',
-    overlay: 'rgba(183, 194, 200, 0.82)',
-    highContrast: { bg: '#c6d0d5', ghost: '#bcc6cc', mid: '#46515b', ink: '#0d1029', yellow: '#262b45', cyan: '#262b45', magenta: '#262b45', orange: '#262b45' }
-  }
-};
-
-export const THEMES = Object.keys(PALETTES);
-export const THEME_SOUND = { retro: 'retro', future: 'future', crystal: 'retro' };
-export const THEME_CHROME = { retro: '#1b1d2a', future: '#05050f', crystal: '#2a1c3f' };
-
-/** Convierte valores guardados por versiones anteriores ("lcd", "crt") al modo actual. */
-export function normalizeTheme(theme) {
-  if (theme === 'lcd') return 'retro';
-  if (theme === 'crt') return 'future';
-  return PALETTES[theme] ? theme : 'retro';
-}
 
 // ---------------------------------------------------------------------------
 // Fuente de píxeles 3x5 dibujada por código.
@@ -215,14 +130,16 @@ export class Gfx {
     this.ctx = ctx;
     this.width = width;
     this.height = height;
-    this.palette = PALETTES.retro;
     this.theme = 'retro';
+    this.themeDef = getTheme('retro');
+    this.palette = this.themeDef.palette;
     this.colorblind = false;
     this.highContrast = false;
   }
 
   setTheme(theme) {
     this.theme = normalizeTheme(theme);
+    this.themeDef = getTheme(this.theme);
     this._buildPalette();
   }
 
@@ -239,7 +156,7 @@ export class Gfx {
   }
 
   _buildPalette() {
-    const base = PALETTES[this.theme];
+    const base = this.themeDef.palette;
     this.palette = {
       ...base,
       ...(this.colorblind && base.colorblind ? base.colorblind : {}),
@@ -318,14 +235,18 @@ export class Gfx {
   }
 
   /**
-   * Celda estilo Brick Game: cuadro exterior + cuadro interior.
+   * Celda de la matriz. El aspecto depende del estilo del tema:
+   *   brick  → cuadro exterior + cuadro interior (Brick Game);
+   *   neon   → bloque luminoso con brillo; apagada = punto tenue;
+   *   solid  → bloque de píxeles con relieve; apagada = bloque tenue;
+   *   sketch → trazo de bolígrafo con rayado; apagada = cuadrícula de libreta.
    * state: 'on' (encendida), 'off' (fantasma apagado), 'mid' (gris) o un nombre de color.
    */
   cell(x, y, size, state = 'on') {
     const c = state === 'on' ? this.palette.on : state === 'off' ? 'ghost' : state;
     const ctx = this.ctx;
-    if (this.palette.cellStyle === 'neon') {
-      // Celda luminosa: bloque sólido con brillo superior; apagada = punto tenue.
+    const style = this.palette.cellStyle;
+    if (style === 'neon') {
       ctx.fillStyle = this.color(c);
       if (state === 'off') {
         const d = Math.max(1, Math.floor(size / 4));
@@ -343,6 +264,31 @@ export class Gfx {
       ctx.globalAlpha = 1;
       return;
     }
+    if (style === 'solid') {
+      ctx.fillStyle = this.color(c);
+      ctx.fillRect(x, y, size - 1, size - 1);
+      if (state === 'off' || size < 5) return;
+      ctx.globalAlpha = this.palette.shine ?? 0.3;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + 1, y + 1, size - 4, 1);
+      ctx.fillRect(x + 1, y + 2, 1, size - 5);
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(x + 1, y + size - 2, size - 2, 1);
+      ctx.fillRect(x + size - 2, y + 1, 1, size - 3);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    if (style === 'sketch') {
+      ctx.fillStyle = this.color(c);
+      if (state === 'off') {
+        ctx.fillRect(x, y, size, 1);
+        ctx.fillRect(x, y + 1, 1, size - 1);
+        return;
+      }
+      this._sketchCell(x, y, size);
+      return;
+    }
     const inset = Math.max(1, Math.floor(size / 4));
     ctx.fillStyle = this.color(c);
     ctx.fillRect(x, y, size - 1, 1);
@@ -350,6 +296,29 @@ export class Gfx {
     ctx.fillRect(x, y + 1, 1, size - 3);
     ctx.fillRect(x + size - 2, y + 1, 1, size - 3);
     ctx.fillRect(x + inset, y + inset, size - 1 - inset * 2, size - 1 - inset * 2);
+  }
+
+  /**
+   * Casilla rellenada a bolígrafo: contorno con una esquina sin cerrar, a veces un trazo que se pasa
+   * y un rayado en diagonal. La variación sale de la posición, así que no parpadea entre fotogramas.
+   */
+  _sketchCell(x, y, size) {
+    const ctx = this.ctx;
+    const s = size - 1;
+    if (s < 4) {
+      ctx.fillRect(x, y, s, s);
+      return;
+    }
+    const h = Math.imul(x | 0, 73856093) ^ Math.imul(y | 0, 19349663);
+    const open = h & 3;
+    ctx.fillRect(x + (open === 0 ? 1 : 0), y, s - (open === 0 || open === 1 ? 1 : 0), 1);
+    ctx.fillRect(x + (open === 3 ? 1 : 0), y + s - 1, s - (open === 2 || open === 3 ? 1 : 0), 1);
+    ctx.fillRect(x, y + 1, 1, s - 2);
+    ctx.fillRect(x + s - 1, y + 1, 1, s - 2);
+    if (h & 4) ctx.fillRect(x + s, h & 8 ? y : y + s - 1, 1, 1);
+    const inner = s - 2;
+    for (let k = 0; k < inner; k++) ctx.fillRect(x + 1 + k, y + s - 2 - k, 1, 1);
+    for (let k = 0; k < inner - 2; k += 1) ctx.fillRect(x + 3 + k, y + s - 2 - k, 1, 1);
   }
 
   /** Rejilla de celdas apagadas, como el fondo de una pantalla Brick Game. */
@@ -595,6 +564,7 @@ export class ConsoleEngine {
 
     this.menu = catalog.createMenu(this, this.settings.lastSlot);
     this.options = new OptionsScreen(this);
+    this.themeGallery = new ThemeGallery(this);
     this.launchScreen = new LaunchScreen(this);
     this.myGames = new MyGamesScreen(this);
     this.initials = new InitialsScreen(this);
@@ -735,18 +705,33 @@ export class ConsoleEngine {
     ctx.drawImage(this.buffer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ox, oy, w, h);
   }
 
-  /** Aplica un modo visual a la pantalla, la carcasa (atributo data-skin) y el sonido. */
+  /**
+   * Aplica un tema a la pantalla, la carcasa (atributos data-skin y data-season), los rótulos de la
+   * carcasa y el sonido. No lo guarda: la galería lo usa para la vista previa.
+   */
   setTheme(theme) {
     this.gfx.setTheme(theme);
     this.theme = this.gfx.theme;
-    document.documentElement.dataset.skin = this.theme;
+    const def = this.gfx.themeDef;
+    this.themeInfo = def;
+    const root = document.documentElement;
+    root.dataset.skin = this.theme;
+    if (def.season) root.dataset.season = def.season;
+    else delete root.dataset.season;
     this.screenEl.style.background = this.gfx.palette.bg;
-    this.sound.setFlavor(THEME_SOUND[this.theme]);
+    this.sound.setFlavor(def.sound);
+    const label = document.getElementById('bezel-text');
+    if (label) label.textContent = def.label;
+    const tag = document.getElementById('brand-tag');
+    if (tag) {
+      tag.textContent = def.tag;
+      tag.hidden = !def.tag;
+    }
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', THEME_CHROME[this.theme]);
+    if (meta) meta.setAttribute('content', def.chrome);
   }
 
-  /** Pasa al siguiente modo visual (Retro → Futurista → Cristal). */
+  /** Pasa al tema siguiente o al anterior y lo guarda. */
   cycleTheme(direction = 1) {
     const next = THEMES[(THEMES.indexOf(this.theme) + direction + THEMES.length) % THEMES.length];
     this.updateSetting('theme', next);
@@ -776,12 +761,15 @@ export class ConsoleEngine {
     this._syncKeepAwake();
   }
 
-  goToMenu() {
+  /** Vuelve al menú. Al terminar el arranque, el tema estacional toca antes su jingle de temporada. */
+  goToMenu({ fromBoot = false } = {}) {
     this._unloadCartridge();
     this._restoreSfx();
     this.fx.reset();
     this.menu.onEnter();
-    this.sound.playMusic('menu');
+    const jingle = fromBoot ? this.themeInfo.jingle : null;
+    if (jingle) this.sound.sfx(jingle);
+    this.sound.playMusic('menu', { delay: jingle ? SEASON_JINGLE_TIME : 0 });
     this._setState(STATES.MENU);
   }
 
@@ -793,6 +781,17 @@ export class ConsoleEngine {
   closeOptions() {
     this.menu.onEnter();
     this._setState(STATES.MENU);
+  }
+
+  /** Galería de temas con vista previa en la consola entera (se abre desde Opciones). */
+  openThemes() {
+    this.themeGallery.onEnter();
+    this._setState(STATES.THEMES);
+  }
+
+  /** Vuelve a Opciones desde la galería, en la misma fila. */
+  closeThemes() {
+    this._setState(STATES.OPTIONS);
   }
 
   /** Pantalla PREPARADO: controles, velocidad, nivel y favorito antes de jugar. */
@@ -1007,6 +1006,8 @@ export class ConsoleEngine {
         return;
       }
       if (!pressed || repeat) return;
+      // La galería de temas solo muestra una vista previa: al salir con RESET vuelve el tema guardado.
+      if (this.state === STATES.THEMES) this.setTheme(this.settings.theme);
       if (this.state === STATES.MENU || this.state === STATES.BOOT) {
         this._setState(STATES.BOOT);
       } else {
@@ -1019,8 +1020,8 @@ export class ConsoleEngine {
     switch (this.state) {
       case STATES.BOOT:
         if (pressed && !repeat && this.stateTime > 0.3) {
-          this.sound.sfx('confirm');
-          this.goToMenu();
+          if (!this.themeInfo.jingle) this.sound.sfx('confirm');
+          this.goToMenu({ fromBoot: true });
         }
         break;
 
@@ -1030,6 +1031,10 @@ export class ConsoleEngine {
 
       case STATES.OPTIONS:
         this.options.handleAction(e);
+        break;
+
+      case STATES.THEMES:
+        this.themeGallery.handleAction(e);
         break;
 
       case STATES.LAUNCH:
@@ -1124,6 +1129,9 @@ export class ConsoleEngine {
       case STATES.OPTIONS:
         this.closeOptions();
         return true;
+      case STATES.THEMES:
+        this.themeGallery.cancel();
+        return true;
       case STATES.LAUNCH:
       case STATES.MYGAMES:
         this.closeToMenu();
@@ -1153,7 +1161,7 @@ export class ConsoleEngine {
 
     switch (this.state) {
       case STATES.BOOT:
-        if (this.stateTime >= BOOT_DURATION) this.goToMenu();
+        if (this.stateTime >= BOOT_DURATION) this.goToMenu({ fromBoot: true });
         break;
       case STATES.MENU:
         this.menu.update(dt);
@@ -1162,6 +1170,9 @@ export class ConsoleEngine {
         break;
       case STATES.OPTIONS:
         this.options.update(dt);
+        break;
+      case STATES.THEMES:
+        this.themeGallery.update(dt);
         break;
       case STATES.LAUNCH:
         this.launchScreen.update(dt);
@@ -1236,6 +1247,9 @@ export class ConsoleEngine {
         break;
       case STATES.OPTIONS:
         this.options.render(g);
+        break;
+      case STATES.THEMES:
+        this.themeGallery.render(g);
         break;
       case STATES.LAUNCH:
         this.launchScreen.render(g);
@@ -1365,7 +1379,7 @@ export class ConsoleEngine {
       const earned = i < stars;
       const isNew = earned && i >= previous;
       const visible = !isNew || Math.floor(this.time * 4) % 2 === 0;
-      const empty = g.palette.cellStyle === 'neon' ? 'mid' : 'ghost';
+      const empty = g.palette.dark ? 'mid' : 'ghost';
       g.text('★', x + i * 5 * scale, y, { color: earned && visible ? 'yellow' : empty, scale });
     }
   }

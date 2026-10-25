@@ -11,6 +11,7 @@ export const ACTIONS = Object.freeze({
   RIGHT: 'RIGHT',
   A: 'A',
   B: 'B',
+  C: 'C', // tercer botón (teclado y mando): guardar pieza en Block Drop; en táctil equivale a A+B
   START: 'START',
   SOUND: 'SOUND',
   RESET: 'RESET'
@@ -33,6 +34,10 @@ const DEFAULT_KEYMAP = {
   Space: ACTIONS.A,
   KeyX: ACTIONS.B,
   KeyK: ACTIONS.B,
+  KeyC: ACTIONS.C,
+  KeyL: ACTIONS.C,
+  ShiftLeft: ACTIONS.C,
+  ShiftRight: ACTIONS.C,
   Enter: ACTIONS.START,
   KeyP: ACTIONS.START,
   KeyM: ACTIONS.SOUND,
@@ -46,6 +51,8 @@ const GAMEPAD_BUTTONS = {
   1: ACTIONS.B,
   2: ACTIONS.B,
   3: ACTIONS.A,
+  4: ACTIONS.C,
+  5: ACTIONS.C,
   8: ACTIONS.SOUND,
   9: ACTIONS.START,
   12: ACTIONS.UP,

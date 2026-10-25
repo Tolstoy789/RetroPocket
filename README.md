@@ -7,9 +7,14 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Efectos de pantalla** para todos los juegos: sacudida, destellos y partículas.
 - **Estrellas** (1-3 por slot), contador de juegos superados X/99 y **tabla top 5 con iniciales** en cada slot.
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
+- **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
+- **Favoritos y MIS JUEGOS:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
+- **Block Drop con reglas modernas:** guardar pieza (A+B), 3 piezas siguientes, bolsa de 7 y giros con los empujes estándar.
+- **Copia de seguridad:** Opciones → *Copiar récords* genera un código con récords, ajustes y favoritos; *Pegar récords* lo restaura en otro móvil.
+- **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** modo visual, música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo y borrar récords.
+- **Menú de opciones:** modo visual, música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
 - Todo el sonido se sintetiza en tiempo real con Web Audio API (pulso, triangular y ruido 8-bit).
@@ -66,12 +71,29 @@ Cada `git push` ejecuta `.github/workflows/android-apk.yml`, que:
 2. Compila la web con Vite.
 3. Instala Java 21 (el Android SDK ya viene en las máquinas de GitHub).
 4. Crea el proyecto Android si no existe, le pone el icono de la app (`build/android-icons.js`) y ejecuta `npx cap sync android`.
-5. Compila `app-debug.apk` con Gradle.
-6. Lo publica como *Artifact* descargable.
+5. Pone la versión (`versionName` de `package.json` y un `versionCode` que sube en cada compilación).
+6. Firma el APK siempre con la misma clave y lo compila con Gradle.
+7. Lo publica como *Artifact* descargable.
 
 Para descargarlo: pestaña **Actions** del repositorio → la última ejecución de **Android APK** → sección **Artifacts** → `retropocket-99in1-debug-apk`. Descomprime el `.zip`, copia el `.apk` al celular e instálalo (hay que permitir "instalar apps de origen desconocido").
 
 También puedes lanzarlo a mano desde **Actions → Android APK → Run workflow**.
+
+#### Actualizar sin perder los récords
+
+Android solo instala una versión encima de otra si las dos están firmadas con la misma clave; si no, hay que desinstalar, y al desinstalar se borran los récords. Desde la v0.7 el workflow firma siempre con la misma clave:
+
+- La primera compilación en `main` genera la clave y la guarda en la caché de GitHub Actions; las siguientes la reutilizan.
+- **El primer APK de la v0.7 hay que instalarlo desinstalando antes la versión anterior** (las anteriores tenían una clave distinta cada vez). Antes de desinstalar, guarda tus récords con *Opciones → Copiar récords* y restáuralos después con *Pegar récords*. A partir de ahí, cada APK nuevo se instala encima.
+- GitHub borra una caché que no se usa en 7 días. Para que la clave no cambie nunca, guárdala como secreto del repositorio:
+
+  ```bash
+  keytool -genkeypair -keystore retropocket.keystore -storepass android -alias androiddebugkey \
+    -keypass android -keyalg RSA -keysize 2048 -validity 18250 -dname "CN=Android Debug,O=Android,C=US"
+  base64 -w0 retropocket.keystore   # en macOS: base64 -i retropocket.keystore
+  ```
+
+  Copia el texto que sale en **Settings → Secrets and variables → Actions → New repository secret** con el nombre `ANDROID_DEBUG_KEYSTORE`. El workflow lo usa automáticamente. No subas el archivo `.keystore` al repositorio.
 
 ### Opción B: en tu PC
 
@@ -94,11 +116,14 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 | Mover | Cruceta (puedes deslizar el dedo) | Flechas / WASD | Cruceta / stick |
 | A | Botón A | Z, J, Espacio | A / Y |
 | B | Botón B | X, K | B / X |
+| C (guardar pieza en Block Drop) | A y B a la vez (centro del óvalo) | C, L, Mayús | L1 / R1 |
 | Start / Pausa | START | Enter, P | Start |
 | Volumen (OFF / LOW / HIGH) | SOUND | M | Select |
 | Volver al menú | RESET | Retroceso, Esc | Home |
 
-**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A o START juega y B abre las **opciones**.
+**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **MIS JUEGOS** (favoritos y recientes).
+
+**PREPARADO:** ▲ ▼ eligen VELOCIDAD, NIVEL o FAVORITO, ◀ ▶ los cambian y A o START empiezan la partida. Se recuerda la última elección de cada motor. El desafío diario se juega directamente, sin cambios, para que sea igual para todos.
 
 **Opciones:** ▲ ▼ eligen, ◀ ▶ (o A) cambian el valor, B vuelve. Todo se guarda al momento.
 
@@ -148,6 +173,8 @@ retropocket-99in1/
 │   │   ├── StorageManager.js  # Récords (top 5 con iniciales) y ajustes en localStorage
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario y menú de selección
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
+│   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, controles) y MIS JUEGOS
+│   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa y portapapeles
 │   │   └── BootScenes.js      # Las 3 animaciones de arranque y su turno de 2 días
 │   ├── games/
 │   │   └── BaseCartridge.js   # Clase base de todos los motores
@@ -179,7 +206,7 @@ retropocket-99in1/
 
 | Motor | Estado | Controles |
 |---|---|---|
-| Block Drop | ✅ 12 variantes | ◀ ▶ mover, ▼ bajar rápido, ▲ caída instantánea, A girar, B girar al revés |
+| Block Drop | ✅ 12 variantes | ◀ ▶ mover, ▼ bajar rápido, ▲ caída instantánea, A girar, B girar al revés, A+B (o C) guardar pieza |
 | Maze Muncher | ✅ 10 variantes | Cruceta (puedes pulsar el giro antes de llegar al cruce) |
 | Cyber Snake | ✅ 10 variantes | Cruceta para girar, mantener A para acelerar |
 | Brick Breaker | ✅ 10 variantes | ◀ ▶ mover la paleta (▲ la acelera), A lanzar la bola |

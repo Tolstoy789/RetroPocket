@@ -5,3 +5,4 @@ android/
 *.log
 .vscode/
 .idea/
+*.keystore

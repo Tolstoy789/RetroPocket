@@ -185,8 +185,10 @@ export class BaseCartridge {
     return this.timeLimit > 0 ? Math.max(0, this.timeLimit - this.time) : 0;
   }
 
+  /** Suma puntos. La VELOCIDAD elegida en PREPARADO los multiplica (config.scoreMultiplier). */
   addScore(points) {
-    this.score = Math.max(0, Math.floor(this.score + points));
+    const multiplier = this.config.scoreMultiplier > 0 ? this.config.scoreMultiplier : 1;
+    this.score = Math.max(0, Math.floor(this.score + points * multiplier));
     if (!this.beatHighScore && this.highScore > 0 && this.score > this.highScore) {
       this.beatHighScore = true;
       this.sound.sfx('coin');

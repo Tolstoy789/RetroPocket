@@ -162,11 +162,17 @@ export const BUS_LEVELS = [0, 0.35, 0.7, 1];
 const DRUMS_A = 'k - h - s - h - k - h k s - h - k - h - s - h - k - h k s - h -';
 const DRUMS_B = 'k h h h s h h h k h k h s h h h k h h h s h h h k h k h s h s s';
 const DRUMS_C = 'k - - - s - - - k - - - s - - - k - - - s - - - k - k - s - - -';
+const DRUMS_D = 'k - h k s - h - k - h k s - h h k - h k s - h - k k h - s s s s';
+const DRUMS_E = 'k h k h s h k h k h k h s h k h k h k h s h k h k h k h s s s s';
+const DRUMS_F = 'k - s s k - s - k - s s k - s - k - s s k - s - k k s s k s s s';
+const DRUMS_G = 'k - - - - - h - s - - - - - h - k - - - - - h - s - - - k - h h';
 
 /**
  * Pistas de música en bucle (composiciones originales).
  * Cada pista tiene 32 pasos de corchea: nota ("A4"), "-" silencio, "_" mantiene la nota anterior.
  * drums: k = bombo, s = caja, h = charles.
+ * Cada motor tiene dos pistas: la suya (id del motor) y una segunda (`<id>_b`) para los niveles pares
+ * (ver trackFor). El jukebox de Opciones las toca todas.
  */
 export const MUSIC_TRACKS = {
   menu: {
@@ -181,10 +187,22 @@ export const MUSIC_TRACKS = {
     bass: 'D3 A2 D3 A2 D3 A2 D3 A2 Bb2 F2 Bb2 F2 Bb2 F2 Bb2 F2 C3 G2 C3 G2 C3 G2 C3 G2 A2 E2 A2 E2 A2 _ - -',
     drums: DRUMS_A
   },
+  blockdrop_b: {
+    tempo: 156,
+    lead: 'F5 _ A5 _ C6 _ A5 _ Bb5 _ G5 _ E5 _ C5 _ D5 F5 A5 _ G5 F5 E5 _ F5 _ D5 _ A4 _ - -',
+    bass: 'F2 C3 F2 C3 F2 C3 F2 C3 G2 D3 G2 D3 C3 G2 C3 G2 D3 A2 D3 A2 Bb2 F2 Bb2 F2 A2 E3 A2 E3 D3 _ - -',
+    drums: DRUMS_B
+  },
   mazemuncher: {
     tempo: 160,
     lead: 'C5 E5 G5 E5 C6 _ G5 _ A5 G5 E5 G5 C5 _ - - D5 F5 A5 F5 D6 _ A5 _ B5 G5 F5 D5 C5 _ - -',
     bass: 'C3 _ G2 _ C3 _ G2 _ F2 _ C3 _ F2 _ C3 _ D3 _ A2 _ D3 _ A2 _ G2 _ D3 _ G2 _ C3 _',
+    drums: DRUMS_A
+  },
+  mazemuncher_b: {
+    tempo: 160,
+    lead: 'A5 _ E5 A5 C6 _ B5 A5 G5 _ D5 G5 B5 _ A5 G5 F5 _ C5 F5 A5 _ G5 F5 E5 G5 B5 _ E6 _ - -',
+    bass: 'A2 _ E3 _ A2 _ E3 _ G2 _ D3 _ G2 _ D3 _ F2 _ C3 _ F2 _ C3 _ E2 _ B2 _ E2 _ G#2 _',
     drums: DRUMS_A
   },
   cybersnake: {
@@ -193,11 +211,23 @@ export const MUSIC_TRACKS = {
     bass: 'E2 E2 E3 E2 E2 E3 E2 E3 E2 E2 E3 E2 D2 D3 D2 D3 C2 C2 C3 C2 C2 C3 C2 C3 B1 B1 B2 B1 B1 B2 B1 B2',
     drums: DRUMS_B
   },
+  cybersnake_b: {
+    tempo: 170,
+    lead: 'B4 - B4 D5 - E5 G5 - A5 _ G5 E5 D5 _ - - C5 - C5 E5 - G5 A5 - B5 _ A5 G5 F#5 _ E5 _',
+    bass: 'G2 G2 G3 G2 G2 G3 G2 G3 D2 D2 D3 D2 D2 D3 D2 D3 C2 C2 C3 C2 C2 C3 C2 C3 B1 B1 B2 B1 B1 B2 B1 B2',
+    drums: DRUMS_D
+  },
   brickbreaker: {
     tempo: 140,
     lead: 'G5 _ B5 _ D6 _ B5 _ C6 _ A5 _ F#5 _ D5 _ E5 _ G5 _ B5 _ A5 G5 F#5 _ A5 _ G5 _ - -',
     bass: 'G2 _ D3 _ G2 _ D3 _ A2 _ E3 _ D2 _ A2 _ C3 _ G2 _ E2 _ B2 _ D2 _ A2 _ G2 _ D3 _',
     drums: DRUMS_A
+  },
+  brickbreaker_b: {
+    tempo: 140,
+    lead: 'E5 _ G5 _ B5 _ E6 _ D6 _ B5 _ G5 _ A5 _ C6 _ B5 _ A5 _ G5 _ F#5 _ D5 _ E5 _ - -',
+    bass: 'E2 _ B2 _ E2 _ B2 _ G2 _ D3 _ D2 _ A2 _ C3 _ G2 _ C3 _ G2 _ D2 _ A2 _ E2 _ B2 _',
+    drums: DRUMS_C
   },
   roadracer: {
     tempo: 180,
@@ -205,11 +235,23 @@ export const MUSIC_TRACKS = {
     bass: 'A2 A2 A3 A2 A2 A2 A3 A2 F2 F2 F3 F2 G2 G2 G3 G2 A2 A2 A3 A2 A2 A2 A3 A2 D2 D2 D3 D2 E2 E2 E3 E2',
     drums: DRUMS_B
   },
+  roadracer_b: {
+    tempo: 180,
+    lead: 'E5 G5 C6 E6 D6 C6 B5 G5 A5 _ C6 A5 G5 _ E5 _ F5 A5 C6 F6 E6 D6 C6 A5 B5 G5 D6 B5 C6 _ - -',
+    bass: 'C2 C2 C3 C2 C2 C2 C3 C2 A1 A1 A2 A1 E2 E2 E3 E2 F2 F2 F3 F2 F2 F2 F3 F2 G2 G2 G3 G2 C2 C2 C3 C2',
+    drums: DRUMS_E
+  },
   tankbattle: {
     tempo: 132,
     lead: 'D5 _ D5 F5 A5 _ - A5 G5 _ F5 E5 D5 _ - - C5 _ C5 E5 G5 _ - G5 F5 _ E5 C#5 D5 _ - -',
     bass: 'D2 - D3 - D2 - D3 - Bb1 - Bb2 - Bb1 - Bb2 - C2 - C3 - C2 - C3 - A1 - A2 - A1 - A2 -',
     drums: DRUMS_C
+  },
+  tankbattle_b: {
+    tempo: 132,
+    lead: 'A4 _ A4 C5 F5 _ - F5 E5 _ D5 C5 Bb4 _ - - G4 _ G4 Bb4 D5 _ - D5 C5 _ Bb4 G4 A4 _ - -',
+    bass: 'F2 - F3 - F2 - F3 - C2 - C3 - C2 - C3 - G1 - G2 - G1 - G2 - A1 - A2 - A1 - A2 -',
+    drums: DRUMS_F
   },
   spaceshooter: {
     tempo: 150,
@@ -217,10 +259,22 @@ export const MUSIC_TRACKS = {
     bass: 'F#2 F#3 F#2 F#3 F#2 F#3 F#2 F#3 E2 E3 E2 E3 E2 E3 E2 E3 D2 D3 D2 D3 D2 D3 D2 D3 C#2 C#3 C#2 C#3 C#2 C#3 C#2 C#3',
     drums: DRUMS_B
   },
+  spaceshooter_b: {
+    tempo: 150,
+    lead: 'A5 _ F#5 _ D5 _ F#5 A5 B5 _ G#5 _ E5 _ - - F#5 _ C#6 _ A5 _ F#5 _ G#5 _ F5 _ C#5 _ - -',
+    bass: 'D2 D3 D2 D3 D2 D3 D2 D3 E2 E3 E2 E3 E2 E3 E2 E3 F#2 F#3 F#2 F#3 F#2 F#3 F#2 F#3 C#2 C#3 C#2 C#3 C#2 C#3 C#2 C#3',
+    drums: DRUMS_E
+  },
   frogcrossing: {
     tempo: 145,
     lead: 'F5 A5 C6 A5 F5 _ C5 _ D5 F5 A5 F5 D5 _ - - Bb4 D5 F5 D5 Bb4 _ G5 _ C5 E5 G5 E5 F5 _ - -',
     bass: 'F2 _ C3 _ F2 _ C3 _ D2 _ A2 _ D2 _ A2 _ Bb1 _ F2 _ Bb1 _ F2 _ C2 _ G2 _ F2 _ C3 _',
+    drums: DRUMS_A
+  },
+  frogcrossing_b: {
+    tempo: 145,
+    lead: 'D5 F5 Bb5 F5 D5 _ Bb4 _ C5 Eb5 G5 Eb5 C5 _ - - F5 A5 C6 A5 F5 _ D5 _ E5 G5 C6 G5 F5 _ - -',
+    bass: 'Bb1 _ F2 _ Bb1 _ F2 _ C2 _ G2 _ C2 _ G2 _ F2 _ C3 _ F2 _ C3 _ C2 _ G2 _ F2 _ C3 _',
     drums: DRUMS_A
   },
   flappypixel: {
@@ -229,11 +283,23 @@ export const MUSIC_TRACKS = {
     bass: 'C3 _ _ _ G2 _ _ _ A2 _ _ _ E2 _ _ _ F2 _ _ _ C3 _ _ _ D3 _ _ _ G2 _ _ _',
     drums: DRUMS_C
   },
+  flappypixel_b: {
+    tempo: 120,
+    lead: 'A5 _ F5 _ C5 _ F5 _ A5 _ C6 _ - - G5 _ E5 _ C5 _ E5 _ G5 _ Bb5 _ A5 _ - - - -',
+    bass: 'F2 _ _ _ C3 _ _ _ F2 _ _ _ A2 _ _ _ C3 _ _ _ G2 _ _ _ C3 _ _ _ F2 _ _ _',
+    drums: DRUMS_C
+  },
   memorymatrix: {
     tempo: 110,
     lead: 'B4 _ D5 _ F#5 _ - - E5 _ G5 _ B5 _ - - A5 _ F#5 _ D5 _ - - C#5 _ E5 _ F#5 _ _ _',
     bass: 'B2 _ F#2 _ B2 _ F#2 _ E2 _ B2 _ E2 _ B2 _ D2 _ A2 _ D2 _ A2 _ F#2 _ C#3 _ F#2 _ C#3 _',
     drums: DRUMS_C
+  },
+  memorymatrix_b: {
+    tempo: 110,
+    lead: 'D5 _ G5 _ B5 _ - - A5 _ F#5 _ D5 _ - - E5 _ G5 _ B5 _ - - A#5 _ F#5 _ C#5 _ _ _',
+    bass: 'G2 _ D3 _ G2 _ D3 _ F#2 _ D3 _ F#2 _ A2 _ E2 _ B2 _ E2 _ B2 _ F#2 _ C#3 _ F#2 _ A#2 _',
+    drums: DRUMS_G
   }
 };
 
@@ -267,6 +333,33 @@ function parseTrack(def) {
 
 const PARSED_TRACKS = Object.fromEntries(Object.entries(MUSIC_TRACKS).map(([id, def]) => [id, parseTrack(def)]));
 
+/** Pista de un motor según el nivel: la principal en los niveles impares y la segunda en los pares. */
+export function trackFor(engineId, level = 1) {
+  const alt = `${engineId}_b`;
+  return level % 2 === 0 && PARSED_TRACKS[alt] ? alt : engineId;
+}
+
+/** Pista ya convertida en pasos (para dibujarla en el jukebox). */
+export function getTrack(id) {
+  return PARSED_TRACKS[id] || null;
+}
+
+/**
+ * Modo beeper: una sola voz. De las voces de un efecto que se pisan, se queda con la primera que empieza
+ * (el resto se tocaría a la vez y un altavoz piezo de 1 bit no puede).
+ */
+function monoVoices(voices) {
+  const sorted = voices.map((v, i) => ({ v, i, start: v.delay || 0 })).sort((a, b) => a.start - b.start || a.i - b.i);
+  const kept = [];
+  let free = 0;
+  for (const { v, start } of sorted) {
+    if (start < free - 0.001) continue;
+    kept.push(v);
+    free = start + (v.duration || 0.1);
+  }
+  return kept;
+}
+
 export class SoundChip {
   constructor({ volumeLevel = 'high' } = {}) {
     this.ctx = null;
@@ -287,7 +380,12 @@ export class SoundChip {
     this.musicBus = null;
     this.sfxLevel = 3;
     this.musicLevel = 2;
-    this.music = { track: null, id: null, step: 0, nextTime: 0, playing: false };
+    this.music = { track: null, id: null, step: 0, nextTime: 0, playing: false, next: null };
+    this.beeper = false;
+    this.compressor = null;
+    this.analyser = null;
+    this.piezo = null;
+    this.spectrumData = null;
     this._unlock = this._unlock.bind(this);
     window.addEventListener('pointerdown', this._unlock, { capture: true });
     window.addEventListener('keydown', this._unlock, { capture: true });
@@ -319,9 +417,19 @@ export class SoundChip {
     compressor.release.value = 0.1;
     compressor.connect(this.ctx.destination);
 
+    this.compressor = compressor;
+
+    // Salida: master → analizador (barras del jukebox) → [altavoz piezo en modo beeper] → compresor.
     this.master = this.ctx.createGain();
     this.master.gain.value = this._masterLevel();
-    this.master.connect(compressor);
+    this.analyser = this.ctx.createAnalyser();
+    this.analyser.fftSize = 1024;
+    this.analyser.minDecibels = -90;
+    this.analyser.maxDecibels = -25;
+    this.analyser.smoothingTimeConstant = 0.55;
+    this.master.connect(this.analyser);
+    this.piezo = this._buildPiezo(compressor);
+    this._route();
 
     // Buses separados para efectos y música (niveles del menú de ajustes).
     this.sfxBus = this.ctx.createGain();
@@ -354,6 +462,53 @@ export class SoundChip {
     this._buildNoise();
     this._applyFlavor();
     return this.ctx;
+  }
+
+  /** Altavoz piezoeléctrico de las maquinitas: sin graves, con una resonancia chillona hacia 3 kHz. */
+  _buildPiezo(destination) {
+    const ctx = this.ctx;
+    const lowCut = ctx.createBiquadFilter();
+    lowCut.type = 'highpass';
+    lowCut.frequency.value = 520;
+    lowCut.Q.value = 0.8;
+    const resonance = ctx.createBiquadFilter();
+    resonance.type = 'peaking';
+    resonance.frequency.value = 3100;
+    resonance.Q.value = 1.4;
+    resonance.gain.value = 7;
+    const highCut = ctx.createBiquadFilter();
+    highCut.type = 'lowpass';
+    highCut.frequency.value = 7000;
+    const level = ctx.createGain();
+    level.gain.value = 0.85;
+    lowCut.connect(resonance);
+    resonance.connect(highCut);
+    highCut.connect(level);
+    level.connect(destination);
+    return lowCut;
+  }
+
+  _route() {
+    if (!this.analyser) return;
+    this.analyser.disconnect();
+    this.analyser.connect(this.beeper ? this.piezo : this.compressor);
+  }
+
+  /**
+   * Modo beeper: imita el altavoz piezo de las maquinitas de bolsillo. Todo suena con onda cuadrada y una
+   * sola voz (la música pierde el bajo, la batería se vuelve chasquidos y los efectos cortan la música),
+   * sin eco ni zumbido.
+   */
+  setBeeper(on) {
+    const next = !!on;
+    if (next === this.beeper) return;
+    this.beeper = next;
+    if (!this.ctx) return;
+    this.stopAll();
+    if (this.music.playing) this.music.nextTime = 0;
+    this._route();
+    this._applyFlavor();
+    this.setBusLevels({});
   }
 
   /** Ondas de pulso con duty cycle 12.5%, 25% y 50% mediante series de Fourier. */
@@ -402,7 +557,7 @@ export class SoundChip {
     if (!this.echoWet || !this.ctx) return;
     const now = this.ctx.currentTime;
     const f = this.flavorDef;
-    this.echoWet.gain.setTargetAtTime(f.echo, now, 0.02);
+    this.echoWet.gain.setTargetAtTime(this.beeper ? 0 : f.echo, now, 0.02);
     this.echoDelay.delayTime.setTargetAtTime(f.delay, now, 0.02);
     this.echoFeedback.gain.setTargetAtTime(f.feedback, now, 0.02);
     this.master.gain.setTargetAtTime(this._masterLevel(), now, 0.02);
@@ -412,7 +567,7 @@ export class SoundChip {
   /** Zumbido grave y continuo de los aparatos con tubo (tema Fósforo ámbar). Va por el bus de efectos. */
   _syncHum() {
     const ctx = this.ctx;
-    const level = this.flavorDef.hum;
+    const level = this.beeper ? 0 : this.flavorDef.hum;
     if (level > 0 && !this.hum) {
       const osc = ctx.createOscillator();
       osc.type = 'sawtooth';
@@ -449,8 +604,9 @@ export class SoundChip {
     return this.volume * this.flavorDef.gain;
   }
 
-  /** Con el timbre suave los pulsos estrechos se convierten en pulso del 50%. */
+  /** Con el timbre suave los pulsos estrechos se convierten en pulso del 50%; en modo beeper, todo. */
   _wave(wave) {
+    if (this.beeper && wave !== 'noise') return 'pulse50';
     if (this.flavorDef.smooth && (wave === 'pulse12' || wave === 'pulse25')) return 'pulse50';
     return wave;
   }
@@ -592,11 +748,28 @@ export class SoundChip {
     };
   }
 
-  /** Dispara un efecto predefinido por nombre (ver SFX). */
+  /** Dispara un efecto predefinido por nombre (ver SFX). Devuelve su duración en segundos. */
   sfx(name) {
     const voices = SFX[name];
-    if (!voices) return;
-    for (const voice of voices) this.tone(voice);
+    if (!voices) return 0;
+    if (this.beeper && this._ready()) this.stopEffects();
+    let length = 0;
+    for (const voice of this.beeper ? monoVoices(voices) : voices) {
+      this.tone(voice);
+      length = Math.max(length, (voice.delay || 0) + (voice.duration || 0.1));
+    }
+    if (this.beeper) this._duckMusic(length);
+    return length;
+  }
+
+  /** En modo beeper solo hay una voz: un efecto o un jingle corta la música mientras suena. */
+  _duckMusic(seconds) {
+    if (!this._ready() || seconds <= 0) return;
+    const now = this.ctx.currentTime;
+    const gain = this.musicBus.gain;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(0, now);
+    gain.setValueAtTime(BUS_LEVELS[this.musicLevel] * 0.55, now + seconds);
   }
 
   /** Lista de nombres de efectos disponibles. */
@@ -618,10 +791,11 @@ export class SoundChip {
       const freq = noteToFreq(note);
       if (freq > 0) {
         this.tone({ wave: def.wave || 'pulse50', freq, duration: duration * 0.9, volume, delay: t });
-        this.tone({ wave: 'triangle', freq: freq / 2, duration: duration * 0.9, volume: volume * 0.6, delay: t });
+        if (!this.beeper) this.tone({ wave: 'triangle', freq: freq / 2, duration: duration * 0.9, volume: volume * 0.6, delay: t });
       }
       t += duration;
     }
+    if (this.beeper) this._duckMusic(t);
     return t;
   }
 
@@ -634,16 +808,30 @@ export class SoundChip {
   playMusic(id, { delay = 0 } = {}) {
     const track = PARSED_TRACKS[id] || PARSED_TRACKS.menu;
     const trackId = PARSED_TRACKS[id] ? id : 'menu';
-    if (this.music.playing && this.music.id === trackId) return;
+    if (this.music.playing && this.music.id === trackId) {
+      this.music.next = null;
+      return;
+    }
     this.stopMusic();
     const waitUntil = delay > 0 ? performance.now() + delay * 1000 : 0;
-    this.music = { track, id: trackId, step: 0, nextTime: 0, playing: true, waitUntil };
+    this.music = { track, id: trackId, step: 0, nextTime: 0, playing: true, waitUntil, next: null };
+  }
+
+  /**
+   * Pasa a otra pista sin cortar la frase: el cambio se hace al empezar la siguiente mitad del bucle
+   * (cada 16 corcheas). Si ya suena o ya está en cola, no hace nada.
+   */
+  queueMusic(id) {
+    const m = this.music;
+    if (!PARSED_TRACKS[id] || m.id === null) return;
+    m.next = m.id === id ? null : id;
   }
 
   /** Detiene la música (las notas ya programadas se cortan). */
   stopMusic() {
     this.music.playing = false;
     this.music.id = null;
+    this.music.next = null;
     this._stopNodes((entry) => entry.music);
   }
 
@@ -663,6 +851,39 @@ export class SoundChip {
     return this.music.playing ? this.music.id : null;
   }
 
+  _stepDuration(track) {
+    return 60 / (track.tempo * this.flavorDef.tempo) / 2;
+  }
+
+  /** Paso de la pista que se oye ahora (las notas se programan unos 0,2 s antes); null si no suena nada. */
+  musicPosition() {
+    const m = this.music;
+    if (!m.playing || !m.track || !this.ctx || m.waitUntil) return null;
+    const ahead = Math.max(0, Math.ceil((m.nextTime - this.ctx.currentTime) / this._stepDuration(m.track)));
+    const length = m.track.length;
+    return { id: m.id, step: (((m.step - ahead) % length) + length) % length, length };
+  }
+
+  /** Niveles 0..1 de lo que suena en `bands` bandas de 80 Hz a 8 kHz (escala logarítmica). */
+  spectrum(bands = 16) {
+    const levels = new Array(bands).fill(0);
+    if (!this.analyser || this.ctx.state !== 'running') return levels;
+    if (!this.spectrumData) this.spectrumData = new Uint8Array(this.analyser.frequencyBinCount);
+    const data = this.spectrumData;
+    this.analyser.getByteFrequencyData(data);
+    const binHz = this.ctx.sampleRate / this.analyser.fftSize;
+    const low = 80;
+    const high = 8000;
+    for (let b = 0; b < bands; b++) {
+      const from = Math.max(1, Math.floor((low * (high / low) ** (b / bands)) / binHz));
+      const to = Math.max(from + 1, Math.ceil((low * (high / low) ** ((b + 1) / bands)) / binHz));
+      let peak = 0;
+      for (let i = from; i < to && i < data.length; i++) peak = Math.max(peak, data[i]);
+      levels[b] = peak / 255;
+    }
+    return levels;
+  }
+
   /** Programa las notas de los próximos ~200 ms. Se llama una vez por frame. */
   updateMusic() {
     const m = this.music;
@@ -672,33 +893,42 @@ export class SoundChip {
       m.waitUntil = 0;
     }
     const now = this.ctx.currentTime;
-    const stepDur = 60 / (m.track.tempo * this.flavorDef.tempo) / 2;
     if (m.nextTime < now) m.nextTime = now + 0.05;
-    if (this.muted || this.musicLevel === 0) {
-      while (m.nextTime < now + 0.2) {
-        m.step = (m.step + 1) % m.track.length;
-        m.nextTime += stepDur;
-      }
-      return;
-    }
+    const silent = this.muted || this.musicLevel === 0;
     while (m.nextTime < now + 0.2) {
-      const at = m.nextTime;
-      const cell = m.track.byStep[m.step];
-      if (cell.lead) {
-        this.tone({ bus: 'music', at, wave: 'pulse25', freq: cell.lead.note, duration: cell.lead.steps * stepDur * 0.92, volume: 0.32 });
+      if (m.next && m.step % 16 === 0) {
+        m.track = PARSED_TRACKS[m.next];
+        m.id = m.next;
+        m.next = null;
+        m.step = 0;
       }
-      if (cell.bass) {
-        this.tone({ bus: 'music', at, wave: 'triangle', freq: cell.bass.note, duration: cell.bass.steps * stepDur * 0.95, volume: 0.6 });
-      }
-      if (cell.drum === 'k') {
-        this.tone({ bus: 'music', at, wave: 'triangle', freq: 150, slideTo: 45, duration: 0.09, volume: 0.75 });
-      } else if (cell.drum === 's') {
-        this.tone({ bus: 'music', at, wave: 'noise', duration: 0.08, volume: 0.32, filter: 5200 });
-      } else if (cell.drum === 'h') {
-        this.tone({ bus: 'music', at, wave: 'noise', duration: 0.025, volume: 0.14, filter: 9000 });
-      }
+      const stepDur = this._stepDuration(m.track);
+      if (!silent) this._playStep(m.track.byStep[m.step], m.nextTime, stepDur);
       m.step = (m.step + 1) % m.track.length;
       m.nextTime += stepDur;
+    }
+  }
+
+  _playStep(cell, at, stepDur) {
+    if (this.beeper) {
+      // Una voz: la melodía, y la batería como chasquidos del altavoz.
+      if (cell.lead) this.tone({ bus: 'music', at, wave: 'pulse50', freq: cell.lead.note, duration: cell.lead.steps * stepDur * 0.85, volume: 0.3 });
+      if (cell.drum === 'k') this.tone({ bus: 'music', at, wave: 'pulse50', freq: 110, duration: 0.012, volume: 0.4 });
+      else if (cell.drum === 's') this.tone({ bus: 'music', at, wave: 'noise', duration: 0.02, volume: 0.25, filter: 6000 });
+      return;
+    }
+    if (cell.lead) {
+      this.tone({ bus: 'music', at, wave: 'pulse25', freq: cell.lead.note, duration: cell.lead.steps * stepDur * 0.92, volume: 0.32 });
+    }
+    if (cell.bass) {
+      this.tone({ bus: 'music', at, wave: 'triangle', freq: cell.bass.note, duration: cell.bass.steps * stepDur * 0.95, volume: 0.6 });
+    }
+    if (cell.drum === 'k') {
+      this.tone({ bus: 'music', at, wave: 'triangle', freq: 150, slideTo: 45, duration: 0.09, volume: 0.75 });
+    } else if (cell.drum === 's') {
+      this.tone({ bus: 'music', at, wave: 'noise', duration: 0.08, volume: 0.32, filter: 5200 });
+    } else if (cell.drum === 'h') {
+      this.tone({ bus: 'music', at, wave: 'noise', duration: 0.025, volume: 0.14, filter: 9000 });
     }
   }
 

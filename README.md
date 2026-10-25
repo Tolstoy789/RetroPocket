@@ -3,7 +3,9 @@
 Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × variantes de reglas), que funciona **100% offline** en el navegador y en Android.
 
 - **11 temas con la misma lógica:** *Retro*, *Futurista*, *Cristal*, *Bolsillo*, *Fósforo ámbar*, *Arcade*, *Madera 80s*, *Vaporwave*, *OLED nocturno*, *Papel* y *Estacional* (cambia solo con la estación). Cada uno trae su carcasa, su pantalla y su sonido, y se eligen en una galería con vista previa.
-- **Música chiptune** en bucle para el menú y cada motor, con volúmenes separados para música y efectos.
+- **Música chiptune** en bucle para el menú y **dos pistas por motor** (la segunda suena en los niveles pares y el cambio espera a que acabe la frase), con volúmenes separados para música y efectos.
+- **Jukebox** (Opciones → *Jukebox*): las 21 pistas, los jingles de arranque y de temporada y las fanfarrias, con una pianola que marca la nota que suena y un analizador de 16 bandas.
+- **Modo beeper** (Opciones → *Altavoz*): imita el altavoz piezo de las maquinitas de bolsillo, con una sola voz cuadrada, sin bajo ni eco y con los efectos cortando la música.
 - **Efectos de pantalla** para todos los juegos: sacudida, destellos y partículas.
 - **Estela de LCD:** los píxeles tardan unas centésimas en apagarse, como en las pantallas de cristal líquido y de fósforo de verdad (se puede quitar en Opciones → *Estela LCD*). Los temas de tubo (*Futurista*, *Fósforo ámbar* y *Arcade*) añaden líneas de barrido y un halo de brillo alrededor de las celdas encendidas.
 - **Miniatura animada en el menú:** al pararte en un juego, al lado de su número se ve una partida en pequeño jugada por la IA del modo demo, con las reglas de ese slot.
@@ -22,7 +24,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
 - Todo el sonido se sintetiza en tiempo real con Web Audio API (pulso, triangular y ruido 8-bit).
@@ -226,6 +228,14 @@ Las 99 etapas son los 99 slots en orden. Una etapa se supera con **1 estrella**;
 
 START en la pantalla de fin de partida dibuja con `<canvas>` una tarjeta PNG de 720×1040: la consola con el tema y el color de carcasa que estés usando (los colores se leen de las variables CSS del tema), la última imagen de la partida con un panel de puntos, estrellas, nivel y fecha, y la marca. En Android se guarda en la caché de la app (`@capacitor/filesystem`) y se abre el menú de compartir del sistema (`@capacitor/share`); en la web se usa la Web Share API y, si el navegador no comparte archivos, se descarga el PNG. Todo se hace en el móvil, sin servidor.
 
+## Música y sonido
+
+Todo el sonido sale de `SoundChip.js` con Web Audio: pulsos de 12,5 %, 25 % y 50 %, triangular y ruido de 8 bits. Las pistas de `MUSIC_TRACKS` son texto: 32 corcheas por línea para la melodía, el bajo y la batería (`k` bombo, `s` caja, `h` charles). Cada motor tiene su pista (`blockdrop`) y una segunda (`blockdrop_b`); `trackFor(motor, nivel)` elige la de los niveles impares o pares, y durante la partida `queueMusic()` hace el cambio al empezar la siguiente mitad del bucle para no cortar la frase.
+
+El **modo beeper** pasa todo a onda cuadrada, deja una sola voz (la música pierde el bajo y la batería se vuelve chasquidos; de las voces de un efecto que se pisan solo suena la primera), quita el eco y el zumbido del tema y manda la salida por un filtro que imita un altavoz piezo (sin graves y con una resonancia hacia 3 kHz). Como en las maquinitas de verdad, mientras suena un efecto la música se calla.
+
+El **jukebox** (Opciones → *Jukebox*) toca las pistas en bucle y los jingles una vez. ▲▼ eligen, A toca o para, ◀▶ cambia entre chip y beeper para compararlos y B vuelve. La pianola marca el paso que se oye (`musicPosition()`) y el analizador lee un `AnalyserNode` (`spectrum()`).
+
 ## Estructura
 
 ```text
@@ -235,13 +245,14 @@ retropocket-99in1/
 ├── src/
 │   ├── core/
 │   │   ├── ConsoleEngine.js   # Bucle de paso fijo, estados, canvas, Gfx y efectos (FxLayer)
-│   │   ├── SoundChip.js       # Sintetizador 8-bit y música en bucle (Web Audio API)
+│   │   ├── SoundChip.js       # Sintetizador 8-bit, música en bucle (2 pistas por motor) y modo beeper
 │   │   ├── InputManager.js    # Multitáctil, teclado, mandos y vibración
 │   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes y datos extra en localStorage
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario, etapas de la carrera y menú
 │   │   ├── MenuPreview.js     # Miniatura animada del juego elegido en el menú (IA del modo demo)
 │   │   ├── Themes.js          # Los 11 temas (paletas, celdas, sonido, rótulos) y colores de carcasa
 │   │   ├── ThemeGallery.js    # Galería de temas y carcasas con vista previa
+│   │   ├── Jukebox.js         # Jukebox: pistas, jingles y fanfarrias con pianola y analizador
 │   │   ├── Progress.js        # Estadísticas, logros, racha del desafío diario y avance de la carrera
 │   │   ├── Achievements.js    # Los 40 logros: meta, icono y descripción
 │   │   ├── HubScreen.js       # START en el menú: JUEGOS, CARRERA, LOGROS, RACHA y DATOS

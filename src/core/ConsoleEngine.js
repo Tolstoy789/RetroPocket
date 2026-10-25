@@ -11,7 +11,8 @@ import { HubScreen } from './HubScreen.js';
 import { BOOT_DURATION, pickBootScene } from './BootScenes.js';
 import { THEMES, getTheme, normalizeTheme, shellsFor } from './Themes.js';
 import { ThemeGallery } from './ThemeGallery.js';
-import { SEASON_JINGLE_TIME } from './SoundChip.js';
+import { SEASON_JINGLE_TIME, trackFor } from './SoundChip.js';
+import { Jukebox } from './Jukebox.js';
 import { Progress } from './Progress.js';
 import { achievementColor } from './Achievements.js';
 import { renderShareCard } from './ShareCard.js';
@@ -28,6 +29,7 @@ export const STATES = Object.freeze({
   MENU: 'menu',
   OPTIONS: 'options',
   THEMES: 'themes',
+  JUKEBOX: 'jukebox',
   LAUNCH: 'launch',
   HUB: 'hub',
   ATTRACT: 'attract',
@@ -597,6 +599,7 @@ export class ConsoleEngine {
     this.menu = catalog.createMenu(this, this.settings.lastSlot);
     this.options = new OptionsScreen(this);
     this.themeGallery = new ThemeGallery(this);
+    this.jukebox = new Jukebox(this);
     this.launchScreen = new LaunchScreen(this);
     this.hub = new HubScreen(this);
     this.initials = new InitialsScreen(this);
@@ -626,6 +629,7 @@ export class ConsoleEngine {
     this.setTheme(s.theme);
     this.sound.setVolumeLevel(s.volume);
     this.sound.setBusLevels({ music: s.music, sfx: s.sfx });
+    this.sound.setBeeper(s.beeper);
     this.input.setHaptics(s.haptics);
     this.fx.shakeEnabled = !!s.shake;
     this.fx.flashEnabled = !!s.flashes;
@@ -912,6 +916,18 @@ export class ConsoleEngine {
     this._setState(STATES.OPTIONS);
   }
 
+  /** Jukebox con la música y los jingles (se abre desde Opciones). */
+  openJukebox() {
+    this.jukebox.onEnter();
+    this._setState(STATES.JUKEBOX);
+  }
+
+  /** Vuelve a Opciones desde el jukebox, con la música del menú. */
+  closeJukebox() {
+    this.sound.playMusic('menu');
+    this._setState(STATES.OPTIONS);
+  }
+
   /** Pantalla PREPARADO: controles, velocidad, nivel y favorito antes de jugar. */
   openLaunch(slot) {
     this.launchScreen.open(slot);
@@ -1012,7 +1028,7 @@ export class ConsoleEngine {
     }
     this.progress.onGameStart(slot);
     this.sound.melody('start');
-    this.sound.playMusic(slot.engine.id);
+    this.sound.playMusic(trackFor(slot.engine.id, this.cartridge.level));
     this._setState(STATES.PLAYING);
   }
 
@@ -1173,6 +1189,10 @@ export class ConsoleEngine {
         this.themeGallery.handleAction(e);
         break;
 
+      case STATES.JUKEBOX:
+        this.jukebox.handleAction(e);
+        break;
+
       case STATES.LAUNCH:
         this.launchScreen.handleAction(e);
         break;
@@ -1299,6 +1319,9 @@ export class ConsoleEngine {
       case STATES.THEMES:
         this.themeGallery.cancel();
         return true;
+      case STATES.JUKEBOX:
+        this.jukebox.exit();
+        return true;
       case STATES.LAUNCH:
       case STATES.HUB:
         this.closeToMenu();
@@ -1344,6 +1367,9 @@ export class ConsoleEngine {
       case STATES.THEMES:
         this.themeGallery.update(dt);
         break;
+      case STATES.JUKEBOX:
+        this.jukebox.update(dt);
+        break;
       case STATES.LAUNCH:
         this.launchScreen.update(dt);
         break;
@@ -1366,6 +1392,8 @@ export class ConsoleEngine {
         break;
       case STATES.PLAYING:
         this._tickCartridge(dt, false);
+        // Segunda pista del motor en los niveles pares (cambia al acabar la frase en curso).
+        if (this.cartridge) this.sound.queueMusic(trackFor(this.currentSlot.engine.id, this.cartridge.level));
         this.progress.onPlayTick(dt);
         if (this.resetHold > 0) {
           this.resetHold += dt;
@@ -1438,6 +1466,9 @@ export class ConsoleEngine {
         break;
       case STATES.THEMES:
         this.themeGallery.render(g);
+        break;
+      case STATES.JUKEBOX:
+        this.jukebox.render(g);
         break;
       case STATES.LAUNCH:
         this.launchScreen.render(g);

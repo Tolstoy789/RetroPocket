@@ -1,11 +1,12 @@
 // src/core/Screens.js
 // Pantallas de sistema de la consola:
-//   OptionsScreen  → menú de ajustes (tema, volúmenes, altavoz, jukebox, vibración, accesibilidad, copia de récords)
+//   OptionsScreen  → menú de ajustes (tema, idioma, volúmenes, altavoz, jukebox, vibración, accesibilidad, copia de récords)
 //   InitialsScreen → introducir 3 iniciales al entrar en el top 5 de un slot
 //   AttractScreen  → modo atracción: logo, récords, galería de juegos y demos jugadas por la consola
 
 import { ACTIONS } from './InputManager.js';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ConsoleEngine.js';
+import { localize } from './i18n.js';
 
 const YES_NO = (v) => (v ? 'SI' : 'NO');
 
@@ -47,6 +48,8 @@ export class OptionsScreen {
     });
     return [
       { label: 'TEMA', value: () => e.themeInfo.name, change: (dir) => e.cycleTheme(dir), action: () => this._openThemes(), hint: '◀▶ CAMBIAR  A GALERIA  B SALIR' },
+      // Los nombres de los idiomas se escriben en su propio idioma, así que no se traducen.
+      { label: 'IDIOMA', ...choice('lang', ['auto', 'es', 'en'], ['AUTO', 'ESPAÑOL', 'ENGLISH']), raw: true, hint: () => (e.settings.lang === 'auto' ? 'AUTO: EL IDIOMA DEL TELEFONO' : '') },
       { label: 'MANO', ...choice('hand', ['right', 'left'], ['DIESTRO', 'ZURDO']) },
       {
         label: 'BOTONES',
@@ -117,7 +120,7 @@ export class OptionsScreen {
     if (!e.platform) return;
     const code = e.storage.exportCode();
     e.sound.sfx('select');
-    const copied = await e.platform.copyText(code, 'Copia este código y guárdalo (por ejemplo, en una nota):');
+    const copied = await e.platform.copyText(code, localize('Copia este código y guárdalo (por ejemplo, en una nota):', 'Copy this code and keep it (in a note, for example):'));
     e.input.releaseAll();
     e.toast(copied ? 'CODIGO COPIADO' : 'GUARDA EL CODIGO', 1.6);
   }
@@ -127,7 +130,7 @@ export class OptionsScreen {
     const e = this.engine;
     if (!e.platform) return;
     e.sound.sfx('select');
-    const text = await e.platform.readText('Pega aquí el código de RetroPocket (empieza por RP99-):');
+    const text = await e.platform.readText(localize('Pega aquí el código de RetroPocket (empieza por RP99-):', 'Paste your RetroPocket code here (it starts with RP99-):'));
     e.input.releaseAll();
     if (!text.trim()) return;
     if (e.storage.importCode(text)) {
@@ -231,9 +234,9 @@ export class OptionsScreen {
         }
       } else if (item.value) {
         const text = item.value();
-        g.text(text, SCREEN_WIDTH - 9, y, { align: 'right', color: selected ? 'cyan' : 'ink' });
+        g.text(text, SCREEN_WIDTH - 9, y, { align: 'right', color: selected ? 'cyan' : 'ink', raw: item.raw });
         if (selected) {
-          g.text('◀', SCREEN_WIDTH - 15 - g.textWidth(text), y, { color: 'mid' });
+          g.text('◀', SCREEN_WIDTH - 15 - g.textWidth(text, 1, 1, item.raw), y, { color: 'mid' });
           g.text('▶', SCREEN_WIDTH - 7, y, { color: 'mid' });
         }
       }
@@ -344,7 +347,7 @@ export class InitialsScreen {
     for (let i = 0; i < 3; i++) {
       const lx = startX + i * letterW;
       const active = i === this.pos;
-      g.text(this.letters[i] === ' ' ? '_' : this.letters[i], lx + 3, y + 52, { scale: 4, color: active ? 'cyan' : 'ink' });
+      g.text(this.letters[i] === ' ' ? '_' : this.letters[i], lx + 3, y + 52, { scale: 4, color: active ? 'cyan' : 'ink', raw: true });
       if (active && Math.floor(this.time * 3) % 2 === 0) {
         g.text('▲', lx + 6, y + 46, { color: 'mid' });
         g.rect(lx + 2, y + 74, 14, 2, 'cyan');
@@ -441,7 +444,7 @@ export class AttractScreen {
       g.text(`${i + 1}.`, 14, y, { color: 'mid' });
       if (row) {
         const slotLabel = /^\d+$/.test(row.slot) ? `J${String(row.slot).padStart(2, '0')}` : 'HOY';
-        g.text(row.name || '---', 26, y, { color: i === 0 ? 'cyan' : 'ink' });
+        g.text(row.name || '---', 26, y, { color: i === 0 ? 'cyan' : 'ink', raw: true });
         g.text(String(row.score).padStart(7, '0'), 98, y, { align: 'right', color: i === 0 ? 'cyan' : 'ink' });
         g.text(slotLabel, SCREEN_WIDTH - 14, y, { align: 'right', color: 'mid' });
       } else {

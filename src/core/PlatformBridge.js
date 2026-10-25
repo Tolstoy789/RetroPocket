@@ -9,6 +9,7 @@
 //     Web Share API si admite archivos y, si no, descarga el PNG.
 
 import { Capacitor, SystemBars } from '@capacitor/core';
+import { localize } from './i18n.js';
 
 export class PlatformBridge {
   constructor() {
@@ -148,7 +149,7 @@ export class PlatformBridge {
       const data = canvas.toDataURL('image/png').split(',')[1];
       const { uri } = await Filesystem.writeFile({ path: fileName, data, directory: Directory.Cache });
       try {
-        await Share.share({ files: [uri], text, dialogTitle: 'Compartir puntuación' });
+        await Share.share({ files: [uri], text, dialogTitle: localize('Compartir puntuación', 'Share score') });
         return 'shared';
       } catch (err) {
         if (/cancel/i.test(String(err?.message || err))) return 'cancelled';

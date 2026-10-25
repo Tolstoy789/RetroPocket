@@ -11,6 +11,7 @@ import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ConsoleEngine.js';
 import { ACHIEVEMENTS, achievementColor, getAchievement } from './Achievements.js';
 import { getTheme, shellRewardFor } from './Themes.js';
 import { todayKey, CAREER_BOSSES, CAREER_BOSS_SPEED } from './Catalog99.js';
+import { localize } from './i18n.js';
 
 export const HUB_TABS = ['games', 'career', 'achievements', 'streak', 'stats'];
 const TAB_LABELS = { games: 'JUEGOS', career: 'CARRERA', achievements: 'LOGROS', streak: 'RACHA', stats: 'DATOS' };
@@ -44,7 +45,8 @@ const CAL_COL = 18;
 const CAL_ROW = 12;
 const CAL_Y = 74;
 const MONTHS = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
-const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+// Iniciales de lunes a domingo (una letra suelta no se traduce con el diccionario: ver localize).
+const WEEKDAYS = { es: ['L', 'M', 'X', 'J', 'V', 'S', 'D'], en: ['M', 'T', 'W', 'T', 'F', 'S', 'S'] };
 const FLAME = getAchievement('streak7').icon;
 const STAR = getAchievement('firststar').icon;
 
@@ -417,7 +419,7 @@ export class HubScreen {
     g.text(`${MONTHS[month]} ${year}`, cx, titleY, { align: 'center' });
     g.text('▲', 8, titleY, { color: this.month > min ? 'mid' : 'ghost' });
     g.text('▼', SCREEN_WIDTH - 11, titleY, { color: this.month < max ? 'mid' : 'ghost' });
-    WEEKDAYS.forEach((d, i) => g.text(d, CAL_X + i * CAL_COL + CAL_COL / 2, 65, { align: 'center', color: i >= 5 ? 'cyan' : 'mid' }));
+    localize(WEEKDAYS.es, WEEKDAYS.en).forEach((d, i) => g.text(d, CAL_X + i * CAL_COL + CAL_COL / 2, 65, { align: 'center', color: i >= 5 ? 'cyan' : 'mid', raw: true }));
 
     const offset = (new Date(year, month, 1).getDay() + 6) % 7;
     const days = new Date(year, month + 1, 0).getDate();

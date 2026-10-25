@@ -6,6 +6,7 @@
 // activo (y del color de carcasa elegido), así que la tarjeta lleva la misma consola que se ve en pantalla.
 
 import { Gfx, SCREEN_WIDTH, SCREEN_HEIGHT, APP_VERSION } from './ConsoleEngine.js';
+import { getLanguage, translate } from './i18n.js';
 
 const CARD_W = 720;
 const CARD_H = 1040;
@@ -207,9 +208,19 @@ function today() {
 }
 
 function shareText(slot, result) {
+  const career = result.career;
+  if (getLanguage() === 'en') {
+    const game = `${slot.engine.name} ${translate(slot.label)}`;
+    const where = slot.daily ? `the daily challenge (${game})` : `${game}, game ${slot.code}`;
+    if (career?.passed) {
+      if (career.finished) return `I cleared all 99 stages of RetroPocket 99-in-1 career mode! ${result.score} points in ${where}.`;
+      return `Career stage ${career.stage}/99 cleared in RetroPocket 99-in-1: ${result.score} points in ${where}.`;
+    }
+    if (result.isHighScore) return `New record in RetroPocket 99-in-1! ${result.score} points in ${where}.`;
+    return `${result.score} points in ${where} on RetroPocket 99-in-1. Can you beat me?`;
+  }
   const game = `${slot.engine.name} ${slot.label}`;
   const where = slot.daily ? `el desafío diario (${game})` : `${game}, juego ${slot.code}`;
-  const career = result.career;
   if (career?.passed) {
     if (career.finished) return `¡He completado las 99 etapas del modo carrera de RetroPocket 99-in-1! ${result.score} puntos en ${where}.`;
     return `Etapa ${career.stage}/99 superada en el modo carrera de RetroPocket 99-in-1: ${result.score} puntos en ${where}.`;
@@ -369,7 +380,8 @@ export function renderShareCard(engine) {
   const ink = isLight(skin.page[1]) ? '20, 22, 34' : '255, 255, 255';
   ctx.font = `bold 22px ${FONT}`;
   ctx.fillStyle = `rgba(${ink}, 0.85)`;
-  ctx.fillText(`${slot.engine.name} ${slot.label}  ·  ${result.score} PUNTOS`, CARD_W / 2, CARD_H - 50);
+  const points = getLanguage() === 'en' ? 'POINTS' : 'PUNTOS';
+  ctx.fillText(`${slot.engine.name} ${translate(slot.label)}  ·  ${result.score} ${points}`, CARD_W / 2, CARD_H - 50);
   ctx.font = `16px ${FONT}`;
   ctx.fillStyle = `rgba(${ink}, 0.55)`;
   ctx.fillText(`RetroPocket 99-in-1  ·  v${APP_VERSION}  ·  ${date}`, CARD_W / 2, CARD_H - 24);

@@ -2,8 +2,8 @@
 // La consola entera en Chromium (Playwright) con el servidor de desarrollo de Vite, manejada con el
 // teclado como un jugador: arranque, menú, PREPARADO, una partida de cada motor con pausa, fin de partida
 // con iniciales, opciones, galería de temas, jukebox, juegos y logros, desafío diario, carrera, modo demo,
-// dos jugadores, ahorro de batería, guardar la partida al salir y giro de pantalla. Falla si la página
-// registra cualquier error.
+// dos jugadores, ahorro de batería, guardar la partida al salir, idioma inglés y giro de pantalla. Falla si
+// la página registra cualquier error.
 //
 //   npm run test:e2e   (la primera vez: npx playwright install chromium)
 
@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
 import { chromium } from 'playwright';
+import { checkTranslations } from '../i18n-check.js';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -34,7 +35,7 @@ before(async () => {
     if (sessionStorage.getItem('e2e')) return;
     sessionStorage.setItem('e2e', '1');
     localStorage.clear();
-    localStorage.setItem('retropocket99:settings', JSON.stringify({ demo: false, initials: 'E2E' }));
+    localStorage.setItem('retropocket99:settings', JSON.stringify({ demo: false, initials: 'E2E', lang: 'es' }));
   });
   await page.goto(server.resolvedUrls.local[0]);
   await page.waitForFunction(() => window.retropocket?.state === 'boot', null, { timeout: 15000 });
@@ -331,6 +332,67 @@ step('guardar la partida al salir: se cierra en pausa y al volver se continúa',
   await press('KeyZ');
   await waitState('menu');
   assert.equal(await engine(() => window.retropocket.storage.getSuspended()), null);
+});
+
+step('idioma inglés: todas las pantallas tienen traducción, se cambia en Opciones y nada se sale', async () => {
+  // Recorrido por todas las pantallas (ver tour.js) apuntando cada texto que se dibuja.
+  const { texts, names } = await engine(async () => {
+    const e = window.retropocket;
+    const { tourScreens } = await import('/tests/e2e/tour.js');
+    const log = new Set();
+    e.gfx.constructor.textLog = log;
+    try {
+      tourScreens(e);
+    } finally {
+      e.gfx.constructor.textLog = null;
+    }
+    return { texts: [...log], names: e.catalog.engines.map((en) => en.name) };
+  });
+  assert.ok(texts.length > 800, `solo se dibujaron ${texts.length} textos`);
+  assert.deepEqual(checkTranslations(texts, { names }), []);
+
+  // Opciones → IDIOMA (la segunda fila) → ENGLISH.
+  await toMenu();
+  await press('KeyX');
+  await waitState('options');
+  await press('ArrowDown');
+  await press('ArrowRight');
+  assert.equal(await engine(() => window.retropocket.settings.lang), 'en');
+  assert.equal(await engine(() => document.documentElement.lang), 'en');
+  assert.equal(await engine(() => document.querySelector('[data-action="A"]').getAttribute('aria-label')), 'A button');
+  await press('KeyX');
+  await waitState('menu');
+  await engine(() => window.retropocket.menu.jumpTo(1));
+  assert.deepEqual(await engine(() => window.retropocket.menu.descLines), ['FIT THE PIECES AND CLEAR LINES.']);
+
+  // Otra vuelta en inglés: ningún texto se sale de la pantalla si en español cabía.
+  const outside = await engine(async () => {
+    const e = window.retropocket;
+    const g = e.gfx;
+    const { tourScreens } = await import('/tests/e2e/tour.js');
+    const found = new Set();
+    const text = g.text;
+    g.text = function (str, x, y, o = {}) {
+      const scale = o.scale || 1;
+      const spacing = o.spacing ?? 1;
+      const bounds = (w) => (o.align === 'center' ? [x - w / 2, x + w / 2] : o.align === 'right' ? [x - w, x] : [x, x + w]);
+      const [l, r] = bounds(g.textWidth(str, scale, spacing, o.raw));
+      const [ls, rs] = bounds(g.textWidth(str, scale, spacing, true));
+      if ((l < 0 || r > g.width) && ls >= 0 && rs <= g.width) found.add(`${str} (${e.state})`);
+      return text.call(g, str, x, y, o);
+    };
+    try {
+      tourScreens(e);
+    } finally {
+      g.text = text;
+    }
+    return [...found];
+  });
+  assert.deepEqual(outside, [], 'textos que en inglés se salen de la pantalla');
+
+  await engine(() => window.retropocket.updateSetting('lang', 'es'));
+  assert.equal(await engine(() => document.documentElement.lang), 'es');
+  assert.equal(await engine(() => document.querySelector('[data-action="A"]').getAttribute('aria-label')), 'Botón A');
 });
 
 step('girar la pantalla y volver', async () => {

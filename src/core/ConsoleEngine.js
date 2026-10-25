@@ -580,6 +580,8 @@ export class ConsoleEngine {
     this.currentSlot = null;
     this.loadToken = 0;
     this.result = null;
+    this.match = null; // partida a 2 jugadores por turnos (ver startMatch)
+    this.turnBadge = 0;
     this.toastText = '';
     this.toastTime = 0;
     this.pauseIndex = 0;
@@ -631,6 +633,7 @@ export class ConsoleEngine {
     this.sound.setBusLevels({ music: s.music, sfx: s.sfx });
     this.sound.setBeeper(s.beeper);
     this.input.setHaptics(s.haptics);
+    this.input.setGestures?.(s.gestures);
     this.fx.shakeEnabled = !!s.shake;
     this.fx.flashEnabled = !!s.flashes;
     this.input.setRepeatSpeed(s.repeat);
@@ -885,6 +888,7 @@ export class ConsoleEngine {
 
   /** Vuelve al menú. Al terminar el arranque, el tema estacional toca antes su jingle de temporada. */
   goToMenu({ fromBoot = false } = {}) {
+    this.match = null;
     this._unloadCartridge();
     this._restoreSfx();
     this.fx.reset();
@@ -942,6 +946,7 @@ export class ConsoleEngine {
 
   /** Sale de la partida a una pestaña de la pantalla de START (B tras una etapa de la carrera). */
   goToHub(tab) {
+    this.match = null;
     this._unloadCartridge();
     this._restoreSfx();
     this.fx.reset();
@@ -958,6 +963,7 @@ export class ConsoleEngine {
 
   /** Pantalla de atracción: se alternan logo, récords, juegos y demos jugadas por la consola. */
   startAttract() {
+    this.match = null;
     this._unloadCartridge();
     this.fx.reset();
     this.sound.stopMusic();
@@ -973,6 +979,7 @@ export class ConsoleEngine {
   async launch(slotRef, { demo = false } = {}) {
     const slot = typeof slotRef === 'object' && slotRef ? slotRef : this.catalog.getSlot(slotRef);
     if (!slot) return;
+    if (this.match && (demo || slot !== this.match.slot)) this.match = null;
     if (!demo) {
       this.storage.setSetting('lastSlot', slot.daily ? 0 : slot.number);
       if (!slot.daily) this.storage.pushRecent(slot.number);
@@ -1027,6 +1034,7 @@ export class ConsoleEngine {
       return;
     }
     this.progress.onGameStart(slot);
+    this.turnBadge = this.match ? 2 : 0;
     this.sound.melody('start');
     this.sound.playMusic(trackFor(slot.engine.id, this.cartridge.level));
     this._setState(STATES.PLAYING);
@@ -1034,6 +1042,40 @@ export class ConsoleEngine {
 
   restart() {
     if (this.currentSlot) this.launch(this.currentSlot);
+  }
+
+  /**
+   * Dos jugadores por turnos («pasa la consola»): cada uno juega una partida del mismo slot con la misma
+   * semilla (las mismas piezas, enemigos y obstáculos) y gana la mejor puntuación. Las partidas cuentan
+   * para récords, logros y estadísticas como cualquier otra.
+   */
+  startMatch(slot) {
+    this.match = { slot: this._matchSlot(slot), round: 1, scores: [], stars: [], wins: [0, 0] };
+    this.launch(this.match.slot);
+  }
+
+  _matchSlot(slot) {
+    return Object.freeze({ ...slot, seed: Math.floor(Math.random() * 2 ** 32) });
+  }
+
+  /** Turno siguiente o, si ya jugaron los dos, una revancha con otra semilla. */
+  _nextTurn() {
+    const m = this.match;
+    if (m.scores.length >= 2) {
+      m.round++;
+      m.scores = [];
+      m.stars = [];
+      m.slot = this._matchSlot(m.slot);
+    }
+    this.launch(m.slot);
+  }
+
+  /** Apunta el resultado del turno; al acabar el segundo, suma la victoria (o nada si empatan). */
+  _recordTurn(result) {
+    const m = this.match;
+    m.scores.push(result.score);
+    m.stars.push(result.stars);
+    if (m.scores.length === 2 && m.scores[0] !== m.scores[1]) m.wins[m.scores[0] > m.scores[1] ? 0 : 1]++;
   }
 
   pause() {
@@ -1077,6 +1119,7 @@ export class ConsoleEngine {
       table: this.storage.getScores(slot.key)
     };
     this.result.career = this.progress.onGameEnd(slot, this.result, previousBest);
+    if (this.match) this._recordTurn(this.result);
     const career = this.result.career;
     this.sound.stopMusic();
     if (career?.passed) {
@@ -1240,7 +1283,10 @@ export class ConsoleEngine {
       case STATES.GAMEOVER: {
         if (!pressed || repeat || this.stateTime < 0.8) return;
         const career = this.result?.career;
-        if (action === ACTIONS.A) {
+        if (this.match && action === ACTIONS.A) {
+          this.sound.sfx('confirm');
+          this._nextTurn();
+        } else if (action === ACTIONS.A) {
           this.sound.sfx('confirm');
           if (career?.next) {
             this.menu.jumpTo(career.next);
@@ -1391,6 +1437,7 @@ export class ConsoleEngine {
         this._tickCartridge(dt, true);
         break;
       case STATES.PLAYING:
+        this.turnBadge = Math.max(0, this.turnBadge - dt);
         this._tickCartridge(dt, false);
         // Segunda pista del motor en los niveles pares (cambia al acabar la frase en curso).
         if (this.cartridge) this.sound.queueMusic(trackFor(this.currentSlot.engine.id, this.cartridge.level));
@@ -1490,6 +1537,7 @@ export class ConsoleEngine {
       case STATES.PLAYING:
         this._renderCartridge(g);
         this.fx.render(g);
+        if (this.turnBadge > 0) this._renderTurnBadge(g);
         if (this.resetHold > 0) this._renderResetHold(g);
         break;
       case STATES.PAUSED:
@@ -1626,7 +1674,9 @@ export class ConsoleEngine {
     }
 
     g.rect(x + 8, y + 73, w - 16, 1, 'mid');
-    if (r.career) {
+    if (this.match) {
+      this._renderMatchResult(g, x, y + 78, w);
+    } else if (r.career) {
       this._renderCareerResult(g, r, y + 78);
     } else {
       g.text('TOP 5', SCREEN_WIDTH / 2, y + 77, { align: 'center', color: 'mid' });
@@ -1647,9 +1697,48 @@ export class ConsoleEngine {
       const blink = Math.floor(this.stateTime * 2) % 2 === 0;
       g.text('START: COMPARTIR', SCREEN_WIDTH / 2, y + h - 22, { align: 'center', color: r.isHighScore && blink ? 'yellow' : 'mid' });
       let keys = 'A: OTRA VEZ   B: MENU';
-      if (c) keys = `${c.next ? 'A: SIGUIENTE' : c.passed ? 'A: OTRA VEZ' : 'A: REINTENTAR'}   B: CARRERA`;
+      if (this.match) keys = this.match.scores.length < 2 ? 'A: JUEGA J2   B: SALIR' : 'A: REVANCHA   B: SALIR';
+      else if (c) keys = `${c.next ? 'A: SIGUIENTE' : c.passed ? 'A: OTRA VEZ' : 'A: REINTENTAR'}   B: CARRERA`;
       g.text(keys, SCREEN_WIDTH / 2, y + h - 12, { align: 'center' });
     }
+  }
+
+  /** Marcador de la partida a 2 jugadores (en lugar del TOP 5). */
+  _renderMatchResult(g, x, y, w) {
+    const m = this.match;
+    const cx = SCREEN_WIDTH / 2;
+    const blink = Math.floor(this.stateTime * 3) % 2 === 0;
+    const done = m.scores.length >= 2;
+    const winner = done && m.scores[0] !== m.scores[1] ? (m.scores[0] > m.scores[1] ? 0 : 1) : -1;
+    g.text(`2 JUGADORES - RONDA ${m.round}`, cx, y, { align: 'center', color: 'mid' });
+    for (let p = 0; p < 2; p++) {
+      const ry = y + 10 + p * 10;
+      const played = p < m.scores.length;
+      const color = p === winner ? 'yellow' : played ? 'ink' : 'mid';
+      g.text(`J${p + 1}`, x + 10, ry, { color: p === 0 ? 'cyan' : 'magenta' });
+      if (played) this.drawStars(g, x + 24, ry - 1, m.stars[p]);
+      g.text(played ? String(m.scores[p]).padStart(7, '0') : '-------', x + w - 10, ry, { align: 'right', color });
+    }
+    let line = 'PASA LA CONSOLA AL J2';
+    let color = blink ? 'ink' : 'mid';
+    if (done) {
+      line = winner < 0 ? '¡EMPATE!' : `¡GANA EL JUGADOR ${winner + 1}!`;
+      color = 'yellow';
+    }
+    g.text(line, cx, y + 33, { align: 'center', color });
+    g.text(`VICTORIAS  J1 ${m.wins[0]} - ${m.wins[1]} J2`, cx, y + 43, { align: 'center', color: 'mid' });
+  }
+
+  /** Al empezar cada turno de 2 jugadores, quién juega. */
+  _renderTurnBadge(g) {
+    if (Math.floor(this.turnBadge * 4) % 2 === 1 && this.turnBadge < 0.8) return;
+    const player = this.match ? this.match.scores.length + 1 : 1;
+    const w = 76;
+    const x = Math.floor((SCREEN_WIDTH - w) / 2);
+    const y = 80;
+    g.panel(x, y, w, 22);
+    g.text(`JUGADOR ${player}`, SCREEN_WIDTH / 2, y + 5, { align: 'center', color: player === 1 ? 'cyan' : 'magenta' });
+    g.text(`RONDA ${this.match?.round || 1}`, SCREEN_WIDTH / 2, y + 13, { align: 'center', color: 'mid' });
   }
 
   /** Resultado de una etapa del modo carrera (en lugar del TOP 5). */
@@ -1665,7 +1754,7 @@ export class ConsoleEngine {
       g.text(c.boss ? 'EL JEFE GANA ESTA VEZ' : 'NO SUPERADA', cx, y + 11, { align: 'center', color: 'red' });
     }
     const slot = this.currentSlot;
-    const goal = slot.engine.stars[c.need - 1];
+    const goal = slot.stars[c.need - 1];
     g.text(`META ${'★'.repeat(c.need)} ${goal} PUNTOS`, cx, y + 22, { align: 'center', color: c.passed ? 'mid' : 'ink' });
     if (!c.passed) {
       g.text(`TE FALTAN ${Math.max(1, goal - r.score)}`, cx, y + 33, { align: 'center', color: 'yellow' });

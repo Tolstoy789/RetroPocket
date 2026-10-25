@@ -317,7 +317,7 @@ export class HubScreen {
       line = boss ? '★ JEFE DERROTADO ★' : 'ETAPA SUPERADA';
       color = 'green';
     } else {
-      const goal = `${'★'.repeat(need)} ${slot.engine.stars[need - 1]}`;
+      const goal = `${'★'.repeat(need)} ${slot.stars[need - 1]}`;
       line = boss ? `JEFE VEL ${CAREER_BOSS_SPEED} - META ${goal}` : `META ${goal} PUNTOS`;
       if (boss) color = 'red';
     }

@@ -9,7 +9,10 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Efectos de pantalla** para todos los juegos: sacudida, destellos y partículas.
 - **Estela de LCD:** los píxeles tardan unas centésimas en apagarse, como en las pantallas de cristal líquido y de fósforo de verdad (se puede quitar en Opciones → *Estela LCD*). Los temas de tubo (*Futurista*, *Fósforo ámbar* y *Arcade*) añaden líneas de barrido y un halo de brillo alrededor de las celdas encendidas.
 - **Miniatura animada en el menú:** al pararte en un juego, al lado de su número se ve una partida en pequeño jugada por la IA del modo demo, con las reglas de ese slot.
-- **Estrellas** (1-3 por slot), contador de juegos superados X/99 y **tabla top 5 con iniciales** en cada slot.
+- **Estrellas** (1-3 por slot), contador de juegos superados X/99 y **tabla top 5 con iniciales** en cada slot. Las metas de estrellas se ajustan a cada variante (las variantes difíciles piden menos puntos) a partir de un **informe de dificultad** que juega todos los slots con la IA ([docs/dificultad.md](docs/dificultad.md)).
+- **Dos jugadores por turnos** (PREPARADO → *Jugadores*): modo «pasa el móvil» en cualquier slot. Cada jugador juega una partida con las mismas piezas, coches y enemigos (misma semilla), gana la mejor puntuación y se lleva la cuenta de victorias de la revancha.
+- **Autodisparo:** en Space Shooter, Tank Battle y Road Racer *Armado*, mantener A dispara solo (se puede quitar en Opciones → *Autodisparo*).
+- **Gestos sobre la pantalla** (Opciones → *Gestos*): deslizar el dedo sobre la pantalla hace de cruceta y tocarla pulsa A, para móviles pequeños o jugar con una mano.
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
 - **Favoritos y recientes:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
@@ -24,7 +27,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
 - Todo el sonido se sintetiza en tiempo real con Web Audio API (pulso, triangular y ruido 8-bit).
@@ -123,8 +126,8 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 
 | Acción | Táctil | Teclado | Mando |
 |---|---|---|---|
-| Mover | Cruceta (puedes deslizar el dedo) | Flechas / WASD | Cruceta / stick |
-| A | Botón A | Z, J, Espacio | A / Y |
+| Mover | Cruceta (puedes deslizar el dedo) o deslizar sobre la pantalla (con *Gestos*) | Flechas / WASD | Cruceta / stick |
+| A | Botón A o tocar la pantalla (con *Gestos*) | Z, J, Espacio | A / Y |
 | B | Botón B | X, K | B / X |
 | C (guardar pieza en Block Drop) | A y B a la vez (centro del óvalo) | C, L, Mayús | L1 / R1 |
 | Start / Pausa | START | Enter, P | Start |
@@ -133,7 +136,7 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 
 **En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario; a la derecha se ve una partida de muestra en miniatura), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **juegos, carrera y logros** (ver abajo).
 
-**PREPARADO:** ▲ ▼ eligen VELOCIDAD, NIVEL o FAVORITO, ◀ ▶ los cambian y A o START empiezan la partida. Se recuerda la última elección de cada motor. El desafío diario se juega directamente, sin cambios, para que sea igual para todos.
+**PREPARADO:** ▲ ▼ eligen VELOCIDAD, NIVEL, JUGADORES o FAVORITO, ◀ ▶ los cambian y A o START empiezan la partida. Se recuerda la última elección de cada motor. El desafío diario se juega directamente, sin cambios, para que sea igual para todos.
 
 **Juegos y logros (START en el menú):** ◀ ▶ cambian de pestaña y B o START vuelven al menú.
 
@@ -151,7 +154,7 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 
 **Récord nuevo:** al entrar en el top 5 de un slot, ▲ ▼ cambian la letra, A pasa a la siguiente y START guarda.
 
-**Fin de partida:** A juega otra vez, B vuelve al menú y START **comparte la puntuación** como imagen. En el modo carrera, A pasa a la etapa siguiente (o reintenta la que no se superó) y B vuelve al mapa de la carrera.
+**Fin de partida:** A juega otra vez, B vuelve al menú y START **comparte la puntuación** como imagen. En el modo carrera, A pasa a la etapa siguiente (o reintenta la que no se superó) y B vuelve al mapa de la carrera. Con dos jugadores, A le pasa el turno al jugador 2 y, cuando han jugado los dos, empieza la revancha.
 
 **En Android:** el botón "atrás" pausa el juego o vuelve al menú; la app se pausa sola al pasar a segundo plano.
 
@@ -163,6 +166,8 @@ Pensada para sesiones largas con una o dos manos:
 - **Zonas táctiles generosas:** la cruceta responde aunque el pulgar caiga fuera del dibujo y permite deslizar entre direcciones sin levantar el dedo. En el óvalo de A/B se puede deslizar de un botón a otro, y el punto medio pulsa **A y B a la vez**.
 - **RESET seguro:** en plena partida hay que mantenerlo 0,7 s (aparece una barra), así un roce no te saca del juego.
 - **Repetición de la cruceta** lenta, normal o rápida, según tus reflejos.
+- **Gestos sobre la pantalla:** con la opción *Gestos*, la pantalla funciona como un stick virtual (la dirección se toma desde donde apoyas el dedo y el punto de apoyo sigue al dedo, así que se puede girar sin levantarlo) y un toque corto pulsa A. La cruceta y los botones siguen funcionando.
+- **Autodisparo:** mantener A dispara cada 0,15 s en los motores de disparos, para no machacar el botón.
 - **Botones grandes**, **alto contraste**, **paleta para daltonismo**, y opciones para quitar **sacudidas**, **destellos** (también apaga el brillo y el barrido de los temas de tubo) y la **estela de LCD** si molestan a la vista.
 - **Aviso de descanso** cada 30 minutos de juego (pausa la partida y recomienda estirar manos y vista).
 - La partida se pausa sola al bloquear el móvil o cambiar de app, y el botón "atrás" de Android pausa en vez de salir.
@@ -220,6 +225,14 @@ La estela y el brillo no tocan los motores: el juego dibuja cada fotograma en su
 
 Los logros están en `src/core/Achievements.js`: cada uno mira una estadística (`games`, `stars`, `streak`, `total:lines`, `best:kmh`...) y se desbloquea al llegar a su meta. Todo se guarda en `localStorage` con `saveExtra()`, así que entra en la copia de seguridad. La racha cuenta los días en que terminas el desafío diario y sigue viva hasta el final del día siguiente.
 
+## Dos jugadores por turnos
+
+En PREPARADO, *Jugadores: 2 por turnos* convierte cualquier slot en un duelo para un solo móvil. Al empezar cada turno se ve un cartel con el jugador y la ronda. Los dos juegan la misma partida (la ronda fija una semilla al azar, así que caen las mismas piezas y salen los mismos enemigos) y, al terminar, la pantalla de fin de partida muestra las estrellas y los puntos de J1 y J2, quién gana y el marcador de victorias. A juega el turno siguiente o la revancha (con otra semilla) y B vuelve al menú. Las partidas cuentan para los récords, los logros y las estadísticas como cualquier otra.
+
+## Dificultad y estrellas
+
+Cada motor tiene sus metas de 1, 2 y 3 estrellas, y cada variante las ajusta con `stars` en `Catalog99.js`: un número las multiplica (×0,4 en las casi imposibles, ×2 en las fáciles) y una lista las fija. Los multiplicadores salen de `npm run difficulty`, que juega cada slot 40 veces con la IA del modo demo en Node (`tools/autoplay.js`, sin navegador) y compara los puntos y lo que aguanta la IA con la variante clásica de su motor. El informe completo, con las variantes que se ajustaron a mano porque la IA no nota su dificultad (pieza invisible, apagón, controles en espejo...), está en [docs/dificultad.md](docs/dificultad.md). `npm run difficulty -- --write` lo regenera.
+
 ## Modo carrera
 
 Las 99 etapas son los 99 slots en orden. Una etapa se supera con **1 estrella**; los **jefes** (etapas 10, 20... 90 y 99) se juegan a **velocidad 2** y piden **2 estrellas**. Superar la siguiente etapa pendiente abre la otra, y las ya superadas se pueden repetir cuando quieras. Los puntos cuentan también para los récords del slot. El avance se guarda con `saveExtra('career')`, así que entra en la copia de seguridad. Logros de la carrera: *Primer jefe* (etapa 10), *Media carrera* (50 etapas) y *Campeón* (las 99, que regala la carcasa Retro Platino).
@@ -241,12 +254,16 @@ El **jukebox** (Opciones → *Jukebox*) toca las pistas en bucle y los jingles u
 ```text
 retropocket-99in1/
 ├── .github/workflows/android-apk.yml   # Compila el APK en cada push
+├── docs/dificultad.md                  # Informe de dificultad de los 99 slots
+├── tools/
+│   ├── autoplay.js                     # Juega slots con la IA del modo demo en Node
+│   └── difficulty.js                   # Informe de dificultad y metas de estrellas propuestas
 ├── public/manifest.json                # Metadatos PWA
 ├── src/
 │   ├── core/
 │   │   ├── ConsoleEngine.js   # Bucle de paso fijo, estados, canvas, Gfx y efectos (FxLayer)
 │   │   ├── SoundChip.js       # Sintetizador 8-bit, música en bucle (2 pistas por motor) y modo beeper
-│   │   ├── InputManager.js    # Multitáctil, teclado, mandos y vibración
+│   │   ├── InputManager.js    # Multitáctil, gestos sobre la pantalla, teclado, mandos y vibración
 │   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes y datos extra en localStorage
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario, etapas de la carrera y menú
 │   │   ├── MenuPreview.js     # Miniatura animada del juego elegido en el menú (IA del modo demo)
@@ -258,7 +275,7 @@ retropocket-99in1/
 │   │   ├── HubScreen.js       # START en el menú: JUEGOS, CARRERA, LOGROS, RACHA y DATOS
 │   │   ├── ShareCard.js       # Tarjeta PNG para compartir una puntuación
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
-│   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, controles y favorito)
+│   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, jugadores, controles y favorito)
 │   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa, portapapeles y compartir imagen
 │   │   └── BootScenes.js      # Las 3 animaciones de arranque y su turno de 2 días
 │   ├── games/
@@ -295,9 +312,9 @@ retropocket-99in1/
 | Maze Muncher | ✅ 10 variantes | Cruceta (puedes pulsar el giro antes de llegar al cruce) |
 | Cyber Snake | ✅ 10 variantes | Cruceta para girar, mantener A para acelerar |
 | Brick Breaker | ✅ 10 variantes | ◀ ▶ mover la paleta (▲ la acelera), A lanzar la bola |
-| Road Racer | ✅ 10 variantes | ◀ ▶ cambiar de carril, ▲ acelerar, ▼ frenar, A disparar (ARMADO) |
-| Tank Battle | ✅ 10 variantes | Cruceta para moverte, A disparar |
-| Space Shooter | ✅ 10 variantes | ◀ ▶ mover la nave, A disparar |
+| Road Racer | ✅ 10 variantes | ◀ ▶ cambiar de carril, ▲ acelerar, ▼ frenar, A disparar (ARMADO; mantener: automático) |
+| Tank Battle | ✅ 10 variantes | Cruceta para moverte, A disparar (mantener: automático) |
+| Space Shooter | ✅ 10 variantes | ◀ ▶ mover la nave, A disparar (mantener: automático) |
 | Frog Crossing | ✅ 10 variantes | Cruceta: un salto por pulsación |
 | Flappy Pixel | ✅ 9 variantes | A o ▲ aletear |
 | Memory Matrix | ✅ 8 variantes | Cruceta para pulsar los botones; en matriz y parejas, cruceta mover y A elegir |
@@ -332,7 +349,7 @@ export default class CyberSnake extends BaseCartridge {
 }
 ```
 
-Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()`, las estadísticas `track()` y `peak()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño.
+Utilidades disponibles en `BaseCartridge`: `addScore()`, `loseLife()`, `levelUp()`, `gameOver()`, `win()`, `after()`, `every()`, `random()`, `randInt()`, `pick()`, `chance()`, `drawGrid()`, `drawHud()`, `isDown()`, las estadísticas `track()` y `peak()` y los efectos `shake()`, `flash()` y `burst()`. Para el modo demo, cada motor puede sobrescribir `autopilot(dt)` con su propia IA (por defecto pulsa botones al azar). Si devuelve `true` en `get autoFire()`, mantener A repite la pulsación cada 0,15 s (autodisparo). Usa siempre `this.rng` / `this.random()` para el azar: así el desafío diario es igual para todos. La pantalla lógica mide **144 × 192** píxeles y se escala de forma nítida a cualquier tamaño.
 
 ## Licencia
 

@@ -421,6 +421,10 @@ export default class TankBattle extends BaseCartridge {
     return null;
   }
 
+  get autoFire() {
+    return true;
+  }
+
   onInput({ action, pressed }) {
     if (!pressed) return;
     if (DIRS[action]) this.lastDir = action;

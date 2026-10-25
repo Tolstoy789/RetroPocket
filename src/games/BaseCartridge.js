@@ -17,11 +17,15 @@
 // Estadísticas y logros: this.track('lines', 4) suma a un contador y this.peak('kmh', 180) guarda una
 // mejor marca (ver Progress.js y Achievements.js). En el modo demo no cuentan.
 // En el desafío diario this.rng usa la semilla del día: misma partida para todos.
+// Disparo automático: los motores de disparos devuelven true en `get autoFire()` y mantener A repite el disparo.
 
 import { ACTIONS } from '../core/InputManager.js';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../core/ConsoleEngine.js';
 
 export { ACTIONS, SCREEN_WIDTH, SCREEN_HEIGHT };
+
+const AUTO_FIRE_DELAY = 0.25; // segundos con A pulsado antes de que empiece el disparo automático
+const AUTO_FIRE_RATE = 0.15; // segundos entre disparos automáticos
 
 /** Generador pseudoaleatorio con semilla (mulberry32): partidas reproducibles si se desea. */
 export function createRng(seed = Date.now()) {
@@ -63,6 +67,7 @@ export class BaseCartridge {
     this._timers = [];
     this._autoHeld = null;
     this._autoTimer = 0;
+    this._fireHold = 0;
   }
 
   // ---------- Contrato con ConsoleEngine (no sobrescribir) ----------
@@ -90,6 +95,7 @@ export class BaseCartridge {
     this._runTimers(dt);
     if (this.finished) return;
     this.update(dt);
+    this._autoFire(dt);
   }
 
   render(gfx) {
@@ -158,6 +164,26 @@ export class BaseCartridge {
       this._autoHeld = this.pick([ACTIONS.LEFT, ACTIONS.RIGHT, ACTIONS.UP, ACTIONS.DOWN]);
       this.handleInput({ action: this._autoHeld, pressed: true, repeat: false });
     }
+  }
+
+  /** ¿Mantener A dispara solo en este motor? Los motores de disparos lo activan (ver _autoFire). */
+  get autoFire() {
+    return false;
+  }
+
+  /**
+   * Disparo automático (Opciones → AUTODISPARO): con A mantenido, repite la pulsación cada AUTO_FIRE_RATE.
+   * Llega a onInput como una repetición de A, así que cada motor sigue aplicando su cadencia y su límite de balas.
+   */
+  _autoFire(dt) {
+    if (this.finished || this.demo || !this.autoFire || this.engine.settings?.autoFire === false || !this.input.isDown(ACTIONS.A)) {
+      this._fireHold = 0;
+      return;
+    }
+    this._fireHold += dt;
+    if (this._fireHold < AUTO_FIRE_DELAY) return;
+    this._fireHold -= AUTO_FIRE_RATE;
+    this.handleInput({ action: ACTIONS.A, pressed: true, repeat: true });
   }
 
   /** ¿Está pulsada la acción? Funciona también con la IA del modo demo. */

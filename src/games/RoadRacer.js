@@ -225,6 +225,10 @@ export default class RoadRacer extends BaseCartridge {
     this.input.vibrate('heavy');
   }
 
+  get autoFire() {
+    return !!this.config.shooting;
+  }
+
   onInput({ action, pressed }) {
     if (!pressed || this.crash) return;
     if (action === ACTIONS.LEFT && this.lane > 0) {

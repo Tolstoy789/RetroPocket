@@ -18,6 +18,9 @@ const GAME_MODULES = import.meta.glob(['../games/*.js', '!../games/BaseCartridge
  * - file: nombre del archivo en src/games/ (y de la clase exportada).
  * - defaults: todas las claves de variantConfig que el motor debe leer.
  * - variants: overrides por slot (en orden; los números de slot se asignan consecutivamente).
+ *   `stars` (opcional) ajusta las metas de estrellas de la variante: un número multiplica las del motor
+ *   (STAR_THRESHOLDS) y una lista [1★, 2★, 3★] las fija. Salen del informe de dificultad
+ *   (`npm run difficulty`, docs/dificultad.md).
  * - controls: dos líneas de ayuda que se ven antes de jugar.
  */
 export const ENGINES = [
@@ -43,16 +46,16 @@ export const ENGINES = [
     variants: [
       { label: 'CLASICO', desc: 'Encaja piezas y completa lineas.' },
       { label: 'TURBO', desc: 'La gravedad casi se duplica.', config: { speed: 1.8 } },
-      { label: 'NIVEL 5', desc: 'Empieza directamente en el nivel 5.', config: { startLevel: 5 } },
+      { label: 'NIVEL 5', desc: 'Empieza directamente en el nivel 5.', config: { startLevel: 5 }, stars: 1.25 },
       { label: 'BASURA', desc: '6 filas de escombros desde el inicio.', config: { garbageRows: 6 } },
       { label: 'MAREA', desc: 'Sube una fila de basura cada 20 s.', config: { risingGarbage: 20 } },
-      { label: 'MINI', desc: 'Piezas pequenas de 1 a 3 bloques.', config: { pieceSet: 'mini' } },
-      { label: 'PENTA', desc: 'Piezas gigantes de 5 bloques.', config: { pieceSet: 'penta' } },
-      { label: 'INVISIBLE', desc: 'Las piezas desaparecen al caer.', config: { invisible: true } },
-      { label: 'SPRINT 40', desc: 'Limpia 40 lineas lo antes posible.', config: { goalLines: 40 } },
-      { label: 'ESPEJO', desc: 'Izquierda y derecha invertidas.', config: { mirror: true } },
+      { label: 'MINI', desc: 'Piezas pequenas de 1 a 3 bloques.', config: { pieceSet: 'mini' }, stars: 0.7 },
+      { label: 'PENTA', desc: 'Piezas gigantes de 5 bloques.', config: { pieceSet: 'penta' }, stars: 0.4 },
+      { label: 'INVISIBLE', desc: 'Las piezas desaparecen al caer.', config: { invisible: true }, stars: 0.7 },
+      { label: 'SPRINT 40', desc: 'Limpia 40 lineas lo antes posible.', config: { goalLines: 40 }, stars: [1000, 4000, 8000] },
+      { label: 'ESPEJO', desc: 'Izquierda y derecha invertidas.', config: { mirror: true }, stars: 0.8 },
       { label: 'CASCADA', desc: 'Los bloques sueltos se desploman.', config: { cascade: true } },
-      { label: 'CAOS', desc: 'Turbo, basura y sin sombra.', config: { speed: 1.4, garbageRows: 4, risingGarbage: 30, ghost: false } }
+      { label: 'CAOS', desc: 'Turbo, basura y sin sombra.', config: { speed: 1.4, garbageRows: 4, risingGarbage: 30, ghost: false }, stars: 0.7 }
     ],
     icon: [
       ['...#....', '..###...', '........', '........', '#......#', '##....##', '###.####', '########'],
@@ -79,13 +82,13 @@ export const ENGINES = [
     variants: [
       { label: 'CLASICO', desc: 'Come todos los puntos del laberinto.' },
       { label: 'RAPIDO', desc: 'Todo se mueve un 40% mas rapido.', config: { speed: 1.4, ghostSpeed: 1.4 } },
-      { label: 'CRUZ', desc: 'Laberinto en forma de cruz.', config: { maze: 'cross' } },
+      { label: 'CRUZ', desc: 'Laberinto en forma de cruz.', config: { maze: 'cross' }, stars: 1.25 },
       { label: 'ESPIRAL', desc: 'Laberinto en espiral.', config: { maze: 'spiral' } },
-      { label: 'CAZADORES', desc: 'Seis fantasmas que persiguen.', config: { ghostCount: 6, ghostAI: 'chase', ghostSpeed: 1.1 } },
-      { label: 'POCO PODER', desc: 'El poder dura solo 2 segundos.', config: { powerDuration: 2 } },
-      { label: 'APAGON', desc: 'Solo ves lo que te rodea.', config: { darkMaze: true } },
-      { label: 'UNA VIDA', desc: 'Un error y se acabo.', config: { lives: 1, ghostAI: 'chase' } },
-      { label: 'TRANQUILO', desc: 'Dos fantasmas lentos.', config: { ghostCount: 2, ghostSpeed: 0.8, ghostAI: 'random' } },
+      { label: 'CAZADORES', desc: 'Seis fantasmas que persiguen.', config: { ghostCount: 6, ghostAI: 'chase', ghostSpeed: 1.1 }, stars: 0.4 },
+      { label: 'POCO PODER', desc: 'El poder dura solo 2 segundos.', config: { powerDuration: 2 }, stars: 0.7 },
+      { label: 'APAGON', desc: 'Solo ves lo que te rodea.', config: { darkMaze: true }, stars: 0.7 },
+      { label: 'UNA VIDA', desc: 'Un error y se acabo.', config: { lives: 1, ghostAI: 'chase' }, stars: 0.4 },
+      { label: 'TRANQUILO', desc: 'Dos fantasmas lentos.', config: { ghostCount: 2, ghostSpeed: 0.8, ghostAI: 'random' }, stars: 2 },
       { label: 'MARATON', desc: 'El laberinto cambia cada nivel.', config: { maze: 'rotate' } }
     ],
     icon: [
@@ -111,15 +114,15 @@ export const ENGINES = [
     },
     variants: [
       { label: 'CLASICO', desc: 'Come y crece sin chocar.' },
-      { label: 'SIN BORDES', desc: 'Atraviesa las paredes.', config: { walls: 'wrap' } },
+      { label: 'SIN BORDES', desc: 'Atraviesa las paredes.', config: { walls: 'wrap' }, stars: 1.5 },
       { label: 'RAPIDO', desc: 'La serpiente va a toda velocidad.', config: { speed: 1.6 } },
       { label: 'ACELERA', desc: 'Cada bocado te hace mas rapido.', config: { accelerate: true } },
-      { label: 'BLOQUES', desc: 'Obstaculos fijos en el campo.', config: { obstacles: 'blocks' } },
+      { label: 'BLOQUES', desc: 'Obstaculos fijos en el campo.', config: { obstacles: 'blocks' }, stars: 1.25 },
       { label: 'LABERINTO', desc: 'Muros interiores en todo el campo.', config: { obstacles: 'maze' } },
-      { label: 'GLOTON', desc: 'Creces 3 segmentos por bocado.', config: { growth: 3 } },
+      { label: 'GLOTON', desc: 'Creces 3 segmentos por bocado.', config: { growth: 3 }, stars: 0.4 },
       { label: 'BANQUETE', desc: 'Tres comidas a la vez.', config: { foodCount: 3 } },
       { label: 'RELOJ', desc: 'Maxima puntuacion en 90 s.', config: { timeLimit: 90, walls: 'wrap' } },
-      { label: 'EXTREMO', desc: 'Obstaculos al azar y aceleracion.', config: { obstacles: 'random', speed: 1.3, accelerate: true } }
+      { label: 'EXTREMO', desc: 'Obstaculos al azar y aceleracion.', config: { obstacles: 'random', speed: 1.3, accelerate: true }, stars: 0.8 }
     ],
     icon: [
       ['........', '##....#.', '........', '#######.', '......#.', '..#####.', '..#.....', '..###...'],
@@ -147,9 +150,9 @@ export const ENGINES = [
       { label: 'PIRAMIDE', desc: 'Ladrillos en forma de piramide.', config: { layout: 'pyramid' } },
       { label: 'FORTALEZA', desc: 'Cada ladrillo aguanta 2 golpes.', config: { brickHits: 2 } },
       { label: 'RAPIDO', desc: 'La bola sale disparada.', config: { speed: 1.4 } },
-      { label: 'MINI PALA', desc: 'Una paleta muy estrecha.', config: { paddleWidth: 14 } },
+      { label: 'MINI PALA', desc: 'Una paleta muy estrecha.', config: { paddleWidth: 14 }, stars: 0.8 },
       { label: 'MULTIBOLA', desc: 'Empieza con tres bolas.', config: { balls: 3 } },
-      { label: 'SIN AYUDAS', desc: 'No caen potenciadores.', config: { powerUps: false } },
+      { label: 'SIN AYUDAS', desc: 'No caen potenciadores.', config: { powerUps: false }, stars: 0.8 },
       { label: 'DIAMANTE', desc: 'Muro en forma de rombo.', config: { layout: 'diamond' } },
       { label: 'INVASION', desc: 'El muro baja poco a poco.', config: { layout: 'descending' } },
       { label: 'ACERO', desc: 'Muro aleatorio de 3 golpes.', config: { layout: 'random', brickHits: 3 } }
@@ -164,7 +167,7 @@ export const ENGINES = [
     file: 'RoadRacer',
     name: 'ROAD RACER',
     color: 'red',
-    controls: ['◀▶ CARRIL  ▲ ACELERA  ▼ FRENA', 'A: DISPARAR (MODO ARMADO)'],
+    controls: ['◀▶ CARRIL  ▲ ACELERA  ▼ FRENA', 'A: DISPARAR (MANTEN EN ARMADO)'],
     defaults: {
       speed: 1, // velocidad inicial
       lanes: 3, // carriles (3 o 5)
@@ -178,14 +181,14 @@ export const ENGINES = [
     variants: [
       { label: 'CLASICO', desc: 'Esquiva coches en 3 carriles.' },
       { label: 'RAPIDO', desc: 'Sales a velocidad de autopista.', config: { speed: 1.5 } },
-      { label: 'ATASCO', desc: 'Muchisimo mas trafico.', config: { traffic: 1.6 } },
+      { label: 'ATASCO', desc: 'Muchisimo mas trafico.', config: { traffic: 1.6 }, stars: 0.6 },
       { label: '5 CARRILES', desc: 'Una autopista mas ancha.', config: { lanes: 5 } },
-      { label: 'GASOLINA', desc: 'Recoge bidones o te quedas parado.', config: { fuel: true } },
-      { label: 'NOCHE', desc: 'Solo ves lo que alumbran tus faros.', config: { night: true } },
-      { label: 'CONTRAMANO', desc: 'Coches que vienen de frente.', config: { oncoming: true } },
-      { label: 'ARMADO', desc: 'Dispara a los coches con A.', config: { shooting: true } },
-      { label: 'CRUCERO', desc: 'Velocidad constante.', config: { accelerate: false, speed: 1.2 } },
-      { label: 'EXTREMO', desc: 'Rapido, denso y de frente.', config: { speed: 1.4, traffic: 1.4, oncoming: true } }
+      { label: 'GASOLINA', desc: 'Recoge bidones o te quedas parado.', config: { fuel: true }, stars: 0.7 },
+      { label: 'NOCHE', desc: 'Solo ves lo que alumbran tus faros.', config: { night: true }, stars: 0.8 },
+      { label: 'CONTRAMANO', desc: 'Coches que vienen de frente.', config: { oncoming: true }, stars: 0.5 },
+      { label: 'ARMADO', desc: 'Dispara a los coches con A.', config: { shooting: true }, stars: 2 },
+      { label: 'CRUCERO', desc: 'Velocidad constante.', config: { accelerate: false, speed: 1.2 }, stars: 0.8 },
+      { label: 'EXTREMO', desc: 'Rapido, denso y de frente.', config: { speed: 1.4, traffic: 1.4, oncoming: true }, stars: 0.4 }
     ],
     icon: [
       ['#......#', '#..#...#', '#.###..#', '#..#...#', '#.#.#..#', '#......#', '#....#.#', '#...###.'],
@@ -197,7 +200,7 @@ export const ENGINES = [
     file: 'TankBattle',
     name: 'TANK BATTLE',
     color: 'orange',
-    controls: ['CRUCETA: MOVERTE', 'A: DISPARAR'],
+    controls: ['CRUCETA: MOVERTE', 'A: DISPARAR (MANTEN: AUTOMATICO)'],
     defaults: {
       enemyCount: 10, // tanques enemigos por nivel
       maxOnScreen: 3, // enemigos simultáneos
@@ -210,15 +213,15 @@ export const ENGINES = [
     },
     variants: [
       { label: 'CLASICO', desc: 'Defiende tu base de 10 tanques.' },
-      { label: 'HORDA', desc: '20 tanques, 4 a la vez.', config: { enemyCount: 20, maxOnScreen: 4 } },
+      { label: 'HORDA', desc: '20 tanques, 4 a la vez.', config: { enemyCount: 20, maxOnScreen: 4 }, stars: 0.5 },
       { label: 'ACERO', desc: 'Muros de acero indestructibles.', config: { map: 'steel' } },
-      { label: 'BOSQUE', desc: 'Arboles que ocultan los tanques.', config: { map: 'forest' } },
-      { label: 'VELOCES', desc: 'Enemigos un 50% mas rapidos.', config: { enemySpeed: 1.5 } },
-      { label: 'FRANCOTIRO', desc: 'Los enemigos disparan el doble.', config: { enemyFireRate: 2 } },
-      { label: 'SUPERVIVE', desc: 'Sin base: solo sobrevive.', config: { protectBase: false, enemyCount: 25 } },
-      { label: 'ARENA', desc: 'Campo abierto sin coberturas.', config: { map: 'open' } },
-      { label: 'LABERINTO', desc: 'Pasillos estrechos de ladrillo.', config: { map: 'maze' } },
-      { label: 'GUERRA', desc: '30 tanques rapidos y agresivos.', config: { enemyCount: 30, maxOnScreen: 5, enemySpeed: 1.3, enemyFireRate: 1.5 } }
+      { label: 'BOSQUE', desc: 'Arboles que ocultan los tanques.', config: { map: 'forest' }, stars: 0.7 },
+      { label: 'VELOCES', desc: 'Enemigos un 50% mas rapidos.', config: { enemySpeed: 1.5 }, stars: 0.4 },
+      { label: 'FRANCOTIRO', desc: 'Los enemigos disparan el doble.', config: { enemyFireRate: 2 }, stars: 0.6 },
+      { label: 'SUPERVIVE', desc: 'Sin base: solo sobrevive.', config: { protectBase: false, enemyCount: 25 }, stars: 0.5 },
+      { label: 'ARENA', desc: 'Campo abierto sin coberturas.', config: { map: 'open' }, stars: 0.5 },
+      { label: 'LABERINTO', desc: 'Pasillos estrechos de ladrillo.', config: { map: 'maze' }, stars: 0.7 },
+      { label: 'GUERRA', desc: '30 tanques rapidos y agresivos.', config: { enemyCount: 30, maxOnScreen: 5, enemySpeed: 1.3, enemyFireRate: 1.5 }, stars: 0.4 }
     ],
     icon: [
       ['...#....', '...#....', '.#####..', '.##.##..', '.#####..', '.#...#..', '........', '........'],
@@ -230,7 +233,7 @@ export const ENGINES = [
     file: 'SpaceShooter',
     name: 'SPACE SHOOTER',
     color: 'green',
-    controls: ['◀▶ MOVER LA NAVE', 'A: DISPARAR'],
+    controls: ['◀▶ MOVER LA NAVE', 'A: DISPARAR (MANTEN: AUTOMATICO)'],
     defaults: {
       formation: 'invaders', // 'invaders' | 'galaxy' | 'asteroids' | 'waves'
       rows: 4, // filas de enemigos
@@ -244,15 +247,15 @@ export const ENGINES = [
     },
     variants: [
       { label: 'INVASORES', desc: 'Detén la flota que desciende.' },
-      { label: 'INVASORES+', desc: 'Cinco filas y mas velocidad.', config: { rows: 5, enemySpeed: 1.3 } },
+      { label: 'INVASORES+', desc: 'Cinco filas y mas velocidad.', config: { rows: 5, enemySpeed: 1.3 }, stars: 0.8 },
       { label: 'SIN ESCUDOS', desc: 'Nada te protege.', config: { shields: false } },
       { label: 'GALAXIA', desc: 'Formacion que ataca en picada.', config: { formation: 'galaxy', divers: true, shields: false } },
-      { label: 'PICADA', desc: 'Galaxia rapida y agresiva.', config: { formation: 'galaxy', divers: true, shields: false, enemySpeed: 1.4 } },
-      { label: 'DOBLE TIRO', desc: 'Puedes disparar dos veces.', config: { playerShots: 2 } },
+      { label: 'PICADA', desc: 'Galaxia rapida y agresiva.', config: { formation: 'galaxy', divers: true, shields: false, enemySpeed: 1.4 }, stars: 1.25 },
+      { label: 'DOBLE TIRO', desc: 'Puedes disparar dos veces.', config: { playerShots: 2 }, stars: 1.5 },
       { label: 'METEOROS', desc: 'Destruye la lluvia de rocas.', config: { formation: 'asteroids', shields: false } },
-      { label: 'JEFE', desc: 'Una nave nodriza en cada oleada.', config: { boss: true } },
-      { label: 'LLUVIA', desc: 'Los enemigos disparan sin parar.', config: { enemyFireRate: 2.2 } },
-      { label: 'OLEADAS', desc: 'Escuadrones que cruzan la pantalla.', config: { formation: 'waves', shields: false, divers: true } }
+      { label: 'JEFE', desc: 'Una nave nodriza en cada oleada.', config: { boss: true }, stars: 0.8 },
+      { label: 'LLUVIA', desc: 'Los enemigos disparan sin parar.', config: { enemyFireRate: 2.2 }, stars: 0.8 },
+      { label: 'OLEADAS', desc: 'Escuadrones que cruzan la pantalla.', config: { formation: 'waves', shields: false, divers: true }, stars: 2 }
     ],
     icon: [
       ['..#..#..', '...##...', '..####..', '.##..##.', '########', '#.####.#', '#.#..#.#', '..#..#..'],
@@ -279,14 +282,14 @@ export const ENGINES = [
     variants: [
       { label: 'CLASICO', desc: 'Cruza la carretera y el rio.' },
       { label: 'RAPIDO', desc: 'Todo va mas deprisa.', config: { trafficSpeed: 1.4, riverSpeed: 1.3 } },
-      { label: 'HORA PUNTA', desc: 'Trafico muy denso.', config: { trafficDensity: 1.6 } },
-      { label: 'CARRETERA', desc: 'Solo carretera, el doble de carriles.', config: { river: false } },
-      { label: 'RIO', desc: 'Solo troncos y tortugas.', config: { road: false } },
-      { label: 'CONTRARRELOJ', desc: '15 segundos por rana.', config: { timeLimit: 15 } },
+      { label: 'HORA PUNTA', desc: 'Trafico muy denso.', config: { trafficDensity: 1.6 }, stars: 1.25 },
+      { label: 'CARRETERA', desc: 'Solo carretera, el doble de carriles.', config: { river: false }, stars: 0.8 },
+      { label: 'RIO', desc: 'Solo troncos y tortugas.', config: { road: false }, stars: 0.7 },
+      { label: 'CONTRARRELOJ', desc: '15 segundos por rana.', config: { timeLimit: 15 }, stars: 0.8 },
       { label: '3 CASAS', desc: 'Solo tres huecos de llegada.', config: { homes: 3 } },
-      { label: 'CORRIENTE', desc: 'El rio arrastra con fuerza.', config: { riverSpeed: 1.5 } },
-      { label: 'UNA VIDA', desc: 'Una sola rana.', config: { lives: 1 } },
-      { label: 'EXTREMO', desc: 'Rapido, denso y 20 s por rana.', config: { trafficSpeed: 1.4, riverSpeed: 1.4, trafficDensity: 1.4, timeLimit: 20 } }
+      { label: 'CORRIENTE', desc: 'El rio arrastra con fuerza.', config: { riverSpeed: 1.5 }, stars: 0.8 },
+      { label: 'UNA VIDA', desc: 'Una sola rana.', config: { lives: 1 }, stars: 0.7 },
+      { label: 'EXTREMO', desc: 'Rapido, denso y 20 s por rana.', config: { trafficSpeed: 1.4, riverSpeed: 1.4, trafficDensity: 1.4, timeLimit: 20 }, stars: 0.8 }
     ],
     icon: [
       ['#......#', '.#.##.#.', '..####..', '.######.', '..####..', '.#.##.#.', '#......#', '........'],
@@ -310,14 +313,14 @@ export const ENGINES = [
     },
     variants: [
       { label: 'CLASICO', desc: 'Aletea entre las tuberias.' },
-      { label: 'ESTRECHO', desc: 'Huecos mucho mas pequenos.', config: { gap: 36 } },
+      { label: 'ESTRECHO', desc: 'Huecos mucho mas pequenos.', config: { gap: 36 }, stars: 0.8 },
       { label: 'RAPIDO', desc: 'El mundo avanza mas deprisa.', config: { scrollSpeed: 1.5 } },
-      { label: 'LUNAR', desc: 'Gravedad baja, saltos largos.', config: { gravity: 0.55, flap: 0.75 } },
+      { label: 'LUNAR', desc: 'Gravedad baja, saltos largos.', config: { gravity: 0.55, flap: 0.75 }, stars: 0.7 },
       { label: 'PLOMO', desc: 'Gravedad alta, aletea sin parar.', config: { gravity: 1.5, flap: 1.25 } },
       { label: 'MOVILES', desc: 'Los huecos suben y bajan.', config: { moving: true } },
       { label: 'CUEVA', desc: 'Una cueva sinuosa sin fin.', config: { obstacle: 'cave' } },
       { label: 'ROCAS', desc: 'Esquiva rocas flotantes.', config: { obstacle: 'rocks' } },
-      { label: 'EXTREMO', desc: 'Estrecho, rapido y movil.', config: { gap: 38, scrollSpeed: 1.4, moving: true } }
+      { label: 'EXTREMO', desc: 'Estrecho, rapido y movil.', config: { gap: 38, scrollSpeed: 1.4, moving: true }, stars: 0.6 }
     ],
     icon: [
       ['......##', '......##', '..##....', '.####...', '..##....', '........', '......##', '......##'],
@@ -341,12 +344,12 @@ export const ENGINES = [
     variants: [
       { label: 'SIMON', desc: 'Repite la secuencia de luces.' },
       { label: 'SIMON TURBO', desc: 'La secuencia va al doble.', config: { speed: 1.6, startLength: 3 } },
-      { label: 'INVERSO', desc: 'Repitela al reves.', config: { mode: 'reverse' } },
-      { label: 'REFLEJOS', desc: 'Pulsa la direccion que se ilumine.', config: { mode: 'reflex', timeLimit: 2 } },
-      { label: 'MATRIZ 3X3', desc: 'Memoriza casillas encendidas.', config: { mode: 'grid', gridSize: 3 } },
+      { label: 'INVERSO', desc: 'Repitela al reves.', config: { mode: 'reverse' }, stars: 0.8 },
+      { label: 'REFLEJOS', desc: 'Pulsa la direccion que se ilumine.', config: { mode: 'reflex', timeLimit: 2 }, stars: [25, 60, 120] },
+      { label: 'MATRIZ 3X3', desc: 'Memoriza casillas encendidas.', config: { mode: 'grid', gridSize: 3 }, stars: 1.25 },
       { label: 'MATRIZ 4X4', desc: 'Mas casillas, mas memoria.', config: { mode: 'grid', gridSize: 4 } },
-      { label: 'PAREJAS', desc: 'Encuentra las parejas ocultas.', config: { mode: 'pairs', gridSize: 4 } },
-      { label: 'MARATON', desc: 'Todos los modos mezclados.', config: { mode: 'mixed', timeLimit: 5 } }
+      { label: 'PAREJAS', desc: 'Encuentra las parejas ocultas.', config: { mode: 'pairs', gridSize: 4 }, stars: 2 },
+      { label: 'MARATON', desc: 'Todos los modos mezclados.', config: { mode: 'mixed', timeLimit: 5 }, stars: 2 }
     ],
     icon: [
       ['###..+++', '###..+++', '###..+++', '........', '+++..+++', '+++..+++', '+++..+++', '........'],
@@ -357,7 +360,7 @@ export const ENGINES = [
 
 export const TOTAL_SLOTS = 99;
 
-/** Puntuaciones para ganar 1, 2 y 3 estrellas en cada motor. */
+/** Puntuaciones para ganar 1, 2 y 3 estrellas en cada motor (cada variante puede escalarlas con `stars`). */
 export const STAR_THRESHOLDS = {
   blockdrop: [1000, 5000, 15000],
   mazemuncher: [2000, 8000, 20000],
@@ -370,6 +373,22 @@ export const STAR_THRESHOLDS = {
   flappypixel: [10, 30, 60],
   memorymatrix: [10, 25, 50]
 };
+
+/** Redondea una meta escalada a una cifra limpia (dos cifras significativas desde 100). */
+function niceGoal(value) {
+  if (value < 100) return Math.max(1, Math.round(value));
+  const unit = 10 ** (Math.floor(Math.log10(value)) - 1);
+  return Math.round(value / unit) * unit;
+}
+
+/** Metas de estrellas de una variante: las del motor escaladas, o las suyas si trae una lista. */
+export function variantStars(engineStars, stars) {
+  if (Array.isArray(stars)) return Object.freeze([...stars]);
+  const scale = Number.isFinite(stars) ? stars : 1;
+  const goals = [];
+  for (const t of engineStars) goals.push(Math.max(niceGoal(t * scale), (goals[goals.length - 1] || 0) + 1));
+  return Object.freeze(goals);
+}
 
 const SPEED_KEYS = ['speed', 'ghostSpeed', 'enemySpeed', 'trafficSpeed', 'riverSpeed', 'scrollSpeed'];
 
@@ -454,6 +473,8 @@ export class Catalog99 {
             desc: variant.desc,
             daily: false,
             seed: null,
+            starScale: Array.isArray(variant.stars) ? null : (variant.stars ?? 1),
+            stars: variantStars(engine.stars, variant.stars),
             variantConfig: Object.freeze({ ...engine.defaults, ...(variant.config || {}) })
           })
         );
@@ -490,7 +511,7 @@ export class Catalog99 {
 
   /** Estrellas (0-3) que vale una puntuación en el slot. */
   starsFor(slot, score) {
-    const thresholds = slot.engine.stars;
+    const thresholds = slot.stars || slot.engine.stars;
     let stars = 0;
     for (const t of thresholds) if (score >= t) stars++;
     return stars;

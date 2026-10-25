@@ -16,6 +16,9 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
 - **Guardar la partida al salir:** al pausar (con START, el botón atrás o al cambiar de app) la partida se guarda entera. Si Android cierra la app o cierras la pestaña, al volver a abrirla la consola pregunta si quieres **continuar** donde lo dejaste (A) o descartarla (B dos veces). Funciona en los 99 juegos, en el desafío diario, en la carrera y a dos jugadores.
 - **En español y en inglés** (Opciones → *Idioma*): en *AUTO* la consola sigue el idioma del teléfono (español también con catalán, gallego o euskera; inglés con cualquier otro). Se traducen todas las pantallas, los 99 juegos, los logros, los avisos, el mensaje al compartir y las etiquetas para el lector de pantalla.
+- **Velocidad de juego** (Opciones → *Vel. juego*): 100 %, 90 %, 80 % o 70 %. Todos los juegos van más despacio (las piezas, los enemigos, los temporizadores y el contrarreloj), para quien necesite más tiempo para reaccionar. La pantalla de fin de partida y la tarjeta para compartir dicen a qué velocidad se jugó.
+- **Texto grande** (Opciones → *Texto grande*): los menús, las opciones, la pausa y el fin de partida pasan de la fuente de 3×5 píxeles a una de 5×7, en todo lo que cabe sin pisar otros textos. Los juegos no cambian.
+- **Lectura por voz:** con TalkBack, VoiceOver o NVDA, la consola lee lo que hay en pantalla (el juego elegido en el menú y su récord, cada fila de Opciones con su valor, PREPARADO, la pausa, la puntuación al terminar, los logros y los avisos), en el idioma elegido.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
 - **Favoritos y recientes:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
 - **Modo carrera:** recorre las 99 etapas en orden; superar una (1 estrella) desbloquea la siguiente y cada 10 hay un **jefe** (velocidad 2 y 2 estrellas). Mapa de 10×10 con las etapas superadas, los jefes y el trofeo final.
@@ -29,9 +32,9 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** tema (con galería), idioma, contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, ahorro de batería, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), idioma, velocidad de juego, texto grande, contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, ahorro de batería, copiar y pegar récords, y borrar récords.
 - **Ahorro de batería** (Opciones → *Ahorro batería*): dibuja a 30 fps, no vuelve a mostrar una imagen que no ha cambiado (en un menú quieto o en una pausa la pantalla apenas se redibuja) y quita el brillo de los temas de tubo, que es lo más caro de dibujar. En *AUTO* se activa solo con menos del 20 % de batería y sin cargador. Además, en las pantallas de 90 y 120 Hz la consola ya no dibuja más de 60 veces por segundo, porque la lógica va a 60.
-- **Versión web** en GitHub Pages, publicada desde el mismo workflow en cada cambio de `main`: se juega en el navegador y se puede instalar como app.
+- **Descarga directa del APK:** cada versión que llega a `main` se publica en *Releases*, y [este enlace](https://github.com/Tolstoy789/RetroPocket/releases/latest/download/RetroPocket-99in1.apk) baja siempre la última.
 - **Pruebas automáticas** en cada push: los 99 cartuchos se juegan en Node con la IA y pulsando botones al azar, y la consola entera se maneja en Chromium; si algo falla, no se compila el APK.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
@@ -99,23 +102,27 @@ Cada `git push` ejecuta `.github/workflows/android-apk.yml`, que:
 4. Crea el proyecto Android si no existe, le pone el icono de la app (`build/android-icons.js`) y ejecuta `npx cap sync android`.
 5. Pone la versión (`versionName` de `package.json` y un `versionCode` que sube en cada compilación).
 6. Firma el APK siempre con la misma clave y lo compila con Gradle.
-7. Lo publica como *Artifact* descargable.
+7. Lo publica como *Artifact* descargable y, en `main`, también en **Releases**: una release por versión (`v0.17.0`...) con el archivo `RetroPocket-99in1.apk`. Si se vuelve a compilar la misma versión, se cambia el APK de su release.
 
-Para descargarlo: pestaña **Actions** del repositorio → la última ejecución de **Android APK** → sección **Artifacts** → `retropocket-99in1-debug-apk`. Descomprime el `.zip`, copia el `.apk` al celular e instálalo (hay que permitir "instalar apps de origen desconocido").
+**Para descargarlo**, desde el móvil:
+
+- El último APK, siempre con el mismo enlace: https://github.com/Tolstoy789/RetroPocket/releases/latest/download/RetroPocket-99in1.apk
+- Todas las versiones: https://github.com/Tolstoy789/RetroPocket/releases
+
+Ábrelo al terminar la descarga para instalarlo (la primera vez Android pide permitir "instalar apps de origen desconocido"). Se instala encima de la versión anterior sin perder los récords. Los APK de las ramas y de los pull requests están en **Actions** → la ejecución de **Android APK** → **Artifacts** → `retropocket-99in1-debug-apk` (un `.zip` con el `.apk`).
 
 También puedes lanzarlo a mano desde **Actions → Android APK → Run workflow**.
 
-### Versión web (GitHub Pages)
-
-En cada push a `main`, el mismo workflow publica la web en `https://<tu-usuario>.github.io/<repositorio>/` (para este repositorio, https://tolstoy789.github.io/RetroPocket/). Hay que activarlo una sola vez: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Mientras no esté activado, el workflow avisa en el resumen de la ejecución y no publica nada. La web funciona sin conexión y se puede instalar desde el navegador (*Añadir a pantalla de inicio*); los récords de la web se guardan en ese navegador y se pasan al APK con *Copiar récords* / *Pegar récords*.
+La web (`npm run build`, carpeta `dist/`) funciona sin conexión y se puede subir a cualquier alojamiento de páginas estáticas; el workflow no la publica.
 
 #### Actualizar sin perder los récords
 
 Android solo instala una versión encima de otra si las dos están firmadas con la misma clave; si no, hay que desinstalar, y al desinstalar se borran los récords. Desde la v0.7 el workflow firma siempre con la misma clave:
 
 - La primera compilación en `main` genera la clave y la guarda en la caché de GitHub Actions; las siguientes la reutilizan.
+- GitHub borra una caché que no se usa en 7 días, así que `.github/workflows/keep-signing-key.yml` la abre cada 5 días aunque no haya cambios. No hay que hacer nada.
 - **El primer APK de la v0.7 hay que instalarlo desinstalando antes la versión anterior** (las anteriores tenían una clave distinta cada vez). Antes de desinstalar, guarda tus récords con *Opciones → Copiar récords* y restáuralos después con *Pegar récords*. A partir de ahí, cada APK nuevo se instala encima.
-- GitHub borra una caché que no se usa en 7 días. Para que la clave no cambie nunca, guárdala como secreto del repositorio:
+- Si el repositorio pasa 60 días sin cambios, GitHub para los workflows programados y la caché puede caducar. Para que la clave no dependa de la caché, se puede guardar como secreto del repositorio (opcional):
 
   ```bash
   keytool -genkeypair -keystore retropocket.keystore -storepass android -alias androiddebugkey \
@@ -186,6 +193,9 @@ Pensada para sesiones largas con una o dos manos:
 - **Gestos sobre la pantalla:** con la opción *Gestos*, la pantalla funciona como un stick virtual (la dirección se toma desde donde apoyas el dedo y el punto de apoyo sigue al dedo, así que se puede girar sin levantarlo) y un toque corto pulsa A. La cruceta y los botones siguen funcionando.
 - **Autodisparo:** mantener A dispara cada 0,15 s en los motores de disparos, para no machacar el botón.
 - **Botones grandes**, **alto contraste**, **paleta para daltonismo**, y opciones para quitar **sacudidas**, **destellos** (también apaga el brillo y el barrido de los temas de tubo) y la **estela de LCD** si molestan a la vista.
+- **Velocidad de juego** al 90, 80 o 70 %: todo el juego va más lento, no solo la caída de las piezas.
+- **Texto grande:** fuente de 5×7 en los menús para leer sin forzar la vista.
+- **Lector de pantalla:** la consola describe cada pantalla con frases cortas para TalkBack, VoiceOver o NVDA (ver [Accesibilidad](#accesibilidad)).
 - **Aviso de descanso** cada 30 minutos de juego (pausa la partida y recomienda estirar manos y vista).
 - La partida se pausa sola al bloquear el móvil o cambiar de app, y el botón "atrás" de Android pausa en vez de salir.
 
@@ -264,6 +274,14 @@ El código escribe todos sus textos en español y `Gfx.text()` los traduce al di
 
 **Añadir un texto:** escríbelo en español donde haga falta y pon su traducción en `src/core/lang/en.js`, en mayúsculas y con las letras de la fuente 3x5. No hace falta nada más: `npm test` juega los 99 juegos y `npm run test:e2e` recorre todas las pantallas en inglés, y fallan si queda alguna palabra en español, si una traducción es bastante más larga que el original o si algo se sale de la pantalla. Lo que no se debe traducir (iniciales, nombres de la tabla) se dibuja con `{ raw: true }`.
 
+## Accesibilidad
+
+**Velocidad de juego.** `ConsoleEngine` le pasa al cartucho `dt × pace` (de 0,7 a 1) mientras se juega, así que todo lo que un motor mide con el tiempo va más despacio sin tocar los motores. El tiempo jugado, la música y la repetición de la cruceta siguen el reloj real. La velocidad se guarda en el resultado de la partida, que la muestra al terminar y en la tarjeta para compartir.
+
+**Texto grande.** `Gfx` tiene dos fuentes, la de 3×5 y una de 5×7 con las mismas letras (`FONTS`). Con `gfx.bigText` activado, `text()` usa la grande cuando el texto va a escala 1, cabe en la pantalla o en el recuadro de `panel()` en el que se dibuja (con 1 px de aire hasta el marco) y no pasa de `max`; si no, la pequeña. `{ small: true }` la deja siempre pequeña, y `tooWideForBig()` y `pairTooWide()` deciden de una vez para un párrafo o para una fila de etiqueta y valor, para no mezclar las dos fuentes. Los cartuchos dibujan siempre con la pequeña.
+
+**Lectura por voz.** Cada pantalla tiene `describe()`, que devuelve sus textos más importantes (en español, como los dibuja). `src/core/Announcer.js` los traduce, los pasa a minúsculas (algunos lectores deletrean las mayúsculas), quita los símbolos de la fuente y los escribe en la región `aria-live="polite"` de `index.html` cuando la pantalla lleva 0,35 s sin cambiar, así que al pasar deprisa por el menú solo se lee el juego en el que te paras. Los avisos y los logros van a otra región, `assertive`, y se leen enseguida.
+
 ## Pruebas automáticas
 
 `npm test` usa el ejecutor de pruebas de Node (`node --test`) y carga el código del juego con Vite (`tools/autoplay.js`), sin navegador:
@@ -276,9 +294,10 @@ El código escribe todos sus textos en español y `Gfx.text()` los traduce al di
 | `tests/sound.test.js` | Las 21 pistas (32 corcheas, notas válidas), que existen todos los efectos que pide el código, y todo sonando en chip y beeper con un Web Audio de mentira que se queja como el de verdad |
 | `tests/savestate.test.js` | Guardar la partida: en los 99 slots (con la IA y con botones al azar) se guarda a mitad de partida, se carga en un cartucho nuevo y las dos partidas tienen que seguir idénticas durante 10 s |
 | `tests/i18n.test.js` | El traductor, *AUTO* con el idioma del teléfono, y que tienen traducción completa (sin palabras en español, con letras de la fuente y sin alargarse) el catálogo, los 60 desafíos diarios siguientes, los logros, los temas, los avisos y todo lo que dibujan los 99 juegos jugados con la IA y al azar |
+| `tests/accessibility.test.js` | La fuente de 5×7 (las mismas letras que la de 3×5) y cuándo se usa, los 99 slots jugados 20 s al 70 % de velocidad (con la IA y al azar) y las frases del lector de pantalla |
 | `tests/cartridges.test.js` | Los 99 slots jugados 30 s con la IA y 30 s pulsando botones al azar, misma semilla = misma partida, 21 desafíos diarios, velocidad 5 desde el nivel 9 y los jefes de la carrera. Se dibuja en un lienzo que falla si recibe coordenadas no válidas o letras que la fuente no tiene |
 
-`npm run test:e2e` (`tests/e2e/console.test.js`) arranca el servidor de Vite y maneja la consola con el teclado en Chromium (Playwright): menú, PREPARADO, una partida y la pausa de cada motor, récord con iniciales, opciones, galería de temas, jukebox, la pantalla de START, desafío diario, carrera, modo demo, dos jugadores, ahorro de batería, partida guardada, idioma y giro de pantalla. Para el idioma, `tests/e2e/tour.js` dibuja cada estado de cada pantalla (las 100 posiciones del menú, cada fila de Opciones con todos sus valores, cada tema, logro, etapa y mes...) en español y en inglés, y comprueba que todos los textos tienen traducción y que en inglés no se sale ninguno que en español cabía. Falla si la página registra cualquier error.
+`npm run test:e2e` (`tests/e2e/console.test.js`) arranca el servidor de Vite y maneja la consola con el teclado en Chromium (Playwright): menú, PREPARADO, una partida y la pausa de cada motor, récord con iniciales, opciones, galería de temas, jukebox, la pantalla de START, desafío diario, carrera, modo demo, dos jugadores, ahorro de batería, partida guardada, idioma, accesibilidad y giro de pantalla. Para el idioma, `tests/e2e/tour.js` dibuja cada estado de cada pantalla (las 100 posiciones del menú, cada fila de Opciones con todos sus valores, cada tema, logro, etapa y mes...) en español y en inglés, y comprueba que todos los textos tienen traducción y que en inglés no se sale ninguno que en español cabía. El mismo recorrido, con *Texto grande*, comprueba que ningún texto grande pisa a otro, y la prueba de accesibilidad lee la región `aria-live` después de cambiar de opción, pausar y terminar una partida. Falla si la página registra cualquier error.
 
 ## Música y sonido
 
@@ -292,7 +311,9 @@ El **jukebox** (Opciones → *Jukebox*) toca las pistas en bucle y los jingles u
 
 ```text
 retropocket-99in1/
-├── .github/workflows/android-apk.yml   # Compila el APK en cada push
+├── .github/workflows/
+│   ├── android-apk.yml                 # Pruebas y APK en cada push (en main, también en Releases)
+│   └── keep-signing-key.yml            # Mantiene viva la clave de firma en la caché
 ├── docs/dificultad.md                  # Informe de dificultad de los 99 slots
 ├── tests/                              # Pruebas automáticas (npm test y npm run test:e2e)
 │   └── e2e/tour.js                     # Recorre todas las pantallas para la prueba de idioma
@@ -318,6 +339,7 @@ retropocket-99in1/
 │   │   ├── ShareCard.js       # Tarjeta PNG para compartir una puntuación
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
 │   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, jugadores, controles y favorito)
+│   │   ├── Announcer.js       # Lectura por voz: describe cada pantalla en una región aria-live
 │   │   ├── i18n.js            # Idioma: AUTO/ES/EN y traducción de los textos al dibujarlos
 │   │   ├── lang/en.js         # Diccionario y patrones del inglés
 │   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa, portapapeles y compartir imagen

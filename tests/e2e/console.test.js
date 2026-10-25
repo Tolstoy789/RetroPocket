@@ -2,8 +2,8 @@
 // La consola entera en Chromium (Playwright) con el servidor de desarrollo de Vite, manejada con el
 // teclado como un jugador: arranque, menú, PREPARADO, una partida de cada motor con pausa, fin de partida
 // con iniciales, opciones, galería de temas, jukebox, juegos y logros, desafío diario, carrera, modo demo,
-// dos jugadores, ahorro de batería, guardar la partida al salir, idioma inglés y giro de pantalla. Falla si
-// la página registra cualquier error.
+// dos jugadores, ahorro de batería, guardar la partida al salir, idioma inglés, accesibilidad (texto grande,
+// velocidad del juego y lector de pantalla) y giro de pantalla. Falla si la página registra cualquier error.
 //
 //   npm run test:e2e   (la primera vez: npx playwright install chromium)
 
@@ -335,21 +335,28 @@ step('guardar la partida al salir: se cierra en pausa y al volver se continúa',
 });
 
 step('idioma inglés: todas las pantallas tienen traducción, se cambia en Opciones y nada se sale', async () => {
-  // Recorrido por todas las pantallas (ver tour.js) apuntando cada texto que se dibuja.
-  const { texts, names } = await engine(async () => {
+  // Recorrido por todas las pantallas (ver tour.js) apuntando cada texto que se dibuja y lo que lee el
+  // lector de pantalla.
+  const { texts, speech, names } = await engine(async () => {
     const e = window.retropocket;
     const { tourScreens } = await import('/tests/e2e/tour.js');
+    const Gfx = e.gfx.constructor;
     const log = new Set();
-    e.gfx.constructor.textLog = log;
+    const spoken = new Set();
+    Gfx.textLog = log;
+    Gfx.speechLog = spoken;
     try {
       tourScreens(e);
     } finally {
-      e.gfx.constructor.textLog = null;
+      Gfx.textLog = null;
+      Gfx.speechLog = null;
     }
-    return { texts: [...log], names: e.catalog.engines.map((en) => en.name) };
+    return { texts: [...log], speech: [...spoken], names: e.catalog.engines.map((en) => en.name) };
   });
   assert.ok(texts.length > 800, `solo se dibujaron ${texts.length} textos`);
   assert.deepEqual(checkTranslations(texts, { names }), []);
+  assert.ok(speech.length > 400, `el lector de pantalla solo dijo ${speech.length} frases`);
+  assert.deepEqual(checkTranslations(speech, { names, spoken: true }), [], 'lo que lee el lector de pantalla');
 
   // Opciones → IDIOMA (la segunda fila) → ENGLISH.
   await toMenu();
@@ -376,8 +383,8 @@ step('idioma inglés: todas las pantallas tienen traducción, se cambia en Opcio
       const scale = o.scale || 1;
       const spacing = o.spacing ?? 1;
       const bounds = (w) => (o.align === 'center' ? [x - w / 2, x + w / 2] : o.align === 'right' ? [x - w, x] : [x, x + w]);
-      const [l, r] = bounds(g.textWidth(str, scale, spacing, o.raw));
-      const [ls, rs] = bounds(g.textWidth(str, scale, spacing, true));
+      const [l, r] = bounds(g.textWidth(str, { scale, spacing, raw: o.raw }));
+      const [ls, rs] = bounds(g.textWidth(str, { scale, spacing, raw: true }));
       if ((l < 0 || r > g.width) && ls >= 0 && rs <= g.width) found.add(`${str} (${e.state})`);
       return text.call(g, str, x, y, o);
     };
@@ -393,6 +400,127 @@ step('idioma inglés: todas las pantallas tienen traducción, se cambia en Opcio
   await engine(() => window.retropocket.updateSetting('lang', 'es'));
   assert.equal(await engine(() => document.documentElement.lang), 'es');
   assert.equal(await engine(() => document.querySelector('[data-action="A"]').getAttribute('aria-label')), 'Botón A');
+});
+
+step('accesibilidad: texto grande sin pisar otros textos, velocidad del juego y lector de pantalla', async () => {
+  // TEXTO GRANDE en todas las pantallas (ver tour.js): ningún texto puede pisar a otro si con la fuente
+  // pequeña no lo pisaba.
+  const { overlaps, big } = await engine(async () => {
+    const e = window.retropocket;
+    const g = e.gfx;
+    const { tourScreens } = await import('/tests/e2e/tour.js');
+    const text = g.text;
+    const { clear, veil } = g;
+    const render = e._render;
+    const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const found = new Set();
+    let frame = [];
+    let big = 0;
+    let overlay = false;
+    // Lo que queda debajo de un velo o se borra no cuenta; los avisos de arriba (logros y toast) tapan
+    // la cabecera a propósito, con su propio fondo.
+    g.clear = (...args) => ((frame = []), clear.apply(g, args));
+    g.veil = (...args) => ((frame = []), veil.apply(g, args));
+    const above = (name) => {
+      const draw = e[name];
+      e[name] = (...args) => {
+        overlay = true;
+        try {
+          return draw.apply(e, args);
+        } finally {
+          overlay = false;
+        }
+      };
+    };
+    above('_renderToast');
+    above('_renderBanner');
+    g.text = function (str, x, y, o = {}) {
+      if (String(str).trim() && !overlay) {
+        const box = g.textBox(str, x, y, o);
+        const was = g.bigText;
+        g.bigText = false;
+        const small = g.textBox(str, x, y, o);
+        g.bigText = was;
+        if (box.big) big++;
+        frame.push({ str: String(str), box, small });
+      }
+      return text.call(g, str, x, y, o);
+    };
+    e._render = () => {
+      frame = [];
+      render.call(e);
+      frame.forEach((a, i) => {
+        for (const b of frame.slice(i + 1)) {
+          if ((a.box.big || b.box.big) && hit(a.box, b.box) && !hit(a.small, b.small)) found.add(`${a.str} / ${b.str} (${e.state})`);
+        }
+      });
+    };
+    g.bigText = true;
+    try {
+      tourScreens(e);
+    } finally {
+      for (const name of ['text', 'clear', 'veil']) delete g[name];
+      for (const name of ['_render', '_renderToast', '_renderBanner']) delete e[name];
+      e.applySettings();
+    }
+    return { overlaps: [...found], big };
+  });
+  assert.ok(big > 3000, `solo ${big} textos con la fuente grande`);
+  assert.deepEqual(overlaps, [], 'textos que con la fuente grande pisan a otro');
+
+  // Opciones → TEXTO GRANDE y VEL. JUEGO, y el lector de pantalla lee la fila elegida.
+  const live = () => engine(() => document.getElementById('announcer').textContent);
+  await toMenu();
+  await press('KeyX');
+  await waitState('options');
+  await engine(() => {
+    const o = window.retropocket.options;
+    o.index = o.items.findIndex((item) => item.label === 'TEXTO GRANDE');
+  });
+  await press('ArrowRight', 600);
+  assert.equal(await engine(() => window.retropocket.gfx.bigText), true);
+  assert.equal(await live(), 'Texto grande. Si. Letras mas grandes en los menus.');
+  await press('ArrowUp');
+  await press('ArrowLeft', 600);
+  assert.equal(await engine(() => window.retropocket.settings.pace), 70);
+  assert.equal(await live(), 'Vel. juego. 70%. Los juegos van mas despacio.');
+
+  // Al 70 %, un segundo de consola es 0,7 s de juego.
+  await toMenu();
+  await engine(() => window.retropocket.launch(window.retropocket.catalog.getSlot(1)));
+  await waitState('playing');
+  const advanced = await engine(() => {
+    const e = window.retropocket;
+    const t0 = e.cartridge.time;
+    for (let i = 0; i < 60; i++) e._update(1 / 60);
+    return e.cartridge.time - t0;
+  });
+  assert.ok(Math.abs(advanced - 0.7) < 1e-6, `en 1 s el juego avanzó ${advanced} s`);
+
+  // Pausa y fin de partida en voz alta (con la velocidad a la que se jugó).
+  await press('Enter', 600);
+  assert.match(await live(), /^Pausa\. Puntos \d+\. Nivel 1\./);
+  await press('Enter');
+  await engine(() => window.retropocket.cartridge.gameOver({ message: 'CHOQUE' }));
+  if ((await engine(() => window.retropocket.state)) !== 'gameover') {
+    await waitState('initials');
+    await page.waitForTimeout(500);
+    await press('Enter');
+  }
+  await waitState('gameover');
+  await page.waitForTimeout(600);
+  assert.match(await live(), /^Game over\. Choque\. Puntos \d+\. Vel\. juego 70%\./);
+  await toMenu();
+  await engine(() => window.retropocket.menu.jumpTo(37));
+  await page.waitForTimeout(600);
+  assert.match(await live(), /^Juego 37\. Brick breaker mini pala\. Estrellas \d\. Record \d+\. Una paleta muy estrecha\.$/);
+  assert.match(await engine(() => document.getElementById('announcer-notice').textContent), /\S/, 'los avisos van aparte');
+
+  await engine(() => {
+    const e = window.retropocket;
+    e.updateSetting('pace', 100);
+    e.updateSetting('bigText', false);
+  });
 });
 
 step('girar la pantalla y volver', async () => {

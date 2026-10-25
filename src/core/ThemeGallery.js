@@ -139,6 +139,19 @@ export class ThemeGallery {
     this.time += dt;
   }
 
+  /** Lo que lee el lector de pantalla (ver Announcer.js): el tema, su carcasa y si está bloqueada. */
+  describe() {
+    const info = this.engine.themeInfo;
+    const shell = this.selectedShell;
+    const parts = [`TEMA ${info.name}`];
+    if (shell) parts.push(shellLabel(this.selectedId, shell));
+    if (this.shellLocked) {
+      const reward = getAchievement(shell.unlock);
+      parts.push('CARCASA BLOQUEADA', reward ? `LOGRO: ${reward.name}` : '');
+    }
+    return parts.filter(Boolean);
+  }
+
   render(g) {
     const e = this.engine;
     const info = e.themeInfo;
@@ -156,7 +169,8 @@ export class ThemeGallery {
     const shells = this.shells;
     const shell = this.selectedShell;
     const lines = shell ? [shellLabel(this.selectedId, shell), ...info.blurb.slice(1)] : info.blurb;
-    lines.forEach((line, i) => g.text(line, cx, 117 + i * 8, { align: 'center', color: i === 0 ? 'ink' : 'mid' }));
+    const small = g.tooWideForBig(lines, SCREEN_WIDTH - 2);
+    lines.forEach((line, i) => g.text(line, cx, 117 + i * 8, { align: 'center', color: i === 0 ? 'ink' : 'mid', small }));
 
     // Colores de carcasa: el que se ve, más grande; los bloqueados, solo con el contorno.
     if (shells.length > 1) {
@@ -209,12 +223,13 @@ export class ThemeGallery {
     g.cell(WELL_X + 1 * CELL, WELL_Y + drop * CELL, CELL, 'on');
     g.cell(WELL_X + 2 * CELL, WELL_Y + drop * CELL, CELL, 'on');
 
+    // Imita el marcador de un juego: con la fuente 3x5 aunque TEXTO GRANDE esté activo.
     const rx = 70;
-    g.text('PUNTOS', rx, 44, { color: 'mid' });
+    g.text('PUNTOS', rx, 44, { color: 'mid', small: true });
     g.text('012500', rx, 52, { scale: 2 });
-    g.text('NIVEL 05', rx, 66, { color: 'mid' });
-    g.text('★★★', rx + 38, 66, { color: 'yellow' });
-    g.text('♥ ♪ ▶', rx, 76, { color: 'red' });
+    g.text('NIVEL 05', rx, 66, { color: 'mid', small: true });
+    g.text('★★★', rx + 38, 66, { color: 'yellow', small: true });
+    g.text('♥ ♪ ▶', rx, 76, { color: 'red', small: true });
     SWATCHES.forEach((color, i) => {
       const x = rx + (i % 4) * (CELL + 2);
       const y = 88 + Math.floor(i / 4) * (CELL + 2);

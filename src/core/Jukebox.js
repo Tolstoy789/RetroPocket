@@ -203,6 +203,12 @@ export class Jukebox {
     g.text('◀▶ CHIP / BEEPER    B VOLVER', W / 2, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
   }
 
+  /** Lo que lee el lector de pantalla (ver Announcer.js): la pista elegida y si está sonando. */
+  describe() {
+    const entry = this.entries[this.index];
+    return ['JUKEBOX', entry.name, this._subtitle(entry), this.playing === entry ? 'SONANDO' : ''].filter(Boolean);
+  }
+
   _warning(entry) {
     const sound = this.engine.sound;
     if (sound.muted) return 'SONIDO APAGADO: PULSA SOUND';
@@ -279,8 +285,9 @@ export class Jukebox {
         g.rect(4, y - 2, W - 8, ROW_H, 'ghost');
         g.text('▶', 7, y, { color: blink ? 'ink' : 'mid' });
       }
-      g.text(String(i + 1).padStart(2, '0'), 14, y, { color: 'mid' });
-      g.text(entry.name, 25, y, { color: selected ? entry.color : 'mid' });
+      // La lista es apretada: siempre con la fuente 3x5 (el nombre elegido ya sale arriba, en grande).
+      g.text(String(i + 1).padStart(2, '0'), 14, y, { color: 'mid', small: true });
+      g.text(entry.name, 25, y, { color: selected ? entry.color : 'mid', small: true });
       if (this.playing === entry) g.text('♪', W - 9, y, { color: blink ? entry.color : 'ink' });
     }
     // Barra de desplazamiento a la derecha de la lista.

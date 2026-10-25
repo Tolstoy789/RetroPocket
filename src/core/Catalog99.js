@@ -658,12 +658,26 @@ export class CatalogMenu {
     this.highName = best ? best.name || '' : '';
     this.stars = this.catalog.starsFor(slot, this.highScore);
     this.installed = this.catalog.isInstalled(slot);
-    this.descLines = wrapText(translate(slot.desc), 34).slice(0, 2);
+    // La descripción, ya traducida, en 2 líneas de 34 letras (o en 3 de 23 con TEXTO GRANDE, si caben).
+    const desc = translate(slot.desc);
+    this.descLines = wrapText(desc, 34).slice(0, 2);
+    this.descBig = wrapText(desc, 23);
     this.completed = this.catalog.completedCount(storage);
     this.favorite = !slot.daily && storage.isFavorite(slot.number);
     this.streak = slot.daily && this.engine.progress ? this.engine.progress.streakInfo() : null;
     if (this.installed) this.preview.show(slot);
     else this.preview.stop();
+  }
+
+  /** Lo que lee el lector de pantalla (ver Announcer.js): el juego, sus estrellas, su récord y su descripción. */
+  describe() {
+    const slot = this.slot;
+    const parts = slot.daily ? ['DESAFIO DIARIO', `${slot.engine.name} ${slot.label}`] : [`JUEGO ${slot.code}`, `${slot.engine.name} ${slot.label}`];
+    if (!this.installed) return [...parts, 'PROXIMAMENTE'];
+    if (this.favorite) parts.push('FAVORITO');
+    parts.push(`ESTRELLAS ${this.stars}`, `RECORD ${this.highScore}`, slot.desc);
+    if (this.streak && this.streak.current > 0) parts.push(`RACHA ${this.streak.current}`);
+    return parts;
   }
 
   /** Coloca el menú en un slot (por ejemplo, al elegirlo en la pestaña JUEGOS). */
@@ -771,7 +785,7 @@ export class CatalogMenu {
     // Columna izquierda: número de slot con flechas, nombre, variante, estrellas y récord
     const numberY = 18;
     // El número a escala 4; si no cabe entre las flechas (HOY en inglés es TODAY), a escala 3 y centrado.
-    const codeScale = g.textWidth(slot.code, 4) <= 52 ? 4 : 3;
+    const codeScale = g.textWidth(slot.code, { scale: 4 }) <= 52 ? 4 : 3;
     g.text(slot.code, lx + Math.round(this.slide), numberY + (4 - codeScale) * 3, { align: 'center', scale: codeScale, color: slot.daily ? 'yellow' : engineDef.color });
     g.text('◀', 2, numberY + 7, { color: this.arrowFlash.left > 0 ? 'ink' : 'mid' });
     g.text('▶', 63, numberY + 7, { color: this.arrowFlash.right > 0 ? 'ink' : 'mid' });
@@ -826,9 +840,11 @@ export class CatalogMenu {
     });
 
     // Descripción
-    this.descLines.forEach((line, i) => {
-      g.text(line, cx, 138 + i * 8, { align: 'center', color: 'mid', raw: true });
-    });
+    if (g.bigText && this.descBig.length <= 3) {
+      this.descBig.forEach((line, i) => g.text(line, cx, 138 + i * 9, { align: 'center', color: 'mid', raw: true }));
+    } else {
+      this.descLines.forEach((line, i) => g.text(line, cx, 138 + i * 8, { align: 'center', color: 'mid', raw: true, small: true }));
+    }
 
     // Barra de posición 00-99
     const barX = Math.floor((SCREEN_WIDTH - POSITIONS) / 2);

@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Pruebas automáticas: si fallan, no se compila el APK ni se publica la web.
+  # Pruebas automáticas: si fallan, no se compila el APK.
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -48,6 +48,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write # para publicar el APK en Releases
 
     steps:
       - name: Descargar el código
@@ -141,66 +143,30 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # Versión web en GitHub Pages (https://<usuario>.github.io/RetroPocket/) en cada push a main.
-  # Hay que activarla una vez: Settings → Pages → Build and deployment → Source: GitHub Actions.
-  # Mientras no esté activada, este paso lo avisa y no publica nada (el workflow sigue en verde).
-  web:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-
-    steps:
-      - name: Descargar el código
-        uses: actions/checkout@v5
-
-      - name: Instalar Node.js 22
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Instalar dependencias
-        run: npm ci
-
-      - name: Compilar la web (Vite)
-        run: npm run build
-
-      - name: Comprobar que GitHub Pages está activada
-        id: pages
+      # En main, el APK se publica también en Releases: una release por versión (v0.17.0...) con el
+      # archivo RetroPocket-99in1.apk, así que este enlace baja siempre el último:
+      # https://github.com/<usuario>/RetroPocket/releases/latest/download/RetroPocket-99in1.apk
+      # Si se compila otra vez la misma versión, se cambia el APK de su release.
+      - name: Publicar el APK en Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          info=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pages" || true)
-          if echo "$info" | grep -q '"build_type": *"workflow"'; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          cp android/app/build/outputs/apk/debug/app-debug.apk RetroPocket-99in1.apk
+          LATEST="https://github.com/$GH_REPO/releases/latest/download/RetroPocket-99in1.apk"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" RetroPocket-99in1.apk --clobber
           else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Versión web sin publicar::Activa GitHub Pages en Settings → Pages → Source: GitHub Actions y la próxima compilación de main la publicará."
+            printf '%s\n' \
+              "RetroPocket 99-in-1 $VERSION (compilación ${{ github.run_number }})." \
+              "" \
+              "Descarga **RetroPocket-99in1.apk** en el móvil y ábrelo para instalarlo. Se instala encima de la versión anterior sin perder los récords." \
+              "" \
+              "La última versión siempre está en $LATEST" > notes.md
+            gh release create "$TAG" RetroPocket-99in1.apk --target "$GITHUB_SHA" \
+              --title "RetroPocket 99-in-1 $VERSION" --notes-file notes.md --latest
           fi
-
-      - name: Preparar GitHub Pages
-        if: steps.pages.outputs.enabled == 'true'
-        uses: actions/configure-pages@v5
-
-      - name: Subir la web
-        if: steps.pages.outputs.enabled == 'true'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-      - name: Publicar en GitHub Pages
-        id: deploy
-        if: steps.pages.outputs.enabled == 'true'
-        uses: actions/deploy-pages@v4
+          echo "::notice title=APK publicado::$LATEST"

@@ -92,9 +92,10 @@ function randomSource(seed) {
  * y suelta botones al azar (como un jugador, sin modo demo) y de vez en cuando pausa y reanuda; `inputSeed`
  * cambia la secuencia de pulsaciones sin cambiar la partida.
  * Devuelve { cart, result(), step(), releaseAll(), seconds() }: step() avanza 1/60 s y devuelve false al acabar.
- * Con `cart` se juega un cartucho ya creado (por ejemplo, uno recuperado con loadState()).
+ * Con `cart` se juega un cartucho ya creado (por ejemplo, uno recuperado con loadState()). `pace` es la
+ * velocidad del juego de Opciones → VEL. JUEGO (0,7 a 1): cada paso de 1/60 s avanza el juego pace/60 s.
  */
-export function startSlot(con, Cartridge, slot, { seed = 1, input = 'ai', inputSeed = seed, cart: given = null } = {}) {
+export function startSlot(con, Cartridge, slot, { seed = 1, input = 'ai', inputSeed = seed, cart: given = null, pace = 1 } = {}) {
   const fx = new con.FxLayer();
   const mute = () => 0;
   const held = new Set();
@@ -154,9 +155,9 @@ export function startSlot(con, Cartridge, slot, { seed = 1, input = 'ai', inputS
           cart.onResume();
         }
       } else {
-        cart.autopilot(STEP);
+        cart.autopilot(STEP * pace);
       }
-      cart.tick(STEP);
+      cart.tick(STEP * pace);
       fx.update(STEP);
       steps++;
       return !result;

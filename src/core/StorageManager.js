@@ -23,6 +23,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   demo: true, // modo demostración tras 20 s sin tocar el menú
   hand: 'right', // 'right' | 'left' (zurdo: cruceta a la derecha, A/B a la izquierda)
   repeat: 'normal', // auto-repetición de la cruceta: 'slow' | 'normal' | 'fast'
+  pace: 100, // velocidad de los juegos en %: 100 | 90 | 80 | 70 (para reflejos más tranquilos)
+  bigText: false, // fuente grande de 5x7 en los menús y pantallas de la consola
   contrast: 'normal', // 'normal' | 'high'
   flashes: true, // destellos de pantalla completa (y brillo y barrido de los temas de tubo)
   ghosting: true, // estela de LCD: los píxeles tardan un poco en apagarse

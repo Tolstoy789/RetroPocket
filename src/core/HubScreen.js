@@ -10,8 +10,8 @@ import { ACTIONS } from './InputManager.js';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ConsoleEngine.js';
 import { ACHIEVEMENTS, achievementColor, getAchievement } from './Achievements.js';
 import { getTheme, shellRewardFor } from './Themes.js';
-import { todayKey, CAREER_BOSSES, CAREER_BOSS_SPEED } from './Catalog99.js';
-import { localize } from './i18n.js';
+import { todayKey, wrapText, CAREER_BOSSES, CAREER_BOSS_SPEED } from './Catalog99.js';
+import { localize, translate } from './i18n.js';
 
 export const HUB_TABS = ['games', 'career', 'achievements', 'streak', 'stats'];
 const TAB_LABELS = { games: 'JUEGOS', career: 'CARRERA', achievements: 'LOGROS', streak: 'RACHA', stats: 'DATOS' };
@@ -207,6 +207,44 @@ export class HubScreen {
     this.time += dt;
   }
 
+  // ---------- Lector de pantalla ----------
+
+  /** Lo que lee el lector de pantalla (ver Announcer.js): la pestaña y lo que está elegido en ella. */
+  describe() {
+    const p = this.engine.progress;
+    const parts = [TAB_LABELS[this.tab]];
+    if (this.tab === 'games') {
+      const item = this.items[this.gameIndex];
+      if (!item) return [...parts, 'TODAVIA NO HAY NADA'];
+      const { slot } = item;
+      parts.push(`${slot.code} ${slot.engine.name} ${slot.label}`, item.favorite ? 'FAVORITO' : '');
+    } else if (this.tab === 'career') {
+      const info = p.careerInfo();
+      const slot = this.engine.catalog.careerSlot(this.careerStage);
+      parts.push(`CARRERA ${info.cleared}/${info.total}`, `ETAPA ${this.careerStage}`, `${slot.engine.name} ${slot.label}`);
+      if (this.careerStage <= info.cleared) parts.push(slot.career.boss ? '★ JEFE DERROTADO ★' : 'ETAPA SUPERADA');
+      else parts.push(slot.career.boss ? 'JEFE' : '', `META ${slot.stars[slot.career.need - 1]} PUNTOS`);
+    } else if (this.tab === 'achievements') {
+      const a = ACHIEVEMENTS[this.achIndex];
+      parts.push(a.name, a.desc);
+      if (p.isUnlocked(a.id)) parts.push(`CONSEGUIDO EL ${formatDay(p.unlockedOn(a.id))}`);
+      else {
+        const { value, goal } = p.progressOf(a);
+        parts.push(a.stat === 'playTime' ? `${Math.floor(value / 60)}/${goal / 60} MIN` : `${value}/${goal}`);
+      }
+    } else if (this.tab === 'streak') {
+      const info = p.streakInfo();
+      const month = ((this.month % 12) + 12) % 12;
+      parts.push(info.current === 1 ? '1 DIA SEGUIDO' : `${info.current} DIAS SEGUIDOS`, `MEJOR RACHA ${info.best}`);
+      parts.push(info.playedToday ? 'HOY: DESAFIO HECHO ★' : 'A: JUGAR EL DESAFIO DE HOY', `${MONTHS[month]} ${Math.floor(this.month / 12)}`);
+    } else {
+      const row = this.statsRows[this.statsScroll];
+      if (row?.head) parts.push(row.head);
+      else if (row?.label) parts.push(`${row.label} ${row.value}`);
+    }
+    return parts.filter(Boolean);
+  }
+
   // ---------- Dibujo ----------
 
   render(g) {
@@ -223,7 +261,8 @@ export class HubScreen {
   /** Pestañas de ancho variable: cada una mide su texto más una parte igual del espacio sobrante. */
   _renderTabs(g) {
     g.rect(0, 0, SCREEN_WIDTH, 13, 'ink');
-    const widths = HUB_TABS.map((id) => g.textWidth(TAB_LABELS[id]));
+    // Las pestañas se miden con la fuente pequeña: con la grande no caben las cinco.
+    const widths = HUB_TABS.map((id) => g.textWidth(TAB_LABELS[id], { small: true }));
     const pad = (SCREEN_WIDTH - widths.reduce((sum, w) => sum + w, 0)) / HUB_TABS.length;
     let x = 0;
     HUB_TABS.forEach((id, i) => {
@@ -232,7 +271,7 @@ export class HubScreen {
       const right = Math.round(x);
       const selected = id === this.tab;
       if (selected) g.rect(left + 1, 1, right - left - 2, 12, 'bg');
-      g.text(TAB_LABELS[id], Math.round((left + right) / 2), 4, { align: 'center', color: selected ? 'ink' : 'bg' });
+      g.text(TAB_LABELS[id], Math.round((left + right) / 2), 4, { align: 'center', color: selected ? 'ink' : 'bg', small: true });
     });
   }
 
@@ -250,10 +289,14 @@ export class HubScreen {
     const cx = SCREEN_WIDTH / 2;
     if (!this.items.length) {
       g.text('TODAVIA NO HAY NADA', cx, 64, { align: 'center' });
-      g.text('LOS JUEGOS QUE JUEGUES', cx, 82, { align: 'center', color: 'mid' });
-      g.text('APARECEN AQUI. PARA FIJAR', cx, 90, { align: 'center', color: 'mid' });
-      g.text('UNO, MARCALO FAVORITO EN', cx, 98, { align: 'center', color: 'mid' });
-      g.text('LA PANTALLA PREPARADO.', cx, 106, { align: 'center', color: 'mid' });
+      const lines = ['LOS JUEGOS QUE JUEGUES', 'APARECEN AQUI. PARA FIJAR', 'UNO, MARCALO FAVORITO EN', 'LA PANTALLA PREPARADO.'];
+      if (g.bigText) {
+        // Con TEXTO GRANDE, el párrafo traducido se vuelve a partir en líneas de 23 letras.
+        const big = wrapText(lines.map((line) => translate(line)).join(' '), 23);
+        big.forEach((line, i) => g.text(line, cx, 82 + i * 9, { align: 'center', color: 'mid', raw: true }));
+      } else {
+        lines.forEach((line, i) => g.text(line, cx, 82 + i * 8, { align: 'center', color: 'mid' }));
+      }
       return;
     }
     const first = Math.max(0, Math.min(this.items.length - LIST_VISIBLE, this.gameIndex - Math.floor(LIST_VISIBLE / 2)));
@@ -293,14 +336,14 @@ export class HubScreen {
       const tx = x + Math.floor(MAP_W / 2) + 1;
       if (stage <= info.cleared) {
         g.rect(x + 1, y, MAP_W - 2, MAP_H - 2, boss ? 'red' : 'ink');
-        g.text(label, tx, y + 3, { align: 'center', color: 'bg' });
+        g.text(label, tx, y + 3, { align: 'center', color: 'bg', small: true });
       } else if (stage === info.current) {
         g.rect(x + 1, y, MAP_W - 2, MAP_H - 2, 'ghost');
         if (boss) g.frame(x + 1, y, MAP_W - 2, MAP_H - 2, 'red');
-        g.text(label, tx, y + 3, { align: 'center', color: 'ink' });
+        g.text(label, tx, y + 3, { align: 'center', color: 'ink', small: true });
       } else {
         if (boss) g.frame(x + 1, y, MAP_W - 2, MAP_H - 2, 'mid');
-        g.text(label, tx, y + 3, { align: 'center', color: boss ? 'mid' : 'ghost' });
+        g.text(label, tx, y + 3, { align: 'center', color: boss ? 'mid' : 'ghost', small: true });
       }
       if (stage === this.careerStage) g.frame(x, y - 1, MAP_W, MAP_H, this._blink() ? 'yellow' : 'ink');
     }
@@ -337,7 +380,7 @@ export class HubScreen {
     const p = this.engine.progress;
     const cx = SCREEN_WIDTH / 2;
     const done = p.unlockedCount();
-    g.text(`LOGROS ${done}/${ACHIEVEMENTS.length}`, 4, CONTENT_TOP + 1);
+    g.text(`LOGROS ${done}/${ACHIEVEMENTS.length}`, 4, CONTENT_TOP + 1, { max: 66 });
     const barX = 72;
     const barW = SCREEN_WIDTH - barX - 4;
     g.frame(barX, CONTENT_TOP + 1, barW, 5, 'mid');
@@ -397,7 +440,7 @@ export class HubScreen {
 
     g.sprite(FLAME, 6, CONTENT_TOP + 1, { scale: 3, colors: { '#': info.current > 0 ? 'orange' : 'ghost', '+': info.current > 0 ? 'yellow' : 'ghost' } });
     g.text(String(info.current), 32, CONTENT_TOP + 2, { scale: 3 });
-    g.text(info.current === 1 ? 'DIA SEGUIDO' : 'DIAS SEGUIDOS', 32, CONTENT_TOP + 20, { color: 'mid' });
+    g.text(info.current === 1 ? 'DIA SEGUIDO' : 'DIAS SEGUIDOS', 32, CONTENT_TOP + 20, { color: 'mid', max: 61 });
 
     // Estrellas especiales de los 7 y los 30 días.
     [
@@ -443,11 +486,14 @@ export class HubScreen {
 
     const statusY = 149;
     if (info.playedToday) {
-      g.text('HOY: DESAFIO HECHO ★', cx, statusY, { align: 'center', color: 'green' });
-      g.text('VUELVE MAÑANA A POR OTRO', cx, statusY + 10, { align: 'center', color: 'mid' });
+      const small = g.tooWideForBig(['HOY: DESAFIO HECHO ★', 'VUELVE MAÑANA A POR OTRO'], SCREEN_WIDTH - 2);
+      g.text('HOY: DESAFIO HECHO ★', cx, statusY, { align: 'center', color: 'green', small });
+      g.text('VUELVE MAÑANA A POR OTRO', cx, statusY + 10, { align: 'center', color: 'mid', small });
     } else {
-      if (this._blink(2)) g.text('A: JUGAR EL DESAFIO DE HOY', cx, statusY, { align: 'center', color: 'yellow' });
-      g.text(info.current > 0 ? '¡QUE NO SE ROMPA LA RACHA!' : 'JUEGALO CADA DIA', cx, statusY + 10, { align: 'center', color: info.current > 0 ? 'red' : 'mid' });
+      const call = info.current > 0 ? '¡QUE NO SE ROMPA LA RACHA!' : 'JUEGALO CADA DIA';
+      const small = g.tooWideForBig(['A: JUGAR EL DESAFIO DE HOY', call], SCREEN_WIDTH - 2);
+      if (this._blink(2)) g.text('A: JUGAR EL DESAFIO DE HOY', cx, statusY, { align: 'center', color: 'yellow', small });
+      g.text(call, cx, statusY + 10, { align: 'center', color: info.current > 0 ? 'red' : 'mid', small });
     }
     this._hint(g, '▲▼ MES   A DESAFIO DE HOY');
   }
@@ -506,15 +552,16 @@ export class HubScreen {
         g.text(row.head, 4, y, { color: 'yellow' });
         g.rect(g.textWidth(row.head) + 8, y + 2, right - g.textWidth(row.head) - 8, 1, 'mid');
       } else if (row.bar) {
-        g.text(row.label, 4, y, { color: row.color });
+        g.text(row.label, 4, y, { color: row.color, max: 52 });
         const bx = 58;
         const bw = 42;
         g.rect(bx, y + 1, bw, 3, 'ghost');
         if (row.frac > 0) g.rect(bx, y + 1, Math.max(1, Math.round(bw * row.frac)), 3, row.color);
         g.text(row.value, right, y, { align: 'right' });
       } else {
-        g.text(row.label, 4, y, { color: 'mid' });
-        g.text(String(row.value), right, y, { align: 'right', color: row.color || 'ink' });
+        const small = g.pairTooWide(row.label, String(row.value), right - 4);
+        g.text(row.label, 4, y, { color: 'mid', small });
+        g.text(String(row.value), right, y, { align: 'right', color: row.color || 'ink', small });
       }
     }
     if (this.statsScroll > 0) g.text('▲', SCREEN_WIDTH - 4, CONTENT_TOP, { color: 'mid' });

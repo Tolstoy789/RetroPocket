@@ -16,6 +16,7 @@ import { Jukebox } from './Jukebox.js';
 import { Progress } from './Progress.js';
 import { achievementColor } from './Achievements.js';
 import { renderShareCard } from './ShareCard.js';
+import { Announcer } from './Announcer.js';
 import { normalizeText, translate, setLanguage, getLanguage, resolveLanguage } from './i18n.js';
 
 /* global __APP_VERSION__ */
@@ -46,6 +47,9 @@ export const STATES = Object.freeze({
   NOCART: 'nocart',
   RESUME: 'resume' // «Continuar» la partida guardada al salir
 });
+
+/** Opciones del menú de pausa. */
+const PAUSE_OPTIONS = ['CONTINUAR', 'REINICIAR', 'MENU'];
 
 /** Versión del formato de la partida guardada (ver _saveGame). */
 const SUSPEND_VERSION = 1;
@@ -127,6 +131,87 @@ const GLYPHS = {
 const GLYPH_W = 3;
 const GLYPH_H = 5;
 
+// Fuente grande de 5x7 (Opciones → TEXTO GRANDE) para las pantallas de sistema: las mismas letras que la
+// 3x5, al estilo de las pantallas de caracteres de 5x7.
+const BIG_GLYPHS = {
+  '0': ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'],
+  '1': ['..#..', '.##..', '..#..', '..#..', '..#..', '..#..', '.###.'],
+  '2': ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'],
+  '3': ['#####', '...#.', '..#..', '...#.', '....#', '#...#', '.###.'],
+  '4': ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'],
+  '5': ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
+  '6': ['..##.', '.#...', '#....', '####.', '#...#', '#...#', '.###.'],
+  '7': ['#####', '....#', '...#.', '..#..', '.#...', '.#...', '.#...'],
+  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'],
+  '9': ['.###.', '#...#', '#...#', '.####', '....#', '...#.', '.##..'],
+  A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  B: ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
+  C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
+  D: ['###..', '#..#.', '#...#', '#...#', '#...#', '#..#.', '###..'],
+  E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+  G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.####'],
+  H: ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+  I: ['.###.', '..#..', '..#..', '..#..', '..#..', '..#..', '.###.'],
+  J: ['..###', '...#.', '...#.', '...#.', '...#.', '#..#.', '.##..'],
+  K: ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'],
+  L: ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
+  M: ['#...#', '##.##', '#.#.#', '#.#.#', '#...#', '#...#', '#...#'],
+  N: ['#...#', '#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#'],
+  O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  P: ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
+  Q: ['.###.', '#...#', '#...#', '#...#', '#.#.#', '#..#.', '.##.#'],
+  R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+  S: ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
+  T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  U: ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+  V: ['#...#', '#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
+  W: ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '#.#.#', '.#.#.'],
+  X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
+  Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'],
+  Z: ['#####', '....#', '...#.', '..#..', '.#...', '#....', '#####'],
+  ' ': ['.....', '.....', '.....', '.....', '.....', '.....', '.....'],
+  '.': ['.....', '.....', '.....', '.....', '.....', '.##..', '.##..'],
+  ',': ['.....', '.....', '.....', '.....', '.##..', '..#..', '.#...'],
+  ':': ['.....', '.##..', '.##..', '.....', '.##..', '.##..', '.....'],
+  ';': ['.....', '.##..', '.##..', '.....', '.##..', '..#..', '.#...'],
+  '-': ['.....', '.....', '.....', '#####', '.....', '.....', '.....'],
+  '_': ['.....', '.....', '.....', '.....', '.....', '.....', '#####'],
+  '+': ['.....', '..#..', '..#..', '#####', '..#..', '..#..', '.....'],
+  '=': ['.....', '.....', '#####', '.....', '#####', '.....', '.....'],
+  '!': ['..#..', '..#..', '..#..', '..#..', '..#..', '.....', '..#..'],
+  '¡': ['..#..', '.....', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  '¿': ['..#..', '.....', '..#..', '.#...', '#....', '#...#', '.###.'],
+  '?': ['.###.', '#...#', '....#', '...#.', '..#..', '.....', '..#..'],
+  '/': ['....#', '....#', '...#.', '..#..', '.#...', '#....', '#....'],
+  "'": ['..#..', '..#..', '.#...', '.....', '.....', '.....', '.....'],
+  '"': ['.#.#.', '.#.#.', '.....', '.....', '.....', '.....', '.....'],
+  '(': ['...#.', '..#..', '.#...', '.#...', '.#...', '..#..', '...#.'],
+  ')': ['.#...', '..#..', '...#.', '...#.', '...#.', '..#..', '.#...'],
+  '#': ['.#.#.', '.#.#.', '#####', '.#.#.', '#####', '.#.#.', '.#.#.'],
+  '%': ['##...', '##..#', '...#.', '..#..', '.#...', '#..##', '...##'],
+  '<': ['...#.', '..#..', '.#...', '#....', '.#...', '..#..', '...#.'],
+  '>': ['.#...', '..#..', '...#.', '....#', '...#.', '..#..', '.#...'],
+  '*': ['.....', '..#..', '#.#.#', '.###.', '#.#.#', '..#..', '.....'],
+  '♥': ['.....', '##.##', '#####', '#####', '.###.', '..#..', '.....'],
+  '▲': ['.....', '.....', '..#..', '.###.', '#####', '.....', '.....'],
+  '▼': ['.....', '.....', '#####', '.###.', '..#..', '.....', '.....'],
+  '◀': ['...#.', '..##.', '.###.', '####.', '.###.', '..##.', '...#.'],
+  '▶': ['.#...', '.##..', '.###.', '.####', '.###.', '.##..', '.#...'],
+  '♪': ['..#..', '..##.', '..#.#', '..#..', '###..', '###..', '.....'],
+  '×': ['.....', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '.....'],
+  '★': ['..#..', '..#..', '#####', '.###.', '.#.#.', '#...#', '.....']
+};
+
+/** Las dos fuentes: ancho y alto de cada letra, y cuánto se sube la grande para quedar centrada en la línea. */
+const SMALL_FONT = { glyphs: GLYPHS, w: GLYPH_W, h: GLYPH_H, dy: 0 };
+const BIG_FONT = { glyphs: BIG_GLYPHS, w: 5, h: 7, dy: -1 };
+export const FONTS = Object.freeze({ small: SMALL_FONT, big: BIG_FONT });
+
+function measureText(str, font, scale, spacing) {
+  return str.length === 0 ? 0 : str.length * (font.w + spacing) * scale - spacing * scale;
+}
+
 /** Caracteres de un texto que la fuente 3x5 no tiene (se dibujarían como '?'). Lo usan las pruebas. */
 export function missingGlyphs(text) {
   return [...new Set(normalizeText(text))].filter((ch) => !GLYPHS[ch]);
@@ -146,6 +231,10 @@ export class Gfx {
     this.palette = this.themeDef.palette;
     this.colorblind = false;
     this.highContrast = false;
+    // Texto grande (Opciones → TEXTO GRANDE): la consola lo activa mientras dibuja sus pantallas, no los juegos.
+    this.bigText = false;
+    // Dónde tiene que caber un texto grande: el interior del último recuadro (ver panel()) o toda la pantalla.
+    this.textArea = null;
   }
 
   setTheme(theme) {
@@ -184,6 +273,7 @@ export class Gfx {
   clear(c = 'bg') {
     this.ctx.fillStyle = this.color(c);
     this.ctx.fillRect(0, 0, this.width, this.height);
+    this.textArea = null;
   }
 
   px(x, y, c = 'ink') {
@@ -339,45 +429,103 @@ export class Gfx {
     }
   }
 
-  /** Ancho en píxeles de un texto ya traducido (como lo dibuja text()). `raw`: no se traduce. */
-  textWidth(text, scale = 1, spacing = 1, raw = false) {
-    return this._measure(normalizeText(raw ? text : translate(text)), scale, spacing);
-  }
-
-  _measure(str, scale, spacing) {
-    return str.length === 0 ? 0 : str.length * (GLYPH_W + spacing) * scale - spacing * scale;
+  /**
+   * Ancho en píxeles de un texto como lo dibuja text() (traducido y con la fuente que le toque).
+   * @param {object} [o] { scale, spacing, raw, small } como en text()
+   */
+  textWidth(text, o = {}) {
+    return this._layout(text, o, null).w;
   }
 
   /**
-   * Texto con la fuente 3x5, en el idioma de la consola (ver i18n.js).
-   * @param {object} [o] { color, align: 'left'|'center'|'right', scale, spacing, shadow,
-   *   raw: true para lo que no se traduce (iniciales, códigos o un texto ya traducido) }
+   * Rectángulo que ocupa un texto dibujado con text() en (x, y): { x, y, w, h, big }. Lo usan las pruebas
+   * para comprobar que el texto grande no pisa a otro.
    */
-  text(text, x, y, o = {}) {
+  textBox(text, x, y, o = {}) {
+    const { font, scale, w } = this._layout(text, o, x);
+    return { x: this._alignX(x, w, o.align), y: Math.floor(y) + font.dy * scale, w, h: font.h * scale, big: font === BIG_FONT };
+  }
+
+  /**
+   * El texto traducido y normalizado, la fuente con la que se dibuja y su ancho. La grande solo se usa con
+   * TEXTO GRANDE activo, a escala 1 y si el texto cabe entero en su sitio: dentro de la pantalla (o del
+   * recuadro en el que está), en `o.max` píxeles si se pide y con todas sus letras en la fuente de 5x7.
+   * `x` null: sin posición (textWidth), basta con que quepa a lo ancho.
+   */
+  _layout(text, o, x) {
+    const str = normalizeText(o.raw ? text : translate(text));
     const scale = o.scale || 1;
     const spacing = o.spacing ?? 1;
+    let font = SMALL_FONT;
+    if (this.bigText && scale === 1 && !o.small && str.length > 0) {
+      const w = measureText(str, BIG_FONT, 1, spacing);
+      const x0 = this.textArea ? this.textArea.x0 : 0;
+      const x1 = this.textArea ? this.textArea.x1 : this.width;
+      const left = x === null ? x0 : this._alignX(x, w, o.align);
+      const fits = left >= x0 && left + w <= x1 && !(o.max < w);
+      if (fits && [...str].every((ch) => BIG_GLYPHS[ch])) font = BIG_FONT;
+    }
+    return { str, font, scale, spacing, w: measureText(str, font, scale, spacing) };
+  }
+
+  /**
+   * Para textos que van juntos (las líneas de un párrafo): true si con TEXTO GRANDE alguno no cabe en
+   * `width` píxeles con la fuente de 5x7. Entonces se dibujan todos con la pequeña (`small`), mejor que
+   * mezclar las dos fuentes.
+   */
+  tooWideForBig(texts, width, { raw = false } = {}) {
+    if (!this.bigText) return false;
+    return texts.some((text) => {
+      const str = normalizeText(raw ? text : translate(text));
+      return measureText(str, BIG_FONT, 1, 1) > width || ![...str].every((ch) => BIG_GLYPHS[ch]);
+    });
+  }
+
+  /**
+   * Para una fila con una etiqueta a la izquierda y un valor a la derecha: true si con TEXTO GRANDE no
+   * caben las dos en `width` píxeles separadas por `gap` (y entonces van las dos con la pequeña).
+   */
+  pairTooWide(left, right, width, { gap = 6, raw = false } = {}) {
+    if (!this.bigText) return false;
+    const wide = (text, isRaw) => measureText(normalizeText(isRaw ? text : translate(text)), BIG_FONT, 1, 1);
+    return this.tooWideForBig([left], width) || this.tooWideForBig([right], width, { raw }) || wide(left, false) + gap + wide(right, raw) > width;
+  }
+
+  _alignX(x, w, align) {
+    return Math.floor(align === 'center' ? x - w / 2 : align === 'right' ? x - w : x);
+  }
+
+  /**
+   * Texto con la fuente 3x5 (o la de 5x7 con TEXTO GRANDE), en el idioma de la consola (ver i18n.js).
+   * @param {object} [o] { color, align: 'left'|'center'|'right', scale, spacing, shadow,
+   *   raw: true para lo que no se traduce (iniciales, códigos o un texto ya traducido),
+   *   small: siempre con la fuente 3x5 (rejillas y pestañas medidas para ella),
+   *   max: ancho máximo en píxeles para usar la fuente grande }
+   * @returns {number} el ancho dibujado
+   */
+  text(text, x, y, o = {}) {
     if (Gfx.textLog && !o.raw) Gfx.textLog.add(String(text));
-    const str = normalizeText(o.raw ? text : translate(text));
-    const w = this._measure(str, scale, spacing);
-    let cx = Math.floor(o.align === 'center' ? x - w / 2 : o.align === 'right' ? x - w : x);
-    const cy = Math.floor(y);
-    if (o.shadow) this._drawText(str, cx + scale, cy + scale, scale, spacing, o.shadow);
-    this._drawText(str, cx, cy, scale, spacing, o.color || 'ink');
+    const { str, font, scale, spacing, w } = this._layout(text, o, x);
+    const cx = this._alignX(x, w, o.align);
+    // La fuente grande es 2 px más alta: se sube 1 px para que quede centrada en la misma línea.
+    const cy = Math.floor(y) + font.dy * scale;
+    if (o.shadow) this._drawText(str, font, cx + scale, cy + scale, scale, spacing, o.shadow);
+    this._drawText(str, font, cx, cy, scale, spacing, o.color || 'ink');
     return w;
   }
 
-  _drawText(str, x, y, scale, spacing, c) {
+  _drawText(str, font, x, y, scale, spacing, c) {
     this.ctx.fillStyle = this.color(c);
     let cx = x;
     for (const ch of str) {
-      const glyph = GLYPHS[ch] || GLYPHS['?'];
-      for (let row = 0; row < GLYPH_H; row++) {
+      const glyph = font.glyphs[ch] || font.glyphs['?'];
+      for (let row = 0; row < font.h; row++) {
         const line = glyph[row];
-        for (let col = 0; col < GLYPH_W; col++) {
+        for (let col = 0; col < font.w; col++) {
           if (line[col] === '#') this.ctx.fillRect(cx + col * scale, y + row * scale, scale, scale);
         }
       }
-      cx += (GLYPH_W + spacing) * scale;
+      cx += (font.w + spacing) * scale;
     }
   }
 
@@ -415,6 +563,7 @@ export class Gfx {
   veil() {
     this.ctx.fillStyle = this.palette.overlay;
     this.ctx.fillRect(0, 0, this.width, this.height);
+    this.textArea = null;
   }
 
   /** Recuadro con borde doble para diálogos. */
@@ -422,11 +571,15 @@ export class Gfx {
     this.rect(x, y, w, h, 'bg');
     this.frame(x, y, w, h, 'ink');
     this.frame(x + 2, y + 2, w - 4, h - 4, 'mid');
+    // Dentro del marco interior, con 1 px de aire.
+    this.textArea = { x0: x + 4, x1: x + w - 4 };
   }
 }
 
 /** Las pruebas apuntan aquí (un Set) todos los textos que se dibujan, para comprobar que tienen traducción. */
 Gfx.textLog = null;
+/** Y aquí, lo que lee el lector de pantalla en cada pantalla (ver describeScreen). */
+Gfx.speechLog = null;
 
 // ---------------------------------------------------------------------------
 // Rejilla de fondo de las pantallas de sistema (las animaciones de arranque están en BootScenes.js).
@@ -629,6 +782,8 @@ export class ConsoleEngine {
     this.hub = new HubScreen(this);
     this.initials = new InitialsScreen(this);
     this.attract = new AttractScreen(this);
+    // Lectura por voz de lo que hay en pantalla para los lectores de pantalla (ver describeScreen).
+    this.announcer = new Announcer();
 
     this._frame = this._frame.bind(this);
     this._onVisibility = this._onVisibility.bind(this);
@@ -654,6 +809,7 @@ export class ConsoleEngine {
     setLanguage(resolveLanguage(s.lang));
     // El menú guarda la descripción ya partida en líneas: se rehace en el idioma nuevo.
     if (this.menu && getLanguage() !== language) this.menu.onEnter();
+    this.gfx.bigText = !!s.bigText;
     this.gfx.setColorblind(s.colorblind);
     this.gfx.setHighContrast(s.contrast === 'high');
     this.setTheme(s.theme);
@@ -746,6 +902,12 @@ export class ConsoleEngine {
       }
     }
     this.rafId = requestAnimationFrame(this._frame);
+  }
+
+  /** Velocidad de los juegos (Opciones → VEL. JUEGO): de 0,7 a 1. */
+  get pace() {
+    const pace = Number(this.settings.pace);
+    return Number.isFinite(pace) ? Math.min(1, Math.max(0.7, pace / 100)) : 1;
   }
 
   /** ¿Está activo el ahorro de batería? (SI, o AUTO con poca carga y sin cargador) */
@@ -954,6 +1116,7 @@ export class ConsoleEngine {
   toast(text, seconds = 1.2) {
     this.toastText = text;
     this.toastTime = seconds;
+    this.announcer?.notice(text);
   }
 
   // ---------- Estados ----------
@@ -1325,6 +1488,7 @@ export class ConsoleEngine {
       level,
       won,
       message,
+      pace: Math.round(this.pace * 100),
       ...submit,
       stars: this.catalog.starsFor(slot, score),
       previousStars: this.catalog.starsFor(slot, previousBest),
@@ -1670,7 +1834,9 @@ export class ConsoleEngine {
         break;
       case STATES.PLAYING:
         this.turnBadge = Math.max(0, this.turnBadge - dt);
-        this._tickCartridge(dt, false);
+        // VEL. JUEGO: el cartucho recibe un paso más corto y todo el juego (caídas, enemigos, temporizadores
+        // y contrarreloj) va más despacio; el tiempo jugado, la música y la cruceta siguen a su ritmo.
+        this._tickCartridge(dt * this.pace, false);
         // Segunda pista del motor en los niveles pares (cambia al acabar la frase en curso).
         if (this.cartridge) this.sound.queueMusic(trackFor(this.currentSlot.engine.id, this.cartridge.level));
         this.progress.onPlayTick(dt);
@@ -1695,6 +1861,7 @@ export class ConsoleEngine {
     }
 
     this._updateBanner(dt);
+    this.announcer.describe(this.describeScreen(), dt);
 
     if (this.led) {
       const blink = this.state === STATES.PAUSED ? Math.floor(this.time * 2) % 2 === 0 : true;
@@ -1712,6 +1879,7 @@ export class ConsoleEngine {
     }
     if (!this.banner && this.achievementQueue.length && this.state !== STATES.BOOT) {
       this.banner = { achievement: this.achievementQueue.shift(), time: 0 };
+      this.announcer.notice(['★ LOGRO DESBLOQUEADO', this.banner.achievement.name]);
       this.sound.sfx('achievement');
       this.input.vibrate('light');
     }
@@ -1727,6 +1895,83 @@ export class ConsoleEngine {
       this.sound.sfx('error');
       this.goToMenu();
     }
+  }
+
+  // ---------- Lector de pantalla ----------
+
+  /**
+   * Lo que el lector de pantalla dice de la pantalla actual (ver Announcer.js): textos en español, como los
+   * dibuja la consola, que se traducen al leerlos; { raw } para lo que se lee tal cual (las iniciales).
+   * Las pantallas de sistema tienen su propio describe().
+   */
+  describeScreen() {
+    const slot = this.currentSlot;
+    const cart = this.cartridge;
+    switch (this.state) {
+      case STATES.MENU:
+        return this.menu.describe();
+      case STATES.OPTIONS:
+        return this.options.describe();
+      case STATES.THEMES:
+        return this.themeGallery.describe();
+      case STATES.JUKEBOX:
+        return this.jukebox.describe();
+      case STATES.LAUNCH:
+        return this.launchScreen.describe();
+      case STATES.HUB:
+        return this.hub.describe();
+      case STATES.INITIALS:
+        return this.initials.describe();
+      case STATES.PLAYING: {
+        if (!cart || !slot) return [];
+        const parts = [`${slot.engine.name} ${slot.label}`, `NIVEL ${cart.level}`];
+        if (this.match) parts.unshift(`JUGADOR ${this.match.scores.length + 1}`);
+        return parts;
+      }
+      case STATES.PAUSED: {
+        const parts = this.breakNotice ? ['LLEVAS 30 MIN JUGANDO', 'ESTIRA MANOS Y VISTA'] : [];
+        parts.push('PAUSA', `PUNTOS ${Math.floor(cart?.score || 0)}`, `NIVEL ${cart?.level || 1}`);
+        if (this.saved) parts.push('PARTIDA GUARDADA');
+        parts.push(PAUSE_OPTIONS[this.pauseIndex]);
+        return parts;
+      }
+      case STATES.GAMEOVER:
+        return this._describeGameOver();
+      case STATES.RESUME: {
+        const offer = this.resumeOffer;
+        if (!offer) return [];
+        const parts = ['PARTIDA GUARDADA', `${offer.slot.engine.name} ${offer.slot.label}`, `PUNTOS ${offer.saved.score || 0}`];
+        if (this.resumeConfirm) parts.push('¿BORRAR LA PARTIDA?', 'B: BORRAR   A: CONTINUAR');
+        else parts.push('A: CONTINUAR', 'B: DESCARTAR');
+        return parts;
+      }
+      case STATES.NOCART:
+        return ['CARTUCHO NO INSERTADO', 'PULSA UN BOTON'];
+      default:
+        return [];
+    }
+  }
+
+  _describeGameOver() {
+    const r = this.result;
+    if (!r) return [];
+    const parts = [r.won ? 'VICTORIA' : 'GAME OVER', r.message, `PUNTOS ${r.score}`];
+    if (r.pace < 100) parts.push(`VEL. JUEGO ${r.pace}%`);
+    parts.push(r.isHighScore ? '¡NUEVO RECORD!' : `RECORD ${r.highScore}`, `ESTRELLAS ${r.stars}`);
+    const c = r.career;
+    if (c) {
+      if (c.passed) parts.push(c.finished ? '¡CARRERA COMPLETA!' : c.boss ? '¡JEFE DERROTADO!' : 'ETAPA SUPERADA');
+      else parts.push(c.boss ? 'EL JEFE GANA ESTA VEZ' : 'NO SUPERADA', `TE FALTAN ${Math.max(1, this.currentSlot.stars[c.need - 1] - r.score)}`);
+    }
+    const m = this.match;
+    if (m && m.scores.length >= 2) {
+      const winner = m.scores[0] === m.scores[1] ? -1 : m.scores[0] > m.scores[1] ? 0 : 1;
+      parts.push(winner < 0 ? '¡EMPATE!' : `¡GANA EL JUGADOR ${winner + 1}!`);
+    } else if (m) {
+      parts.push('PASA LA CONSOLA AL J2');
+    }
+    parts.push(this._gameOverKeys());
+    return parts.filter(Boolean);
   }
 
   // ---------- Dibujo ----------
@@ -1804,11 +2049,17 @@ export class ConsoleEngine {
       g.clear();
       return;
     }
+    // Los juegos dibujan su marcador con la fuente 3x5 aunque TEXTO GRANDE esté activo.
+    const big = g.bigText;
+    g.bigText = false;
     try {
       this.cartridge.render(g);
     } catch (err) {
       console.error('[RetroPocket] Error en render():', err);
       g.clear();
+    } finally {
+      g.bigText = big;
+      g.textArea = null;
     }
   }
 
@@ -1864,15 +2115,17 @@ export class ConsoleEngine {
     const y = (SCREEN_HEIGHT - h) / 2;
     g.panel(x, y, w, h);
     g.text('PAUSA', SCREEN_WIDTH / 2, y + 8, { align: 'center', scale: 2 });
-    if (this.saved) g.text('PARTIDA GUARDADA', SCREEN_WIDTH / 2, y + 21, { align: 'center', color: 'mid' });
+    // max: con TEXTO GRANDE, la letra grande solo si deja aire hasta el marco.
+    if (this.saved) g.text('PARTIDA GUARDADA', SCREEN_WIDTH / 2, y + 21, { align: 'center', color: 'mid', max: w - 12 });
     if (this.breakNotice) {
       g.panel(x - 8, y - 40, w + 16, 34);
-      g.text('LLEVAS 30 MIN JUGANDO', SCREEN_WIDTH / 2, y - 32, { align: 'center', color: 'yellow' });
-      g.text('ESTIRA MANOS Y VISTA', SCREEN_WIDTH / 2, y - 22, { align: 'center' });
-      g.text('Y DESCANSA UN POCO', SCREEN_WIDTH / 2, y - 14, { align: 'center', color: 'mid' });
+      const lines = ['LLEVAS 30 MIN JUGANDO', 'ESTIRA MANOS Y VISTA', 'Y DESCANSA UN POCO'];
+      const small = g.tooWideForBig(lines, w + 16 - 8);
+      g.text(lines[0], SCREEN_WIDTH / 2, y - 33, { align: 'center', color: 'yellow', small });
+      g.text(lines[1], SCREEN_WIDTH / 2, y - 23, { align: 'center', small });
+      g.text(lines[2], SCREEN_WIDTH / 2, y - 15, { align: 'center', color: 'mid', small });
     }
-    const options = ['CONTINUAR', 'REINICIAR', 'MENU'];
-    options.forEach((label, i) => {
+    PAUSE_OPTIONS.forEach((label, i) => {
       const oy = y + 30 + i * 11;
       const selected = i === this.pauseIndex;
       if (selected) g.text('▶', x + 14, oy, { color: Math.floor(this.time * 4) % 2 ? 'ink' : 'mid' });
@@ -1927,7 +2180,7 @@ export class ConsoleEngine {
       const isNew = earned && i >= previous;
       const visible = !isNew || Math.floor(this.time * 4) % 2 === 0;
       const empty = g.palette.dark ? 'mid' : 'ghost';
-      g.text('★', x + i * 5 * scale, y, { color: earned && visible ? 'yellow' : empty, scale });
+      g.text('★', x + i * 5 * scale, y, { color: earned && visible ? 'yellow' : empty, scale, small: true });
     }
   }
 
@@ -1940,7 +2193,9 @@ export class ConsoleEngine {
     const y = Math.floor((SCREEN_HEIGHT - h) / 2);
     g.panel(x, y, w, h);
     g.text(r.won ? 'VICTORIA' : 'GAME OVER', SCREEN_WIDTH / 2, y + 7, { align: 'center', scale: 2, color: r.won ? 'green' : 'red' });
-    if (r.message) g.text(r.message, SCREEN_WIDTH / 2, y + 21, { align: 'center', color: 'mid' });
+    // Debajo del título, el motivo (CHOQUE, TIEMPO...) y, si se jugó más despacio, a qué velocidad.
+    const note = [r.message, r.pace < 100 ? `VEL. JUEGO ${r.pace}%` : ''].filter(Boolean).join('  ');
+    if (note) g.text(note, SCREEN_WIDTH / 2, y + 21, { align: 'center', color: 'mid' });
     g.text('PUNTOS', x + 8, y + 31);
     g.text(String(r.score).padStart(7, '0'), x + w - 8, y + 31, { align: 'right' });
     g.text('RECORD', x + 8, y + 40);
@@ -1973,11 +2228,16 @@ export class ConsoleEngine {
       const c = r.career;
       const blink = Math.floor(this.stateTime * 2) % 2 === 0;
       g.text('START: COMPARTIR', SCREEN_WIDTH / 2, y + h - 22, { align: 'center', color: r.isHighScore && blink ? 'yellow' : 'mid' });
-      let keys = 'A: OTRA VEZ   B: MENU';
-      if (this.match) keys = this.match.scores.length < 2 ? 'A: JUEGA J2   B: SALIR' : 'A: REVANCHA   B: SALIR';
-      else if (c) keys = `${c.next ? 'A: SIGUIENTE' : c.passed ? 'A: OTRA VEZ' : 'A: REINTENTAR'}   B: CARRERA`;
-      g.text(keys, SCREEN_WIDTH / 2, y + h - 12, { align: 'center' });
+      g.text(this._gameOverKeys(), SCREEN_WIDTH / 2, y + h - 12, { align: 'center' });
     }
+  }
+
+  /** Qué hacen A y B en la pantalla de fin de partida. */
+  _gameOverKeys() {
+    const c = this.result?.career;
+    if (this.match) return this.match.scores.length < 2 ? 'A: JUEGA J2   B: SALIR' : 'A: REVANCHA   B: SALIR';
+    if (c) return `${c.next ? 'A: SIGUIENTE' : c.passed ? 'A: OTRA VEZ' : 'A: REINTENTAR'}   B: CARRERA`;
+    return 'A: OTRA VEZ   B: MENU';
   }
 
   /** Marcador de la partida a 2 jugadores (en lugar del TOP 5). */
@@ -2051,8 +2311,9 @@ export class ConsoleEngine {
     g.panel(10, 52, SCREEN_WIDTH - 20, 88);
     g.text(slot && slot.daily ? 'DESAFIO' : `JUEGO ${slot ? slot.code : '00'}`, SCREEN_WIDTH / 2, 62, { align: 'center', scale: 2 });
     g.text(slot ? slot.engine.name : '', SCREEN_WIDTH / 2, 82, { align: 'center', color: 'mid' });
-    g.text('CARTUCHO NO', SCREEN_WIDTH / 2, 98, { align: 'center', color: 'red' });
-    g.text('INSERTADO', SCREEN_WIDTH / 2, 106, { align: 'center', color: 'red' });
+    const small = g.tooWideForBig(['CARTUCHO NO', 'INSERTADO'], SCREEN_WIDTH - 28);
+    g.text('CARTUCHO NO', SCREEN_WIDTH / 2, 98, { align: 'center', color: 'red', small });
+    g.text('INSERTADO', SCREEN_WIDTH / 2, small ? 106 : 108, { align: 'center', color: 'red', small });
     if (Math.floor(this.stateTime * 2) % 2 === 0) g.text('PULSA UN BOTON', SCREEN_WIDTH / 2, 124, { align: 'center' });
   }
 

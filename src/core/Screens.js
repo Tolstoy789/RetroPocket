@@ -1,6 +1,7 @@
 // src/core/Screens.js
 // Pantallas de sistema de la consola:
-//   OptionsScreen  → menú de ajustes (tema, idioma, volúmenes, altavoz, jukebox, vibración, accesibilidad, copia de récords)
+//   OptionsScreen  → menú de ajustes (tema, idioma, volúmenes, altavoz, jukebox, vibración, accesibilidad
+//                    —velocidad de los juegos, texto grande...—, copia de récords)
 //   InitialsScreen → introducir 3 iniciales al entrar en el top 5 de un slot
 //   AttractScreen  → modo atracción: logo, récords, galería de juegos y demos jugadas por la consola
 
@@ -57,6 +58,12 @@ export class OptionsScreen {
         change: () => e.updateSetting('bigButtons', !e.settings.bigButtons)
       },
       { label: 'REPETICION', ...choice('repeat', ['slow', 'normal', 'fast'], ['LENTA', 'NORMAL', 'RAPIDA']) },
+      {
+        label: 'VEL. JUEGO',
+        ...choice('pace', [100, 90, 80, 70], ['100%', '90%', '80%', '70%']),
+        hint: () => (e.settings.pace < 100 ? 'LOS JUEGOS VAN MAS DESPACIO' : 'BAJALA SI LOS JUEGOS VAN DEPRISA')
+      },
+      { label: 'TEXTO GRANDE', ...toggle('bigText'), hint: 'LETRAS MAS GRANDES EN LOS MENUS' },
       { label: 'GESTOS', ...toggle('gestures', (on) => on && e.toast('DESLIZA Y TOCA LA PANTALLA', 1.6)), hint: 'DESLIZAR = CRUCETA  TOCAR = A' },
       { label: 'AUTODISPARO', ...toggle('autoFire'), hint: 'MANTEN A PARA DISPARAR SIN PARAR' },
       { label: 'CONTRASTE', ...choice('contrast', ['normal', 'high'], ['NORMAL', 'ALTO']) },
@@ -202,6 +209,18 @@ export class OptionsScreen {
     this.time += dt;
   }
 
+  /** Lo que lee el lector de pantalla (ver Announcer.js): la fila elegida con su valor y su ayuda. */
+  describe() {
+    const item = this.items[this.index];
+    if (item.label === 'BORRAR RECORDS' && this.confirmErase) return ['¿SEGURO? PULSA A'];
+    const parts = [item.label];
+    if (item.level) parts.push({ raw: localize(`${item.level()} de 3`, `${item.level()} of 3`) });
+    else if (item.value) parts.push(item.raw ? { raw: item.value() } : item.value());
+    const hint = typeof item.hint === 'function' ? item.hint() : item.hint;
+    if (hint) parts.push(hint);
+    return parts;
+  }
+
   render(g) {
     const cx = SCREEN_WIDTH / 2;
     g.clear();
@@ -224,7 +243,11 @@ export class OptionsScreen {
       }
       const isErase = item.label === 'BORRAR RECORDS';
       const label = isErase && this.confirmErase && selected ? '¿SEGURO? PULSA A' : item.label;
-      g.text(label, 15, y, { color: isErase && this.confirmErase ? 'red' : selected ? 'ink' : 'mid' });
+      const text = item.value ? item.value() : '';
+      // Con TEXTO GRANDE, etiqueta y valor van con la fuente pequeña si no caben las dos (y la flecha ◀).
+      const room = item.level ? SCREEN_WIDTH - 36 - 15 : SCREEN_WIDTH - 9 - 15 - 11;
+      const small = g.pairTooWide(label, text, room, { raw: item.raw });
+      g.text(label, 15, y, { color: isErase && this.confirmErase ? 'red' : selected ? 'ink' : 'mid', small });
       if (item.level) {
         const lv = item.level();
         for (let k = 0; k < 3; k++) {
@@ -233,10 +256,9 @@ export class OptionsScreen {
           else g.frame(bx, y - 1, 8, 7, 'mid');
         }
       } else if (item.value) {
-        const text = item.value();
-        g.text(text, SCREEN_WIDTH - 9, y, { align: 'right', color: selected ? 'cyan' : 'ink', raw: item.raw });
+        g.text(text, SCREEN_WIDTH - 9, y, { align: 'right', color: selected ? 'cyan' : 'ink', raw: item.raw, small });
         if (selected) {
-          g.text('◀', SCREEN_WIDTH - 15 - g.textWidth(text, 1, 1, item.raw), y, { color: 'mid' });
+          g.text('◀', SCREEN_WIDTH - 15 - g.textWidth(text, { raw: item.raw, small }), y, { color: 'mid' });
           g.text('▶', SCREEN_WIDTH - 7, y, { color: 'mid' });
         }
       }
@@ -276,6 +298,11 @@ export class InitialsScreen {
     const i = CHARSET.indexOf(this.letters[this.pos]);
     this.letters[this.pos] = CHARSET[(i + dir + CHARSET.length) % CHARSET.length];
     this.engine.sound.sfx('tick');
+  }
+
+  /** Lo que lee el lector de pantalla: las iniciales letra a letra y cuál se está cambiando. */
+  describe() {
+    return [this.result?.isHighScore ? '¡NUEVO RECORD!' : 'TOP 5', 'TUS INICIALES', { raw: this.letters.join(' ') }, `LETRA ${this.pos + 1}`];
   }
 
   confirm() {
@@ -354,8 +381,9 @@ export class InitialsScreen {
         g.text('▼', lx + 6, y + 77, { color: 'mid' });
       }
     }
-    g.text('▲▼ LETRA  A SIGUIENTE', cx, y + h - 22, { align: 'center', color: 'mid' });
-    g.text('START: GUARDAR', cx, y + h - 12, { align: 'center', color: 'mid' });
+    const small = g.tooWideForBig(['▲▼ LETRA  A SIGUIENTE', 'START: GUARDAR'], g.textArea ? g.textArea.x1 - g.textArea.x0 : SCREEN_WIDTH);
+    g.text('▲▼ LETRA  A SIGUIENTE', cx, y + h - 22, { align: 'center', color: 'mid', small });
+    g.text('START: GUARDAR', cx, y + h - 12, { align: 'center', color: 'mid', small });
   }
 }
 

@@ -39,11 +39,12 @@ const spanishWords = new Set(Object.keys(EN).flatMap(wordsOf));
 /**
  * Devuelve la lista de problemas (vacía si todo está bien).
  * @param {string[]} texts textos en español, tal como los dibuja el código
- * @param {{ names?: string[], missingGlyphs?: (text: string) => string[] }} [o] nombres propios que no se
- *   traducen (los de los motores), la función que dice qué letras no tiene la fuente y, para los textos
- *   que se parten en líneas de 34 letras como las descripciones del menú, cuántas líneas caben
+ * @param {{ names?: string[], missingGlyphs?: (text: string) => string[], lines?: number, spoken?: boolean }} [o]
+ *   nombres propios que no se traducen (los de los motores), la función que dice qué letras no tiene la
+ *   fuente; para los textos que se parten en líneas de 34 letras como las descripciones del menú, cuántas
+ *   líneas caben; y `spoken` para lo que solo lee el lector de pantalla (no se mira lo que ocupa)
  */
-export function checkTranslations(texts, { names = [], missingGlyphs = null, lines = 0 } = {}) {
+export function checkTranslations(texts, { names = [], missingGlyphs = null, lines = 0, spoken = false } = {}) {
   const previous = getLanguage();
   setLanguage('en');
   const english = new Set([...englishWords, ...names.flatMap(wordsOf)]);
@@ -57,6 +58,7 @@ export function checkTranslations(texts, { names = [], missingGlyphs = null, lin
     if (/[¡¿]/.test(en)) problems.push(`"${es}" → "${en}": le quedan ¡ o ¿`);
     const missing = missingGlyphs ? missingGlyphs(en) : [];
     if (missing.length) problems.push(`"${es}" → "${en}": la fuente no tiene ${missing.join(' ')}`);
+    if (spoken) continue;
     if (lines) {
       // Texto que se parte en líneas (las descripciones del menú): tiene que caber en `lines` líneas.
       if (wrap(en).length > lines) problems.push(`"${es}" → "${en}": no cabe en ${lines} líneas`);

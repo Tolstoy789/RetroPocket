@@ -2,8 +2,10 @@
 // Recorrido por todas las pantallas de la consola, dibujando cada estado posible (cada slot del menú,
 // cada fila de Opciones con todos sus valores, cada tema, pista, logro, etapa de la carrera, mes de la
 // racha, pantalla de fin de partida...). La prueba de idioma lo ejecuta dentro de la página (lo sirve
-// Vite) con Gfx.textLog activo, y así reúne todos los textos que se pueden ver para comprobar que
-// tienen traducción. Toca el estado de la consola por dentro y al acabar lo deja todo como estaba.
+// Vite) con Gfx.textLog activo, y así reúne todos los textos que se pueden ver (y los que lee el lector
+// de pantalla en cada estado, ver describeScreen) para comprobar que tienen traducción. La prueba de texto
+// grande lo usa para ver que la fuente de 5x7 no pisa otros textos. Toca el estado de la consola por
+// dentro y al acabar lo deja todo como estaba.
 
 import { THEMES } from '/src/core/Themes.js';
 import { ACHIEVEMENTS } from '/src/core/Achievements.js';
@@ -47,8 +49,19 @@ export function tourScreens(e) {
     { current: 5, best: 5, total: 12, playedToday: false, today: day, first: '2026-01-05' }
   ];
 
+  // Cada dibujo apunta también lo que diría el lector de pantalla (en speechLog, si la prueba lo pide).
+  const render = e._render;
+  const describe = () => {
+    const log = e.gfx.constructor.speechLog;
+    if (log) for (const part of e.describeScreen()) if (typeof part === 'string') log.add(part);
+  };
+  const renderAndDescribe = () => {
+    render.call(e);
+    describe();
+  };
+
   // Ajustes de mentira: los cambios no se guardan ni encienden la pantalla completa.
-  patched(e, { updateSetting: (key, value) => ((e.settings = { ...e.settings, [key]: value }), e.settings), platform: null }, () => {
+  patched(e, { updateSetting: (key, value) => ((e.settings = { ...e.settings, [key]: value }), e.settings), platform: null, _render: renderAndDescribe }, () => {
     // Arranque: las tres animaciones de principio a fin.
     for (const scene of BOOT_SCENES) {
       e.settings = { ...e.settings, boot: scene.id };

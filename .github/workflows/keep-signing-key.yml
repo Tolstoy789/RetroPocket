@@ -1,0 +1,30 @@
+name: Conservar la clave de firma
+
+# GitHub borra una caché que no se usa en 7 días. La clave que firma el APK (ver android-apk.yml) está
+# en la caché, y si cambiara, el APK nuevo no se podría instalar encima del anterior. Este workflow la
+# abre cada 5 días aunque no haya cambios en el repositorio, para que no caduque.
+on:
+  schedule:
+    - cron: "23 4 */5 * *"
+  workflow_dispatch:
+
+jobs:
+  keep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Abrir la clave de firma guardada
+        id: keystore-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: retropocket-debug-keystore-v1
+
+      - name: Comprobar la clave
+        run: |
+          if [ "${{ steps.keystore-cache.outputs.cache-hit }}" = "true" ]; then
+            keytool -list -v -keystore ~/.android/debug.keystore -storepass android | grep -m1 "SHA256" || true
+          else
+            echo "::notice title=Sin clave en la caché::La próxima compilación de main generará una clave nueva."
+          fi

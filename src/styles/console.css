@@ -80,6 +80,19 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
+/* Solo para lectores de pantalla (las regiones aria-live de index.html): no se ve ni ocupa sitio. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------- Carcasa ---------- */
 
 .console {

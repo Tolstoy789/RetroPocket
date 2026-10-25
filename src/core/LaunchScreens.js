@@ -96,6 +96,19 @@ export class LaunchScreen {
     }
   }
 
+  /** Lo que lee el lector de pantalla (ver Announcer.js): el juego y la fila elegida con su valor. */
+  describe() {
+    const slot = this.slot;
+    if (!slot) return [];
+    const rows = [
+      `VELOCIDAD ${this.speed}`,
+      `NIVEL ${this.level}`,
+      this.players === 2 ? 'JUGADORES: 2 POR TURNOS' : 'JUGADORES: 1',
+      this.favorite ? 'FAVORITO: SI' : 'FAVORITO: NO'
+    ];
+    return ['PREPARADO', `${slot.engine.name} ${slot.label}`, rows[this.index]];
+  }
+
   update(dt) {
     this.time += dt;
   }
@@ -118,7 +131,9 @@ export class LaunchScreen {
     g.sprite(frame, cx - 12, 45, { scale: 3, colors: { '#': engineDef.color, '+': 'mid' } });
 
     g.text('CONTROLES', cx, 78, { align: 'center', color: 'mid' });
-    (engineDef.controls || []).forEach((line, i) => g.text(line, cx, 87 + i * 8, { align: 'center' }));
+    const controls = engineDef.controls || [];
+    const small = g.tooWideForBig(controls, SCREEN_WIDTH - 2);
+    controls.forEach((line, i) => g.text(line, cx, 87 + i * 8, { align: 'center', small }));
 
     g.rect(8, 105, SCREEN_WIDTH - 16, 1, 'mid');
     const rows = [
@@ -134,9 +149,12 @@ export class LaunchScreen {
         g.rect(4, y - 2, SCREEN_WIDTH - 8, ROW_H - 1, 'ghost');
         g.text('▶', 7, y, { color: Math.floor(this.time * 4) % 2 ? 'ink' : 'mid' });
       }
-      g.text(row.label, 15, y, { color: selected ? 'ink' : 'mid' });
+      const value = row.text || (row.max > 5 ? String(row.value).padStart(2, '0') : '');
+      // Con TEXTO GRANDE, etiqueta y valor van con la fuente pequeña si no caben las dos (y la flecha ◀).
+      const small = g.pairTooWide(row.label, value, SCREEN_WIDTH - 12 - 15 - 11);
+      g.text(row.label, 15, y, { color: selected ? 'ink' : 'mid', small });
       if (row.text) {
-        g.text(row.text, SCREEN_WIDTH - 12, y, { align: 'right', color: row.color });
+        g.text(row.text, SCREEN_WIDTH - 12, y, { align: 'right', color: row.color, small });
       } else if (row.max <= 5) {
         for (let k = 0; k < row.max; k++) {
           const bx = SCREEN_WIDTH - 60 + k * 10;
@@ -144,10 +162,13 @@ export class LaunchScreen {
           else g.frame(bx, y - 1, 8, 7, 'mid');
         }
       } else {
-        g.text(String(row.value).padStart(2, '0'), SCREEN_WIDTH - 22, y, { align: 'right', color: selected ? 'cyan' : 'ink' });
+        g.text(value, SCREEN_WIDTH - 22, y, { align: 'right', color: selected ? 'cyan' : 'ink', small });
       }
       if (selected) {
-        g.text('◀', row.text ? SCREEN_WIDTH - 20 - g.textWidth(row.text) : row.max <= 5 ? SCREEN_WIDTH - 68 : SCREEN_WIDTH - 36, y, { color: 'mid' });
+        let arrow = SCREEN_WIDTH - 68;
+        if (row.text) arrow = SCREEN_WIDTH - 20 - g.textWidth(row.text, { small });
+        else if (row.max > 5) arrow = SCREEN_WIDTH - 29 - g.textWidth(value, { small });
+        g.text('◀', arrow, y, { color: 'mid' });
         g.text('▶', SCREEN_WIDTH - 9, y, { color: 'mid' });
       }
     });

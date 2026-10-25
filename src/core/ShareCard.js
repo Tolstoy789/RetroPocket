@@ -191,13 +191,16 @@ function renderScreen(engine, slot, result, date) {
   g.rect(x + 8, y + 104, w - 16, 1, 'mid');
   g.text(`NIVEL ${result.level || 1}`, x + 8, y + 110, { color: 'mid' });
   g.text(date, x + w - 8, y + 110, { align: 'right', color: 'mid' });
+  // Debajo, la etapa o el puesto en el top 5 y, si se jugó más despacio (VEL. JUEGO), a qué velocidad.
+  const notes = [];
   if (career?.passed && result.isHighScore) {
-    const stage = career.finished ? '¡CARRERA COMPLETA!' : career.boss ? '¡JEFE DERROTADO!' : 'ETAPA SUPERADA';
-    g.text(stage, cx, y + 121, { align: 'center', color: 'green' });
+    notes.push([career.finished ? '¡CARRERA COMPLETA!' : career.boss ? '¡JEFE DERROTADO!' : 'ETAPA SUPERADA', 'green']);
   } else if (result.rank > 0) {
-    g.text(`PUESTO ${result.rank} DEL TOP 5`, cx, y + 121, { align: 'center', color: 'cyan' });
+    notes.push([`PUESTO ${result.rank} DEL TOP 5`, 'cyan']);
   }
-  g.text('RETROPOCKET 99 IN 1', cx, y + 134, { align: 'center', color: 'mid' });
+  if (result.pace < 100) notes.push([`VEL. JUEGO ${result.pace}%`, 'mid']);
+  notes.forEach(([text, color], i) => g.text(text, cx, y + 119 + i * 8, { align: 'center', color }));
+  g.text('RETROPOCKET 99 IN 1', cx, y + 136, { align: 'center', color: 'mid' });
   return canvas;
 }
 

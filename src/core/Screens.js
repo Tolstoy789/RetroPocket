@@ -1,6 +1,6 @@
 // src/core/Screens.js
 // Pantallas de sistema de la consola:
-//   OptionsScreen  → menú de ajustes (tema, volúmenes, vibración, accesibilidad, copia de récords)
+//   OptionsScreen  → menú de ajustes (tema, volúmenes, altavoz, jukebox, vibración, accesibilidad, copia de récords)
 //   InitialsScreen → introducir 3 iniciales al entrar en el top 5 de un slot
 //   AttractScreen  → modo atracción: logo, récords, galería de juegos y demos jugadas por la consola
 
@@ -58,6 +58,8 @@ export class OptionsScreen {
       { label: 'ESTELA LCD', ...toggle('ghosting') },
       { label: 'MUSICA', ...level('music') },
       { label: 'EFECTOS', ...level('sfx') },
+      { label: 'ALTAVOZ', ...choice('beeper', [false, true], ['CHIP', 'BEEPER']) },
+      { label: 'JUKEBOX', action: () => this._openJukebox(), hint: 'A ESCUCHAR LA MUSICA  B SALIR' },
       { label: 'VIBRACION', ...toggle('haptics', (on) => on && e.input.vibrate('medium')) },
       { label: 'SACUDIDA', ...toggle('shake', (on) => on && e.fx.shake(3, 0.3)) },
       { label: 'DESTELLOS', ...toggle('flashes', (on) => on && e.fx.flash('white', 0.2, 0.5)) },
@@ -95,6 +97,11 @@ export class OptionsScreen {
   _openThemes() {
     this.engine.sound.sfx('confirm');
     this.engine.openThemes();
+  }
+
+  _openJukebox() {
+    this.engine.sound.sfx('confirm');
+    this.engine.openJukebox();
   }
 
   /** Copia de seguridad: copia un código con récords, ajustes, favoritos y logros. */

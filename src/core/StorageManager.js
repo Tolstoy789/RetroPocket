@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   haptics: true,
   shake: true, // sacudida de pantalla
   theme: 'retro', // tema visual (ver THEMES en Themes.js)
+  shells: {}, // color de carcasa elegido por tema: { retro: 'red', crystal: 'ice' } (ver SHELLS)
   colorblind: false, // paleta apta para daltonismo
   bigButtons: false, // controles táctiles grandes
   demo: true, // modo demostración tras 20 s sin tocar el menú

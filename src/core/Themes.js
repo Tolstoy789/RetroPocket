@@ -504,3 +504,46 @@ export function getTheme(id, date = new Date()) {
     jingle: s.jingle
   };
 }
+
+/**
+ * Colores de carcasa que se desbloquean con logros (solo CSS: html[data-shell] en console.css).
+ * El primero de cada lista es el de serie. `unlock` es el id del logro que lo regala (Achievements.js)
+ * y `swatch` el color de muestra en la galería.
+ */
+export const SHELLS = Object.freeze({
+  retro: [
+    { id: 'yellow', name: 'AMARILLA', swatch: '#e5c33a' },
+    { id: 'red', name: 'ROJA', swatch: '#d8443a', unlock: 'firststar' },
+    { id: 'blue', name: 'AZUL', swatch: '#3a6fd8', unlock: 'explorer' },
+    { id: 'green', name: 'VERDE', swatch: '#4fae4a', unlock: 'stars30' },
+    { id: 'white', name: 'BLANCA', swatch: '#ebe8e1', unlock: 'games100' },
+    { id: 'black', name: 'NEGRA', swatch: '#2a2b31', unlock: 'stars100' },
+    { id: 'gold', name: 'DORADA', swatch: '#f0c14a', unlock: 'all99' }
+  ],
+  crystal: [
+    { id: 'violet', name: 'VIOLETA', swatch: '#8f66d9' },
+    { id: 'ice', name: 'HIELO', swatch: '#7cc8ec', unlock: 'streak7' },
+    { id: 'mint', name: 'MENTA', swatch: '#5fd39b', unlock: 'marathon' },
+    { id: 'fire', name: 'FUEGO', swatch: '#ee7a44', unlock: 'perfect10' },
+    { id: 'smoke', name: 'HUMO', swatch: '#8a8a99', unlock: 'streak30' }
+  ]
+});
+
+/** Carcasas del tema (lista vacía si no tiene variantes). */
+export function shellsFor(themeId) {
+  return SHELLS[themeId] || [];
+}
+
+/** Texto de la carcasa en la galería: "CARCASA ROJA", "CRISTAL HIELO". */
+export function shellLabel(themeId, shell) {
+  return `${themeId === 'crystal' ? 'CRISTAL' : 'CARCASA'} ${shell.name}`;
+}
+
+/** Carcasa que regala un logro: { theme, shell } o null. */
+export function shellRewardFor(achievementId) {
+  for (const [theme, list] of Object.entries(SHELLS)) {
+    const shell = list.find((s) => s.unlock === achievementId);
+    if (shell) return { theme, shell };
+  }
+  return null;
+}

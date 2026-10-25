@@ -449,6 +449,8 @@ export default class MazeMuncher extends BaseCartridge {
         this.eatChain++;
         const points = 200 * 2 ** Math.min(3, this.eatChain - 1);
         this.addScore(points);
+        this.track('ghosts');
+        this.peak('ghostChain', this.eatChain);
         this.sound.sfx('coin');
         this.input.vibrate('medium');
         this.burst(this.ox + g.x * TILE + 3, this.oy + g.y * TILE + 3, { color: g.color, count: 12, speed: 50 });
@@ -479,6 +481,7 @@ export default class MazeMuncher extends BaseCartridge {
   _startLevelClear() {
     this.levelClear = { timer: 0 };
     this.addScore(500 * this.level);
+    this.track('mazes');
     this.sound.melody('start');
   }
 

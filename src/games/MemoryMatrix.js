@@ -141,6 +141,7 @@ export default class MemoryMatrix extends BaseCartridge {
 
   _roundDone() {
     this.addScore(1);
+    if (this.mode === 'simon' || this.mode === 'reverse') this.peak('sequence', this.seq.length);
     this.sound.sfx('coin');
     this.input.vibrate('light');
     if (this.score % 5 === 0) this.levelUp();
@@ -195,6 +196,7 @@ export default class MemoryMatrix extends BaseCartridge {
     this.reflexHits += 1;
     this.reflexLeft -= 1;
     this.addScore(1);
+    this.track('reflex');
     if (this.reflexHits % 10 === 0) this.levelUp();
     this.reflexTarget = -1;
     if (this.reflexLeft <= 0) this._setPhase('good', 0.6);

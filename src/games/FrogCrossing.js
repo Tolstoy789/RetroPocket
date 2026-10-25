@@ -210,11 +210,13 @@ export default class FrogCrossing extends BaseCartridge {
       this.sound.sfx('powerup');
     }
     this.addScore(points);
+    this.track('frogs');
     this.sound.sfx('coin');
     this.input.vibrate('light');
     this.burst(home.x, TOP + ROW / 2, { color: 'green', count: 14, speed: 35 });
     if (this.homes.every((h) => h.filled)) {
       this.addScore(1000);
+      this.track('homesets');
       this.levelUp();
       this.homes = this._makeHomes();
       this.fly = null;

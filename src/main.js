@@ -62,6 +62,7 @@ async function setupNative(engine, sound, input, platform) {
       } else {
         input.releaseAll();
         engine.pause();
+        if (engine.progress.dirty) engine.progress.save();
         sound.suspend();
         platform.suspend();
       }

@@ -206,6 +206,8 @@ export default class CyberSnake extends BaseCartridge {
     const head = this.snake[0];
     this.addScore(points * this.level);
     this.pendingGrowth += Math.max(1, this.config.growth);
+    this.track('food');
+    this.peak('length', this.snake.length + this.pendingGrowth);
     this.sound.sfx(isBonus ? 'powerup' : 'eat');
     this.input.vibrate('light');
     this.burst(FIELD_X + head.x * CELL + 4, FIELD_Y + head.y * CELL + 4, { color: isBonus ? 'magenta' : 'green', count: isBonus ? 16 : 8, speed: 50 });

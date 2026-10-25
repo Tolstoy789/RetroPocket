@@ -275,6 +275,7 @@ export default class BrickBreaker extends BaseCartridge {
       if (brick.hits <= 0) {
         this.bricks.splice(i, 1);
         this.addScore(25 * brick.maxHits * this.level);
+        this.track('bricks');
         this.sound.sfx('hit');
         this.burst(r.x + r.w / 2, r.y + r.h / 2, { color: HIT_COLORS[brick.maxHits - 1], count: 8, speed: 45 });
         this._maybeDropPower(r.x + r.w / 2, r.y + r.h);
@@ -341,6 +342,7 @@ export default class BrickBreaker extends BaseCartridge {
   _startLevelClear() {
     this.levelClear = { timer: 0 };
     this.addScore(500 * this.level);
+    this.track('walls');
     this.sound.melody('start');
     this.flash('white', 0.3, 0.5);
     this.balls = [];

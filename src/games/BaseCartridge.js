@@ -14,6 +14,8 @@
 // y opcionalmente onPause(), onResume(), onDestroy() y autopilot(dt) (IA del modo demo).
 //
 // Efectos disponibles para todos: this.shake(), this.flash(), this.burst() (ver FxLayer).
+// Estadísticas y logros: this.track('lines', 4) suma a un contador y this.peak('kmh', 180) guarda una
+// mejor marca (ver Progress.js y Achievements.js). En el modo demo no cuentan.
 // En el desafío diario this.rng usa la semilla del día: misma partida para todos.
 
 import { ACTIONS } from '../core/InputManager.js';
@@ -194,6 +196,16 @@ export class BaseCartridge {
       this.sound.sfx('coin');
     }
     return this.score;
+  }
+
+  /** Suma `amount` a un contador de estadísticas (líneas, fantasmas, ladrillos...). */
+  track(name, amount = 1) {
+    if (!this.demo) this.engine.progress?.track(name, amount);
+  }
+
+  /** Registra una marca (longitud, velocidad...) si es la mejor hasta ahora. */
+  peak(name, value) {
+    if (!this.demo) this.engine.progress?.peak(name, value);
   }
 
   /** Resta una vida. Devuelve las vidas restantes; si llega a 0 termina la partida. */

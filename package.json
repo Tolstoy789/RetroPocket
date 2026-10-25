@@ -1,6 +1,6 @@
 {
   "name": "retropocket-99in1",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Consola portátil virtual 99-in-1 estilo Brick Game. 100% offline para web y Android.",
   "private": true,
   "type": "module",

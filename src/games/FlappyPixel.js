@@ -152,6 +152,7 @@ export default class FlappyPixel extends BaseCartridge {
 
   _pass() {
     this.addScore(1);
+    this.track('pipes');
     if (this.score % 10 === 0) {
       this.levelUp();
     } else {

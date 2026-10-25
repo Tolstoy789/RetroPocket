@@ -23,7 +23,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   hand: 'right', // 'right' | 'left' (zurdo: cruceta a la derecha, A/B a la izquierda)
   repeat: 'normal', // auto-repetición de la cruceta: 'slow' | 'normal' | 'fast'
   contrast: 'normal', // 'normal' | 'high'
-  flashes: true, // destellos de pantalla completa
+  flashes: true, // destellos de pantalla completa (y brillo y barrido de los temas de tubo)
+  ghosting: true, // estela de LCD: los píxeles tardan un poco en apagarse
   breakReminder: true, // aviso de descanso cada 30 min de juego
   boot: 'auto', // animación de arranque: 'auto' (cambia cada 2 días) | 'brick' | 'neon' | 'cartridge'
   fullscreen: true, // Android: oculta las barras del sistema

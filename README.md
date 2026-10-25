@@ -5,6 +5,8 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **11 temas con la misma lógica:** *Retro*, *Futurista*, *Cristal*, *Bolsillo*, *Fósforo ámbar*, *Arcade*, *Madera 80s*, *Vaporwave*, *OLED nocturno*, *Papel* y *Estacional* (cambia solo con la estación). Cada uno trae su carcasa, su pantalla y su sonido, y se eligen en una galería con vista previa.
 - **Música chiptune** en bucle para el menú y cada motor, con volúmenes separados para música y efectos.
 - **Efectos de pantalla** para todos los juegos: sacudida, destellos y partículas.
+- **Estela de LCD:** los píxeles tardan unas centésimas en apagarse, como en las pantallas de cristal líquido y de fósforo de verdad (se puede quitar en Opciones → *Estela LCD*). Los temas de tubo (*Futurista*, *Fósforo ámbar* y *Arcade*) añaden líneas de barrido y un halo de brillo alrededor de las celdas encendidas.
+- **Miniatura animada en el menú:** al pararte en un juego, al lado de su número se ve una partida en pequeño jugada por la IA del modo demo, con las reglas de ese slot.
 - **Estrellas** (1-3 por slot), contador de juegos superados X/99 y **tabla top 5 con iniciales** en cada slot.
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
@@ -20,7 +22,7 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** tema (con galería), música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, vibración, sacudida, paleta para daltonismo, botones grandes, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
 - Todo el sonido se sintetiza en tiempo real con Web Audio API (pulso, triangular y ruido 8-bit).
@@ -127,7 +129,7 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 | Volumen (OFF / LOW / HIGH) | SOUND | M | Select |
 | Volver al menú | RESET | Retroceso, Esc | Home |
 
-**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **juegos, carrera y logros** (ver abajo).
+**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario; a la derecha se ve una partida de muestra en miniatura), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **juegos, carrera y logros** (ver abajo).
 
 **PREPARADO:** ▲ ▼ eligen VELOCIDAD, NIVEL o FAVORITO, ◀ ▶ los cambian y A o START empiezan la partida. Se recuerda la última elección de cada motor. El desafío diario se juega directamente, sin cambios, para que sea igual para todos.
 
@@ -159,7 +161,7 @@ Pensada para sesiones largas con una o dos manos:
 - **Zonas táctiles generosas:** la cruceta responde aunque el pulgar caiga fuera del dibujo y permite deslizar entre direcciones sin levantar el dedo. En el óvalo de A/B se puede deslizar de un botón a otro, y el punto medio pulsa **A y B a la vez**.
 - **RESET seguro:** en plena partida hay que mantenerlo 0,7 s (aparece una barra), así un roce no te saca del juego.
 - **Repetición de la cruceta** lenta, normal o rápida, según tus reflejos.
-- **Botones grandes**, **alto contraste**, **paleta para daltonismo**, y opciones para quitar **sacudidas** y **destellos** si molestan a la vista.
+- **Botones grandes**, **alto contraste**, **paleta para daltonismo**, y opciones para quitar **sacudidas**, **destellos** (también apaga el brillo y el barrido de los temas de tubo) y la **estela de LCD** si molestan a la vista.
 - **Aviso de descanso** cada 30 minutos de juego (pausa la partida y recomienda estirar manos y vista).
 - La partida se pausa sola al bloquear el móvil o cambiar de app, y el botón "atrás" de Android pausa en vez de salir.
 
@@ -170,10 +172,10 @@ Un tema es solo una "piel": `ConsoleEngine.setTheme()` cambia la carcasa, la pan
 | Tema | Carcasa | Pantalla | Sonido |
 |---|---|---|---|
 | Retro | Amarilla, botones rojos | LCD verde, celdas de ladrillo | Pulso 8-bit seco |
-| Futurista | Oscura con bordes neón | Negro con celdas luminosas a color | Con eco espacial |
+| Futurista | Oscura con bordes neón | Negro con celdas luminosas a color, halo y barrido suave | Con eco espacial |
 | Cristal | Violeta translúcida con "circuitos" | LCD gris azulado, ladrillo | Pulso seco |
 | Bolsillo | Gris claro, cruceta negra, botones granate | 4 tonos de verde oliva, bloques de píxel | Seco y más grave |
-| Fósforo ámbar | Metal negro con tornillos | Ámbar con brillo y líneas de barrido | Seco con un zumbido leve de fondo |
+| Fósforo ámbar | Metal negro con tornillos | Ámbar con brillo, líneas de barrido y la estela más larga (fósforo) | Seco con un zumbido leve de fondo |
 | Arcade | Madera negra con vinilo de rayas, botón rojo grande | Monitor a color con esquinas curvas y barrido | Eco corto de sala |
 | Madera 80s | Imitación madera, franja naranja, botones cromados | LCD sepia, ladrillo | Pulso seco |
 | Vaporwave | Degradado rosa y turquesa con rejilla | Celdas pastel luminosas | Con eco y un poco más lento |
@@ -203,7 +205,9 @@ Algunos logros regalan un color nuevo de carcasa. En la galería se pueden ver t
 
 La opción **Daltonismo** cambia los colores de los temas a color (Futurista, Arcade, Vaporwave, Papel y Estacional) por una paleta Okabe-Ito distinguible con protanopía y deuteranopía. **Botones grandes** agranda la cruceta y los botones táctiles.
 
-Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `gfx.cell()`; cada tema decide cómo se ven. Los temas están en `src/core/Themes.js`: paleta, estilo de celda (`brick`, `neon`, `solid` o `sketch`), timbre de `SoundChip` y rótulos de la carcasa. Si un motor necesita dibujar distinto según la pantalla, puede mirar `gfx.palette.colorful` (los colores se distinguen entre sí) y `gfx.palette.dark` (fondo oscuro). La carcasa se controla con los atributos `data-skin`, `data-season` y `data-shell` de `<html>` en `console.css`.
+Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `gfx.cell()`; cada tema decide cómo se ven. Los temas están en `src/core/Themes.js`: paleta, estilo de celda (`brick`, `neon`, `solid` o `sketch`), timbre de `SoundChip`, rótulos de la carcasa, `ghost` (segundos que tarda en apagarse un píxel; 0 = sin estela) y, en los temas de tubo, `crt` (`scan` = intensidad del barrido, `bloom` = intensidad del halo). Si un motor necesita dibujar distinto según la pantalla, puede mirar `gfx.palette.colorful` (los colores se distinguen entre sí) y `gfx.palette.dark` (fondo oscuro). La carcasa se controla con los atributos `data-skin`, `data-season` y `data-shell` de `<html>` en `console.css`.
+
+La estela y el brillo no tocan los motores: el juego dibuja cada fotograma en su buffer de 144×192 como siempre y `ConsoleEngine` lo compone al pasarlo a la pantalla. Para la estela guarda una segunda imagen que se acerca al fotograma nuevo con una caída exponencial (los píxeles que se encienden lo hacen al momento y los que se apagan se desvanecen en unos 100 ms). El halo es el mismo fotograma desenfocado y sumado con mezcla `lighter`, y las líneas de barrido se pintan alineadas con cada fila de píxeles del LCD.
 
 ## Logros, racha y estadísticas
 
@@ -235,6 +239,7 @@ retropocket-99in1/
 │   │   ├── InputManager.js    # Multitáctil, teclado, mandos y vibración
 │   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes y datos extra en localStorage
 │   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario, etapas de la carrera y menú
+│   │   ├── MenuPreview.js     # Miniatura animada del juego elegido en el menú (IA del modo demo)
 │   │   ├── Themes.js          # Los 11 temas (paletas, celdas, sonido, rótulos) y colores de carcasa
 │   │   ├── ThemeGallery.js    # Galería de temas y carcasas con vista previa
 │   │   ├── Progress.js        # Estadísticas, logros, racha del desafío diario y avance de la carrera

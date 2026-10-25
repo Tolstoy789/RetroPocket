@@ -27,7 +27,10 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
-- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, copiar y pegar récords, y borrar récords.
+- **Menú de opciones:** tema (con galería), contraste, estela LCD, música, efectos, altavoz (chip o beeper), jukebox, vibración, sacudida, paleta para daltonismo, botones grandes, gestos, autodisparo, animación de arranque, demo, pantalla completa, pantalla encendida, ahorro de batería, copiar y pegar récords, y borrar récords.
+- **Ahorro de batería** (Opciones → *Ahorro batería*): dibuja a 30 fps, no vuelve a mostrar una imagen que no ha cambiado (en un menú quieto o en una pausa la pantalla apenas se redibuja) y quita el brillo de los temas de tubo, que es lo más caro de dibujar. En *AUTO* se activa solo con menos del 20 % de batería y sin cargador. Además, en las pantallas de 90 y 120 Hz la consola ya no dibuja más de 60 veces por segundo, porque la lógica va a 60.
+- **Versión web** en GitHub Pages, publicada desde el mismo workflow en cada cambio de `main`: se juega en el navegador y se puede instalar como app.
+- **Pruebas automáticas** en cada push: los 99 cartuchos se juegan en Node con la IA y pulsando botones al azar, y la consola entera se maneja en Chromium; si algo falla, no se compila el APK.
 - **PWA offline:** en la web se puede instalar y funciona sin conexión (iconos y service worker generados por código).
 - Todo el arte se dibuja por código en `<canvas>` y CSS.
 - Todo el sonido se sintetiza en tiempo real con Web Audio API (pulso, triangular y ruido 8-bit).
@@ -67,6 +70,14 @@ npm run dev
 
 Abre la URL que muestra la terminal (por defecto `http://localhost:5173`). Gracias a `--host`, también puedes abrir desde el celular la URL de red (`http://192.168.x.x:5173`) si está en la misma Wi-Fi.
 
+Para pasar las pruebas (ver [Pruebas automáticas](#pruebas-automáticas)):
+
+```bash
+npm test                          # lógica, sonido y los 99 cartuchos, en Node
+npx playwright install chromium   # solo la primera vez
+npm run test:e2e                  # la consola entera en Chromium
+```
+
 Para una build de producción:
 
 ```bash
@@ -80,7 +91,7 @@ npm run preview
 
 Cada `git push` ejecuta `.github/workflows/android-apk.yml`, que:
 
-1. Instala Node 22 y las dependencias.
+1. Instala Node 22 y las dependencias y pasa las **pruebas automáticas** (`npm test` y `npm run test:e2e`). Si alguna falla, se para aquí.
 2. Compila la web con Vite.
 3. Instala Java 21 (el Android SDK ya viene en las máquinas de GitHub).
 4. Crea el proyecto Android si no existe, le pone el icono de la app (`build/android-icons.js`) y ejecuta `npx cap sync android`.
@@ -91,6 +102,10 @@ Cada `git push` ejecuta `.github/workflows/android-apk.yml`, que:
 Para descargarlo: pestaña **Actions** del repositorio → la última ejecución de **Android APK** → sección **Artifacts** → `retropocket-99in1-debug-apk`. Descomprime el `.zip`, copia el `.apk` al celular e instálalo (hay que permitir "instalar apps de origen desconocido").
 
 También puedes lanzarlo a mano desde **Actions → Android APK → Run workflow**.
+
+### Versión web (GitHub Pages)
+
+En cada push a `main`, el mismo workflow publica la web en `https://<tu-usuario>.github.io/<repositorio>/` (para este repositorio, https://tolstoy789.github.io/RetroPocket/). Hay que activarlo una sola vez: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Mientras no esté activado, el workflow avisa en el resumen de la ejecución y no publica nada. La web funciona sin conexión y se puede instalar desde el navegador (*Añadir a pantalla de inicio*); los récords de la web se guardan en ese navegador y se pasan al APK con *Copiar récords* / *Pegar récords*.
 
 #### Actualizar sin perder los récords
 
@@ -241,6 +256,20 @@ Las 99 etapas son los 99 slots en orden. Una etapa se supera con **1 estrella**;
 
 START en la pantalla de fin de partida dibuja con `<canvas>` una tarjeta PNG de 720×1040: la consola con el tema y el color de carcasa que estés usando (los colores se leen de las variables CSS del tema), la última imagen de la partida con un panel de puntos, estrellas, nivel y fecha, y la marca. En Android se guarda en la caché de la app (`@capacitor/filesystem`) y se abre el menú de compartir del sistema (`@capacitor/share`); en la web se usa la Web Share API y, si el navegador no comparte archivos, se descarga el PNG. Todo se hace en el móvil, sin servidor.
 
+## Pruebas automáticas
+
+`npm test` usa el ejecutor de pruebas de Node (`node --test`) y carga el código del juego con Vite (`tools/autoplay.js`), sin navegador:
+
+| Archivo | Qué comprueba |
+|---|---|
+| `tests/catalog.test.js` | Los 99 slots, que los 10 motores están instalados, metas de estrellas crecientes, que todos los textos usan letras de la fuente 3x5 y caben, desafío diario, PREPARADO y carrera |
+| `tests/storage.test.js` | Top 5 con iniciales, récords del desafío, ajustes, favoritos, recientes y preferencias de PREPARADO |
+| `tests/progress.test.js` | Los 40 logros, racha, contadores, carcasas, copia de seguridad `RP99-` y datos guardados corruptos |
+| `tests/sound.test.js` | Las 21 pistas (32 corcheas, notas válidas), que existen todos los efectos que pide el código, y todo sonando en chip y beeper con un Web Audio de mentira que se queja como el de verdad |
+| `tests/cartridges.test.js` | Los 99 slots jugados 30 s con la IA y 30 s pulsando botones al azar, misma semilla = misma partida, 21 desafíos diarios, velocidad 5 desde el nivel 9 y los jefes de la carrera. Se dibuja en un lienzo que falla si recibe coordenadas no válidas o letras que la fuente no tiene |
+
+`npm run test:e2e` (`tests/e2e/console.test.js`) arranca el servidor de Vite y maneja la consola con el teclado en Chromium (Playwright): menú, PREPARADO, una partida y la pausa de cada motor, récord con iniciales, opciones, galería de temas, jukebox, la pantalla de START, desafío diario, carrera, modo demo, dos jugadores, ahorro de batería y giro de pantalla. Falla si la página registra cualquier error.
+
 ## Música y sonido
 
 Todo el sonido sale de `SoundChip.js` con Web Audio: pulsos de 12,5 %, 25 % y 50 %, triangular y ruido de 8 bits. Las pistas de `MUSIC_TRACKS` son texto: 32 corcheas por línea para la melodía, el bajo y la batería (`k` bombo, `s` caja, `h` charles). Cada motor tiene su pista (`blockdrop`) y una segunda (`blockdrop_b`); `trackFor(motor, nivel)` elige la de los niveles impares o pares, y durante la partida `queueMusic()` hace el cambio al empezar la siguiente mitad del bucle para no cortar la frase.
@@ -255,8 +284,9 @@ El **jukebox** (Opciones → *Jukebox*) toca las pistas en bucle y los jingles u
 retropocket-99in1/
 ├── .github/workflows/android-apk.yml   # Compila el APK en cada push
 ├── docs/dificultad.md                  # Informe de dificultad de los 99 slots
+├── tests/                              # Pruebas automáticas (npm test y npm run test:e2e)
 ├── tools/
-│   ├── autoplay.js                     # Juega slots con la IA del modo demo en Node
+│   ├── autoplay.js                     # Juega slots en Node (IA del modo demo o botones al azar)
 │   └── difficulty.js                   # Informe de dificultad y metas de estrellas propuestas
 ├── public/manifest.json                # Metadatos PWA
 ├── src/

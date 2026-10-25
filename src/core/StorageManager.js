@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   boot: 'auto', // animación de arranque: 'auto' (cambia cada 2 días) | 'brick' | 'neon' | 'cartridge'
   fullscreen: true, // Android: oculta las barras del sistema
   keepAwake: true, // la pantalla no se apaga mientras se juega
+  battery: 'auto', // ahorro de batería (30 fps y sin redibujar lo quieto): 'auto' (con poca carga) | 'on' | 'off'
   initials: 'AAA', // últimas iniciales usadas
   lastSlot: 1
 });

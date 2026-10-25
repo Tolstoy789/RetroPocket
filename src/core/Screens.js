@@ -78,6 +78,11 @@ export class OptionsScreen {
         }
       },
       { label: 'NO APAGAR PANT.', ...toggle('keepAwake') },
+      {
+        label: 'AHORRO BATERIA',
+        ...choice('battery', ['auto', 'on', 'off'], ['AUTO', 'SI', 'NO']),
+        hint: () => (e.settings.battery === 'auto' ? 'AUTO: CON MENOS DEL 20% DE CARGA' : '30 FPS Y SIN REDIBUJAR LO QUIETO')
+      },
       { label: 'COPIAR RECORDS', action: () => this._exportCode() },
       { label: 'PEGAR RECORDS', action: () => this._importCode() },
       { label: 'BORRAR RECORDS', action: () => this._erase() },
@@ -234,8 +239,8 @@ export class OptionsScreen {
       }
     });
 
-    const hint = this.items[this.index].hint || '▲▼ ELEGIR  ◀▶ CAMBIAR  B SALIR';
-    g.text(hint, cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
+    const { hint } = this.items[this.index];
+    g.text((typeof hint === 'function' ? hint() : hint) || '▲▼ ELEGIR  ◀▶ CAMBIAR  B SALIR', cx, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
   }
 }
 

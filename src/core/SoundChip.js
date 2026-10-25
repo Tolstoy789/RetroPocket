@@ -26,7 +26,7 @@ export const VOLUME_LEVELS = [
 ];
 
 /** Efectos de sonido predefinidos. Cada uno es una lista de "voces" que se disparan a la vez o en secuencia. */
-const SFX = {
+export const SFX = {
   move: [{ wave: 'pulse25', freq: 660, duration: 0.03, volume: 0.5 }],
   rotate: [{ wave: 'pulse50', freq: 880, slideTo: 1320, duration: 0.05, volume: 0.45 }],
   select: [{ wave: 'pulse25', freq: 988, duration: 0.04, volume: 0.5 }, { wave: 'pulse25', freq: 1319, duration: 0.06, delay: 0.04, volume: 0.5 }],
@@ -120,7 +120,7 @@ const SFX = {
 };
 
 /** Melodías cortas (nota, duración en tiempos). */
-const MELODIES = {
+export const MELODIES = {
   start: { tempo: 260, wave: 'pulse50', notes: [['G4', 0.5], ['C5', 0.5], ['E5', 0.5], ['G5', 1]] },
   gameover: { tempo: 150, wave: 'pulse50', notes: [['G4', 0.5], ['-', 0.1], ['E4', 0.5], ['-', 0.1], ['C4', 0.5], ['D4', 0.5], ['B3', 0.5], ['C4', 1.5]] },
   record: { tempo: 240, wave: 'pulse25', notes: [['C5', 0.5], ['C5', 0.5], ['G5', 0.5], ['G5', 0.5], ['A5', 0.5], ['A5', 0.5], ['G5', 1], ['E5', 0.5], ['C6', 1.5]] },

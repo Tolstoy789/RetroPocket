@@ -1,5 +1,5 @@
 // src/core/Progress.js
-// Estadísticas, logros y racha del desafío diario.
+// Estadísticas, logros, racha del desafío diario y avance del modo carrera.
 // La consola avisa del inicio y el fin de cada partida y del tiempo jugado; los cartuchos envían sus
 // contadores con this.track('lines', 4) (se suman) y this.peak('kmh', 180) (se guarda el máximo).
 // Todo se guarda con StorageManager.saveExtra(), así que entra en la copia de seguridad (RP99-).
@@ -98,6 +98,12 @@ export class Progress {
     this.days = [...new Set(days)].sort();
     this.daySet = new Set(this.days);
     this.bestStreak = Math.max(isObject(streak) ? count(streak.best) : 0, longestRun(this.days));
+    const career = this.storage.loadExtra('career', null);
+    const cleared = isObject(career) && Number.isInteger(career.cleared) ? career.cleared : 0;
+    this.career = {
+      cleared: Math.max(0, Math.min(this.catalog.slots.length, cleared)),
+      completedOn: isObject(career) && typeof career.completedOn === 'string' && DAY_RE.test(career.completedOn) ? career.completedOn : ''
+    };
     this.session = null;
     this.saveClock = 0;
     this.dirty = false;
@@ -107,6 +113,7 @@ export class Progress {
     this.storage.saveExtra('stats', this.stats);
     this.storage.saveExtra('achievements', this.unlocked);
     this.storage.saveExtra('streak', { days: this.days, best: this.bestStreak });
+    this.storage.saveExtra('career', this.career);
     this.dirty = false;
   }
 
@@ -143,9 +150,11 @@ export class Progress {
    * @param {object} slot
    * @param {{ score: number, isHighScore: boolean }} result
    * @param {number} previousBest Récord del slot antes de esta partida.
+   * @returns {object|null} En el modo carrera, el resultado de la etapa (ver _careerResult).
    */
   onGameEnd(slot, result, previousBest) {
-    if (!this.session) return;
+    if (!this.session) return null;
+    const career = slot.career ? this._careerResult(slot, result.score) : null;
     this.stats.games++;
     this.stats.perEngine[this.session.engineId].games++;
     if (result.isHighScore && previousBest > 0) this.stats.records++;
@@ -157,6 +166,7 @@ export class Progress {
     this.session = null;
     this._checkAll();
     this.save();
+    return career;
   }
 
   /** Se sale de la partida (al menú, reinicio o fin): guarda lo pendiente. */
@@ -214,6 +224,8 @@ export class Progress {
         return this.bestStreak;
       case 'expert':
         return st.expert;
+      case 'career':
+        return this.career.cleared;
       default: {
         const [kind, name] = stat.split(':');
         if (kind === 'total') return st.counters[name] || 0;
@@ -310,6 +322,34 @@ export class Progress {
       day = shiftDay(day, -1);
     }
     return { current, best: Math.max(this.bestStreak, current), total: this.days.length, playedToday, today, first: this.days[0] || today };
+  }
+
+  // ---------- Modo carrera ----------
+
+  /**
+   * Una etapa se supera con las estrellas que pide (1, o 2 los jefes). Superar la siguiente etapa
+   * pendiente desbloquea la otra; las ya superadas se pueden repetir sin perder nada.
+   */
+  _careerResult(slot, score) {
+    const { stage, boss, need } = slot.career;
+    const total = this.catalog.slots.length;
+    const stars = this.catalog.starsFor(slot, score);
+    const passed = stars >= need;
+    const first = passed && stage === this.career.cleared + 1;
+    if (first) {
+      this.career.cleared = stage;
+      if (stage === total) this.career.completedOn = todayKey();
+    }
+    return { stage, boss, need, stars, passed, first, next: passed && stage < total ? stage + 1 : 0, finished: first && stage === total };
+  }
+
+  /** Avance de la carrera: etapas superadas, la que toca jugar y jefes derrotados. */
+  careerInfo() {
+    const total = this.catalog.slots.length;
+    const { cleared, completedOn } = this.career;
+    let bosses = 0;
+    for (let stage = 1; stage <= cleared; stage++) if (this.catalog.isCareerBoss(stage)) bosses++;
+    return { cleared, total, current: Math.min(total, cleared + 1), bosses, finished: cleared >= total, completedOn };
   }
 
   // ---------- Carcasas ----------

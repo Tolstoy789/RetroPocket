@@ -1,6 +1,7 @@
 // src/core/HubScreen.js
-// Pantalla de START en el menú, con cuatro pestañas (◀▶ cambian de pestaña, B o START vuelven):
-//   JUEGOS → favoritos y últimos juegos jugados (A abre PREPARADO);
+// Pantalla de START en el menú, con cinco pestañas (◀▶ cambian de pestaña, B o START vuelven):
+//   JUEGOS  → favoritos y últimos juegos jugados (A abre PREPARADO);
+//   CARRERA → mapa de las 99 etapas del modo carrera, con un jefe cada 10 (A juega la etapa);
 //   LOGROS → vitrina de los logros con su icono, su progreso y su premio;
 //   RACHA  → días seguidos con el desafío diario y calendario del mes (A juega el de hoy);
 //   DATOS  → tiempo jugado (total y por motor), partidas, estrellas y contadores acumulados.
@@ -9,10 +10,10 @@ import { ACTIONS } from './InputManager.js';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from './ConsoleEngine.js';
 import { ACHIEVEMENTS, achievementColor, getAchievement } from './Achievements.js';
 import { getTheme, shellRewardFor } from './Themes.js';
-import { todayKey } from './Catalog99.js';
+import { todayKey, CAREER_BOSSES, CAREER_BOSS_SPEED } from './Catalog99.js';
 
-export const HUB_TABS = ['games', 'achievements', 'streak', 'stats'];
-const TAB_LABELS = { games: 'JUEGOS', achievements: 'LOGROS', streak: 'RACHA', stats: 'DATOS' };
+export const HUB_TABS = ['games', 'career', 'achievements', 'streak', 'stats'];
+const TAB_LABELS = { games: 'JUEGOS', career: 'CARRERA', achievements: 'LOGROS', streak: 'RACHA', stats: 'DATOS' };
 
 const CONTENT_TOP = 17;
 const HINT_Y = 173; // ayuda propia de cada pestaña; debajo va la común (◀▶ PESTAÑA  B SALIR)
@@ -21,6 +22,14 @@ const HINT_Y = 173; // ayuda propia de cada pestaña; debajo va la común (◀�
 const LIST_TOP = 22;
 const LIST_ROW = 12;
 const LIST_VISIBLE = 12;
+
+// CARRERA: mapa de 10x10 casillas; la 100 es la meta
+const MAP_COLS = 10;
+const MAP_X = 7;
+const MAP_Y = 27;
+const MAP_W = 13;
+const MAP_H = 12;
+const TROPHY = getAchievement('perfect10').icon;
 
 // LOGROS: rejilla de 7 columnas con el icono a escala 2
 const GRID_COLS = 7;
@@ -84,6 +93,7 @@ export class HubScreen {
     this.statsRows = [];
     this.statsScroll = 0;
     this.month = 0;
+    this.careerStage = 1;
   }
 
   open(tab = 'games') {
@@ -91,6 +101,7 @@ export class HubScreen {
     this.time = 0;
     this._loadGames();
     this.gameIndex = 0;
+    this.careerStage = this.engine.progress.careerInfo().current;
     this.statsScroll = 0;
     const now = new Date();
     this.month = now.getFullYear() * 12 + now.getMonth();
@@ -139,6 +150,22 @@ export class HubScreen {
           e.openLaunch(slot);
         }
         break;
+      case 'career': {
+        const info = e.progress.careerInfo();
+        const last = info.finished ? info.total : info.current;
+        if (dir) {
+          const next = Math.max(1, Math.min(last, this.careerStage + dir));
+          if (next !== this.careerStage) {
+            this.careerStage = next;
+            e.sound.sfx('move');
+          }
+        } else if (action === ACTIONS.A && !repeat) {
+          e.sound.sfx('confirm');
+          e.menu.jumpTo(this.careerStage);
+          e.launch(e.catalog.careerSlot(this.careerStage));
+        }
+        break;
+      }
       case 'achievements':
         if (dir) {
           this.achIndex = (this.achIndex + dir + ACHIEVEMENTS.length) % ACHIEVEMENTS.length;
@@ -184,19 +211,26 @@ export class HubScreen {
     g.clear();
     this._renderTabs(g);
     if (this.tab === 'games') this._renderGames(g);
+    else if (this.tab === 'career') this._renderCareer(g);
     else if (this.tab === 'achievements') this._renderAchievements(g);
     else if (this.tab === 'streak') this._renderStreak(g);
     else this._renderStats(g);
     g.text('◀▶ PESTAÑA    B SALIR', SCREEN_WIDTH / 2, SCREEN_HEIGHT - 10, { align: 'center', color: 'mid' });
   }
 
+  /** Pestañas de ancho variable: cada una mide su texto más una parte igual del espacio sobrante. */
   _renderTabs(g) {
     g.rect(0, 0, SCREEN_WIDTH, 13, 'ink');
-    const w = SCREEN_WIDTH / HUB_TABS.length;
+    const widths = HUB_TABS.map((id) => g.textWidth(TAB_LABELS[id]));
+    const pad = (SCREEN_WIDTH - widths.reduce((sum, w) => sum + w, 0)) / HUB_TABS.length;
+    let x = 0;
     HUB_TABS.forEach((id, i) => {
+      const left = Math.round(x);
+      x += widths[i] + pad;
+      const right = Math.round(x);
       const selected = id === this.tab;
-      if (selected) g.rect(i * w + 1, 1, w - 2, 12, 'bg');
-      g.text(TAB_LABELS[id], i * w + w / 2, 4, { align: 'center', color: selected ? 'ink' : 'bg' });
+      if (selected) g.rect(left + 1, 1, right - left - 2, 12, 'bg');
+      g.text(TAB_LABELS[id], Math.round((left + right) / 2), 4, { align: 'center', color: selected ? 'ink' : 'bg' });
     });
   }
 
@@ -237,6 +271,62 @@ export class HubScreen {
       if (i === favoritesCount && favoritesCount > 0) g.rect(14, y - 4, SCREEN_WIDTH - 28, 1, 'mid');
     });
     this._hint(g, '▲▼ ELEGIR  A JUGAR  ♥ FAVORITO');
+  }
+
+  // CARRERA
+
+  _renderCareer(g) {
+    const e = this.engine;
+    const info = e.progress.careerInfo();
+    const cx = SCREEN_WIDTH / 2;
+    g.text(`CARRERA ${info.cleared}/${info.total}`, 4, CONTENT_TOP + 1);
+    g.text(`JEFES ${info.bosses}/${CAREER_BOSSES}`, SCREEN_WIDTH - 4, CONTENT_TOP + 1, { align: 'right', color: 'red' });
+
+    for (let stage = 1; stage <= info.total; stage++) {
+      const idx = stage - 1;
+      const x = MAP_X + (idx % MAP_COLS) * MAP_W;
+      const y = MAP_Y + Math.floor(idx / MAP_COLS) * MAP_H;
+      const boss = e.catalog.isCareerBoss(stage);
+      const label = String(stage).padStart(2, '0');
+      const tx = x + Math.floor(MAP_W / 2) + 1;
+      if (stage <= info.cleared) {
+        g.rect(x + 1, y, MAP_W - 2, MAP_H - 2, boss ? 'red' : 'ink');
+        g.text(label, tx, y + 3, { align: 'center', color: 'bg' });
+      } else if (stage === info.current) {
+        g.rect(x + 1, y, MAP_W - 2, MAP_H - 2, 'ghost');
+        if (boss) g.frame(x + 1, y, MAP_W - 2, MAP_H - 2, 'red');
+        g.text(label, tx, y + 3, { align: 'center', color: 'ink' });
+      } else {
+        if (boss) g.frame(x + 1, y, MAP_W - 2, MAP_H - 2, 'mid');
+        g.text(label, tx, y + 3, { align: 'center', color: boss ? 'mid' : 'ghost' });
+      }
+      if (stage === this.careerStage) g.frame(x, y - 1, MAP_W, MAP_H, this._blink() ? 'yellow' : 'ink');
+    }
+    // Casilla 100: la meta, con el trofeo encendido al completar la carrera.
+    const tx = MAP_X + (info.total % MAP_COLS) * MAP_W;
+    const ty = MAP_Y + Math.floor(info.total / MAP_COLS) * MAP_H;
+    g.sprite(TROPHY, tx + 3, ty + 1, { colors: { '#': info.finished ? 'yellow' : 'ghost' } });
+
+    const slot = e.catalog.careerSlot(this.careerStage);
+    const { boss, need } = slot.career;
+    const y = MAP_Y + MAP_COLS * MAP_H + 4;
+    g.text(`${slot.code} ${slot.engine.name} ${slot.label}`, cx, y, { align: 'center', color: slot.engine.color });
+    let line;
+    let color = 'mid';
+    if (this.careerStage <= info.cleared) {
+      line = boss ? '★ JEFE DERROTADO ★' : 'ETAPA SUPERADA';
+      color = 'green';
+    } else {
+      const goal = `${'★'.repeat(need)} ${slot.engine.stars[need - 1]}`;
+      line = boss ? `JEFE VEL ${CAREER_BOSS_SPEED} - META ${goal}` : `META ${goal} PUNTOS`;
+      if (boss) color = 'red';
+    }
+    if (info.finished && this.careerStage === info.total) {
+      line = '¡CARRERA COMPLETA!';
+      color = this._blink(2) ? 'yellow' : 'green';
+    }
+    g.text(line, cx, y + 9, { align: 'center', color });
+    this._hint(g, info.cleared === 0 ? '▲▼ ETAPA   A EMPEZAR' : '▲▼ ETAPA   A JUGAR');
   }
 
   // LOGROS
@@ -376,6 +466,9 @@ export class HubScreen {
     rows.push({ label: 'RECORDS BATIDOS', value: st.records });
     rows.push({ label: 'ESTRELLAS', value: `${stars}/${e.catalog.slots.length * 3}` });
     rows.push({ label: 'SLOTS JUGADOS', value: `${st.slots.length}/${e.catalog.slots.length}` });
+    const career = p.careerInfo();
+    rows.push({ label: 'CARRERA', value: `${career.cleared}/${career.total}` });
+    rows.push({ label: 'JEFES DERROTADOS', value: `${career.bosses}/${CAREER_BOSSES}` });
     rows.push({ label: 'LOGROS', value: `${p.unlockedCount()}/${ACHIEVEMENTS.length}` });
     rows.push({ label: 'DESAFIOS JUGADOS', value: streak.total });
     rows.push({ label: 'MEJOR RACHA', value: streak.best });

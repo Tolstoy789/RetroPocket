@@ -14,6 +14,7 @@ import { ThemeGallery } from './ThemeGallery.js';
 import { SEASON_JINGLE_TIME } from './SoundChip.js';
 import { Progress } from './Progress.js';
 import { achievementColor } from './Achievements.js';
+import { renderShareCard } from './ShareCard.js';
 
 /* global __APP_VERSION__ */
 export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'DEV';
@@ -566,6 +567,7 @@ export class ConsoleEngine {
     this.breakNotice = false;
     this.achievementQueue = [];
     this.banner = null;
+    this.sharing = false;
 
     this.progress = new Progress(storage, catalog);
     this.settings = storage.getSettings();
@@ -836,10 +838,20 @@ export class ConsoleEngine {
     this._setState(STATES.LAUNCH);
   }
 
-  /** START en el menú: JUEGOS (favoritos y recientes), LOGROS, RACHA y DATOS. */
+  /** START en el menú: JUEGOS (favoritos y recientes), CARRERA, LOGROS, RACHA y DATOS. */
   openHub(tab = 'games') {
     this.hub.open(tab);
     this._setState(STATES.HUB);
+  }
+
+  /** Sale de la partida a una pestaña de la pantalla de START (B tras una etapa de la carrera). */
+  goToHub(tab) {
+    this._unloadCartridge();
+    this._restoreSfx();
+    this.fx.reset();
+    this.menu.onEnter();
+    this.sound.playMusic('menu');
+    this.openHub(tab);
   }
 
   /** Vuelve al menú sin tocar la música (desde PREPARADO o la pantalla de START). */
@@ -968,9 +980,14 @@ export class ConsoleEngine {
       previousStars: this.catalog.starsFor(slot, previousBest),
       table: this.storage.getScores(slot.key)
     };
-    this.progress.onGameEnd(slot, this.result, previousBest);
+    this.result.career = this.progress.onGameEnd(slot, this.result, previousBest);
+    const career = this.result.career;
     this.sound.stopMusic();
-    if (submit.isHighScore) {
+    if (career?.passed) {
+      this.sound.melody(career.boss || career.finished ? 'boss' : 'stage');
+      this.input.vibratePattern([30, 60, 30, 60, 80]);
+      this.fx.flash(submit.isHighScore ? 'yellow' : 'green', 0.4, 0.5);
+    } else if (submit.isHighScore) {
       this.sound.melody('record');
       this.input.vibratePattern([30, 60, 30, 60, 80]);
       this.fx.flash('yellow', 0.4, 0.5);
@@ -1120,16 +1137,26 @@ export class ConsoleEngine {
         }
         break;
 
-      case STATES.GAMEOVER:
+      case STATES.GAMEOVER: {
         if (!pressed || repeat || this.stateTime < 0.8) return;
-        if (action === ACTIONS.A || action === ACTIONS.START) {
+        const career = this.result?.career;
+        if (action === ACTIONS.A) {
           this.sound.sfx('confirm');
-          this.restart();
+          if (career?.next) {
+            this.menu.jumpTo(career.next);
+            this.launch(this.catalog.careerSlot(career.next));
+          } else {
+            this.restart();
+          }
+        } else if (action === ACTIONS.START) {
+          this.shareResult();
         } else if (action === ACTIONS.B) {
           this.sound.sfx('back');
-          this.goToMenu();
+          if (career) this.goToHub('career');
+          else this.goToMenu();
         }
         break;
+      }
 
       case STATES.NOCART:
         if (pressed && !repeat && this.stateTime > 0.3) {
@@ -1140,6 +1167,26 @@ export class ConsoleEngine {
 
       default:
         break;
+    }
+  }
+
+  /** START en el fin de partida: tarjeta PNG con la consola y la puntuación, al menú de compartir. */
+  async shareResult() {
+    if (!this.platform || this.sharing || !this.result || !this.currentSlot) return;
+    this.sharing = true;
+    this.sound.sfx('select');
+    this.toast('PREPARANDO IMAGEN...', 4);
+    try {
+      const card = renderShareCard(this);
+      const outcome = await this.platform.shareImage(card.canvas, card.fileName, card.text);
+      if (outcome === 'downloaded') this.toast('IMAGEN DESCARGADA', 1.6);
+      else this.toastTime = 0;
+    } catch (err) {
+      console.error('[RetroPocket] Error al compartir:', err);
+      this.sound.sfx('error');
+      this.toast('NO SE PUDO COMPARTIR', 1.6);
+    } finally {
+      this.sharing = false;
     }
   }
 
@@ -1180,6 +1227,9 @@ export class ConsoleEngine {
         this.initials.confirm();
         return true;
       case STATES.GAMEOVER:
+        if (this.result?.career) this.goToHub('career');
+        else this.goToMenu();
+        return true;
       case STATES.NOCART:
       case STATES.LOADING:
       case STATES.ATTRACT:
@@ -1388,7 +1438,9 @@ export class ConsoleEngine {
   _renderLoading(g) {
     g.clear();
     const slot = this.currentSlot;
-    const label = slot && slot.daily ? 'DESAFIO' : `JUEGO ${slot ? slot.code : '00'}`;
+    let label = `JUEGO ${slot ? slot.code : '00'}`;
+    if (slot?.daily) label = 'DESAFIO';
+    else if (slot?.career) label = slot.career.boss ? `JEFE ${slot.code}` : `ETAPA ${slot.code}`;
     g.text(label, SCREEN_WIDTH / 2, 80, { align: 'center', scale: 2 });
     const dots = '.'.repeat(1 + (Math.floor(this.stateTime * 4) % 3));
     g.text(`CARGANDO${dots}`, SCREEN_WIDTH / 2 - g.textWidth('CARGANDO...') / 2, 104);
@@ -1463,20 +1515,55 @@ export class ConsoleEngine {
     }
 
     g.rect(x + 8, y + 73, w - 16, 1, 'mid');
-    g.text('TOP 5', SCREEN_WIDTH / 2, y + 77, { align: 'center', color: 'mid' });
-    const table = r.table || [];
-    for (let i = 0; i < 5; i++) {
-      const row = table[i];
-      const ry = y + 86 + i * 8;
-      const highlight = i + 1 === r.rank && Math.floor(this.time * 3) % 2 === 0;
-      const color = highlight ? 'yellow' : 'ink';
-      g.text(`${i + 1}.`, x + 10, ry, { color: 'mid' });
-      g.text(row ? row.name || '---' : '---', x + 22, ry, { color });
-      g.text(row ? String(row.score).padStart(7, '0') : '-------', x + w - 10, ry, { align: 'right', color });
+    if (r.career) {
+      this._renderCareerResult(g, r, y + 78);
+    } else {
+      g.text('TOP 5', SCREEN_WIDTH / 2, y + 77, { align: 'center', color: 'mid' });
+      const table = r.table || [];
+      for (let i = 0; i < 5; i++) {
+        const row = table[i];
+        const ry = y + 86 + i * 8;
+        const highlight = i + 1 === r.rank && Math.floor(this.time * 3) % 2 === 0;
+        const color = highlight ? 'yellow' : 'ink';
+        g.text(`${i + 1}.`, x + 10, ry, { color: 'mid' });
+        g.text(row ? row.name || '---' : '---', x + 22, ry, { color });
+        g.text(row ? String(row.score).padStart(7, '0') : '-------', x + w - 10, ry, { align: 'right', color });
+      }
     }
 
     if (this.stateTime >= 0.8) {
-      g.text('A: OTRA VEZ   B: MENU', SCREEN_WIDTH / 2, y + h - 12, { align: 'center' });
+      const c = r.career;
+      const blink = Math.floor(this.stateTime * 2) % 2 === 0;
+      g.text('START: COMPARTIR', SCREEN_WIDTH / 2, y + h - 22, { align: 'center', color: r.isHighScore && blink ? 'yellow' : 'mid' });
+      let keys = 'A: OTRA VEZ   B: MENU';
+      if (c) keys = `${c.next ? 'A: SIGUIENTE' : c.passed ? 'A: OTRA VEZ' : 'A: REINTENTAR'}   B: CARRERA`;
+      g.text(keys, SCREEN_WIDTH / 2, y + h - 12, { align: 'center' });
+    }
+  }
+
+  /** Resultado de una etapa del modo carrera (en lugar del TOP 5). */
+  _renderCareerResult(g, r, y) {
+    const c = r.career;
+    const cx = SCREEN_WIDTH / 2;
+    const blink = Math.floor(this.stateTime * 3) % 2 === 0;
+    g.text(`CARRERA  ETAPA ${c.stage}/${this.catalog.slots.length}`, cx, y, { align: 'center', color: 'mid' });
+    if (c.passed) {
+      const title = c.finished ? '¡CARRERA COMPLETA!' : c.boss ? '¡JEFE DERROTADO!' : 'ETAPA SUPERADA';
+      g.text(title, cx, y + 11, { align: 'center', color: c.boss || c.finished ? (blink ? 'yellow' : 'green') : 'green' });
+    } else {
+      g.text(c.boss ? 'EL JEFE GANA ESTA VEZ' : 'NO SUPERADA', cx, y + 11, { align: 'center', color: 'red' });
+    }
+    const slot = this.currentSlot;
+    const goal = slot.engine.stars[c.need - 1];
+    g.text(`META ${'★'.repeat(c.need)} ${goal} PUNTOS`, cx, y + 22, { align: 'center', color: c.passed ? 'mid' : 'ink' });
+    if (!c.passed) {
+      g.text(`TE FALTAN ${Math.max(1, goal - r.score)}`, cx, y + 33, { align: 'center', color: 'yellow' });
+    } else if (c.finished) {
+      g.text('¡ERES CAMPEON DE LAS 99!', cx, y + 33, { align: 'center', color: 'yellow' });
+    } else if (c.next) {
+      const next = this.catalog.careerSlot(c.next);
+      const label = next.career.boss ? '¡SIGUE UN JEFE!' : `SIGUE: ${next.code} ${next.engine.name}`;
+      g.text(label, cx, y + 33, { align: 'center', color: next.career.boss ? 'red' : next.engine.color });
     }
   }
 

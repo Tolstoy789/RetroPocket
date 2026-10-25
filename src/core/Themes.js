@@ -518,7 +518,8 @@ export const SHELLS = Object.freeze({
     { id: 'green', name: 'VERDE', swatch: '#4fae4a', unlock: 'stars30' },
     { id: 'white', name: 'BLANCA', swatch: '#ebe8e1', unlock: 'games100' },
     { id: 'black', name: 'NEGRA', swatch: '#2a2b31', unlock: 'stars100' },
-    { id: 'gold', name: 'DORADA', swatch: '#f0c14a', unlock: 'all99' }
+    { id: 'gold', name: 'DORADA', swatch: '#f0c14a', unlock: 'all99' },
+    { id: 'platinum', name: 'PLATINO', swatch: '#d6d9df', unlock: 'champion' }
   ],
   crystal: [
     { id: 'violet', name: 'VIOLETA', swatch: '#8f66d9' },

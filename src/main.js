@@ -27,6 +27,8 @@ function boot() {
 
   const engine = new ConsoleEngine({ canvas, screen, led, input, sound, storage, catalog, platform });
   engine.start();
+  // Con `npm run dev` la consola queda a mano en la consola del navegador (y para las pruebas automáticas).
+  if (import.meta.env.DEV) window.retropocket = engine;
 
   if (Capacitor.isNativePlatform()) {
     setupNative(engine, sound, input, platform);

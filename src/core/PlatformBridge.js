@@ -4,6 +4,9 @@
 //   - Pantalla completa: en Android oculta la barra de estado y la de navegación (SystemBars de Capacitor 8);
 //     en la web usa la Fullscreen API.
 //   - Portapapeles para la copia de seguridad de récords, con alternativas cuando no hay permiso.
+//   - Compartir una imagen (la tarjeta de puntuación): en Android la guarda en la caché de la app
+//     (plugin Filesystem) y abre el menú de compartir del sistema (plugin Share); en la web usa la
+//     Web Share API si admite archivos y, si no, descarga el PNG.
 
 import { Capacitor, SystemBars } from '@capacitor/core';
 
@@ -128,5 +131,52 @@ export class PlatformBridge {
       // Sin permiso de lectura (habitual en Android): se pide a mano.
     }
     return window.prompt(manualLabel, '') || '';
+  }
+
+  // ---------- Compartir ----------
+
+  /**
+   * Comparte el contenido de un canvas como PNG.
+   * @param {HTMLCanvasElement} canvas
+   * @param {string} fileName Nombre del archivo (por ejemplo, retropocket-07-12345.png).
+   * @param {string} text Texto que acompaña a la imagen en la app de destino.
+   * @returns {Promise<'shared'|'cancelled'|'downloaded'>}
+   */
+  async shareImage(canvas, fileName, text) {
+    if (this.native) {
+      const [{ Filesystem, Directory }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')]);
+      const data = canvas.toDataURL('image/png').split(',')[1];
+      const { uri } = await Filesystem.writeFile({ path: fileName, data, directory: Directory.Cache });
+      try {
+        await Share.share({ files: [uri], text, dialogTitle: 'Compartir puntuación' });
+        return 'shared';
+      } catch (err) {
+        if (/cancel/i.test(String(err?.message || err))) return 'cancelled';
+        throw err;
+      }
+    }
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo crear el PNG'))), 'image/png');
+    });
+    const file = typeof File === 'function' ? new File([blob], fileName, { type: 'image/png' }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text });
+        return 'shared';
+      } catch (err) {
+        if (err?.name === 'AbortError') return 'cancelled';
+        // Sin permiso para compartir (por ejemplo, sin gesto del usuario): se descarga.
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return 'downloaded';
   }
 }

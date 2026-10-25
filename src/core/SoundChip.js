@@ -124,7 +124,14 @@ const MELODIES = {
   start: { tempo: 260, wave: 'pulse50', notes: [['G4', 0.5], ['C5', 0.5], ['E5', 0.5], ['G5', 1]] },
   gameover: { tempo: 150, wave: 'pulse50', notes: [['G4', 0.5], ['-', 0.1], ['E4', 0.5], ['-', 0.1], ['C4', 0.5], ['D4', 0.5], ['B3', 0.5], ['C4', 1.5]] },
   record: { tempo: 240, wave: 'pulse25', notes: [['C5', 0.5], ['C5', 0.5], ['G5', 0.5], ['G5', 0.5], ['A5', 0.5], ['A5', 0.5], ['G5', 1], ['E5', 0.5], ['C6', 1.5]] },
-  nocart: { tempo: 180, wave: 'pulse12', notes: [['E5', 0.5], ['C5', 0.5], ['-', 0.25], ['E5', 0.5], ['C5', 0.5]] }
+  nocart: { tempo: 180, wave: 'pulse12', notes: [['E5', 0.5], ['C5', 0.5], ['-', 0.25], ['E5', 0.5], ['C5', 0.5]] },
+  // Modo carrera: etapa superada y jefe derrotado (o carrera completa).
+  stage: { tempo: 260, wave: 'pulse25', notes: [['E5', 0.5], ['G5', 0.5], ['C6', 0.5], ['-', 0.1], ['G5', 0.5], ['C6', 1.5]] },
+  boss: {
+    tempo: 220,
+    wave: 'pulse50',
+    notes: [['C5', 0.5], ['E5', 0.5], ['G5', 0.5], ['C6', 1], ['-', 0.1], ['A5', 0.5], ['B5', 0.5], ['C6', 0.5], ['D6', 0.5], ['E6', 2]]
+  }
 };
 
 /**

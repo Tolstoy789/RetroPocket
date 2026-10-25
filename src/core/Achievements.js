@@ -1,8 +1,8 @@
 // src/core/Achievements.js
-// Los 37 logros de la consola: 17 generales y 2 por motor.
+// Los 40 logros de la consola: 20 generales (3 del modo carrera) y 2 por motor.
 // Cada logro mira una estadística de Progress (`stat`) y se desbloquea al llegar a `goal`:
-//   games, playTime (segundos), engines, slots, stars, perfect, records, daily, streak, expert
-//     → estadísticas generales que lleva la consola;
+//   games, playTime (segundos), engines, slots, stars, perfect, records, daily, streak, expert, career
+//     → estadísticas generales que lleva la consola (career = etapas superadas del modo carrera);
 //   total:<nombre> → suma de todas las partidas de un contador que envía el cartucho con this.track();
 //   best:<nombre>  → mejor marca en una sola partida (this.track() acumulado o this.peak()).
 // `icon` es un sprite de 7x7 para la vitrina ('#' color del logro, '+' gris).
@@ -147,6 +147,32 @@ export const ACHIEVEMENTS = [
     stat: 'expert',
     goal: 1,
     icon: ['....##.', '...##..', '..##...', '.#####.', '...##..', '..##...', '.##....']
+  },
+
+  // ---------- Modo carrera ----------
+  {
+    id: 'career10',
+    name: 'PRIMER JEFE',
+    desc: 'SUPERA LA ETAPA 10 DE LA CARRERA',
+    stat: 'career',
+    goal: 10,
+    icon: ['......#', '.....#.', '....#..', '#..#...', '.##....', '.##....', '#..#...']
+  },
+  {
+    id: 'career50',
+    name: 'MEDIA CARRERA',
+    desc: 'SUPERA 50 ETAPAS DE LA CARRERA',
+    stat: 'career',
+    goal: 50,
+    icon: ['...#++.', '...#+++', '...#...', '..###..', '.#####.', '#######', '.......']
+  },
+  {
+    id: 'champion',
+    name: 'CAMPEON',
+    desc: 'COMPLETA LAS 99 ETAPAS',
+    stat: 'career',
+    goal: 99,
+    icon: ['#+#+#+#', '+#+#+#+', '#+#+#+#', '#......', '#......', '#......', '#......']
   },
 
   // ---------- Block Drop ----------

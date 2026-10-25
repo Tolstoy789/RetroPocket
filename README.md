@@ -9,12 +9,14 @@ Consola portátil virtual estilo *Brick Game* con **99 juegos** (10 motores × v
 - **Desafío diario** (slot 00): un juego y un giro de reglas nuevos cada día, iguales para todos.
 - **Pantalla PREPARADO** antes de cada juego: muestra los controles del motor y deja elegir **VELOCIDAD (1-5)** y **NIVEL inicial (1-9)**, como en las Brick Game originales. Más velocidad da más puntos (×1,25 por punto).
 - **Favoritos y recientes:** marca juegos como favoritos y vuelve a ellos (o a los últimos que jugaste) con START desde el menú.
-- **37 logros con vitrina:** 17 generales (estrellas, horas de juego, rachas, explorar los 10 motores...) y 2 por motor (*Cuatro de golpe*, *Festín*, *Jefe caído*...). Cada uno tiene su icono dibujado en la matriz LCD y suena una fanfarria propia al conseguirlo.
+- **Modo carrera:** recorre las 99 etapas en orden; superar una (1 estrella) desbloquea la siguiente y cada 10 hay un **jefe** (velocidad 2 y 2 estrellas). Mapa de 10×10 con las etapas superadas, los jefes y el trofeo final.
+- **Compartir puntuación como imagen:** START al terminar una partida crea una tarjeta PNG con la consola (su tema y su color de carcasa), la pantalla de la partida, los puntos y las estrellas, y abre el menú de compartir del móvil.
+- **40 logros con vitrina:** 20 generales (estrellas, horas de juego, rachas, carrera, explorar los 10 motores...) y 2 por motor (*Cuatro de golpe*, *Festín*, *Jefe caído*...). Cada uno tiene su icono dibujado en la matriz LCD y suena una fanfarria propia al conseguirlo.
 - **Racha del desafío diario:** días seguidos jugando el slot 00, calendario del mes con los días jugados y estrellas especiales a los 7 y 30 días.
 - **Estadísticas:** tiempo jugado total y por motor, partidas, récords batidos, motor favorito y contadores acumulados (líneas, fantasmas, ladrillos, naves...).
-- **Colores de carcasa desbloqueables:** 6 colores para la carcasa *Retro* y 4 tintes para la *Cristal*, como premio de algunos logros.
+- **Colores de carcasa desbloqueables:** 7 colores para la carcasa *Retro* (el último, *Platino*, al completar la carrera) y 4 tintes para la *Cristal*, como premio de algunos logros.
 - **Block Drop con reglas modernas:** guardar pieza (A+B), 3 piezas siguientes, bolsa de 7 y giros con los empujes estándar.
-- **Copia de seguridad:** Opciones → *Copiar récords* genera un código con récords, ajustes, favoritos, logros, racha y estadísticas; *Pegar récords* lo restaura en otro móvil.
+- **Copia de seguridad:** Opciones → *Copiar récords* genera un código con récords, ajustes, favoritos, logros, racha, carrera y estadísticas; *Pegar récords* lo restaura en otro móvil.
 - **Android a pantalla completa** (sin barras del sistema) y **pantalla siempre encendida** mientras juegas.
 - **Tres animaciones de arranque** que se turnan solas cada 2 días: *Ladrillo clásico* (los ladrillos forman un «99»), *Neón synthwave* (sol a rayas y cuadrícula) y *Cartucho 99* (el cartucho encaja y presenta los 10 motores). Cada una con su jingle. En **Opciones → Arranque** puedes dejar *AUTO* o fijar una.
 - **Modo demo / atracción:** tras 20 s sin tocar el menú, la consola muestra logo, récords, la galería de motores y partidas automáticas.
@@ -125,7 +127,7 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 | Volumen (OFF / LOW / HIGH) | SOUND | M | Select |
 | Volver al menú | RESET | Retroceso, Esc | Home |
 
-**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **juegos y logros** (ver abajo).
+**En el menú:** ◀ ▶ cambian de juego (00–99; el 00 es el desafío diario), ▲ ▼ saltan al motor anterior/siguiente, A abre **PREPARADO**, B abre las **opciones** y START abre **juegos, carrera y logros** (ver abajo).
 
 **PREPARADO:** ▲ ▼ eligen VELOCIDAD, NIVEL o FAVORITO, ◀ ▶ los cambian y A o START empiezan la partida. Se recuerda la última elección de cada motor. El desafío diario se juega directamente, sin cambios, para que sea igual para todos.
 
@@ -134,7 +136,8 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 | Pestaña | Qué hay | Controles |
 |---|---|---|
 | JUEGOS | Favoritos (♥) y últimos juegos jugados | ▲ ▼ eligen, A abre PREPARADO |
-| LOGROS | Vitrina con los 37 logros: icono, descripción, progreso, fecha y premio | ▲ ▼ recorren la vitrina |
+| CARRERA | Mapa de las 99 etapas (superadas, la siguiente y los jefes), etapas y jefes superados, y la meta de cada etapa | ▲ ▼ eligen etapa (las ya abiertas), A la juega |
+| LOGROS | Vitrina con los 40 logros: icono, descripción, progreso, fecha y premio | ▲ ▼ recorren la vitrina |
 | RACHA | Días seguidos con el desafío diario, mejor racha, estrellas de 7 y 30 días y calendario del mes | ▲ ▼ cambian de mes, A juega el desafío de hoy |
 | DATOS | Tiempo jugado (total y por motor), partidas, estrellas, motor favorito y contadores | ▲ ▼ desplazan |
 
@@ -143,6 +146,8 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Con `npm ru
 **RESET durante una partida:** mantenlo pulsado 0,7 s para volver al menú.
 
 **Récord nuevo:** al entrar en el top 5 de un slot, ▲ ▼ cambian la letra, A pasa a la siguiente y START guarda.
+
+**Fin de partida:** A juega otra vez, B vuelve al menú y START **comparte la puntuación** como imagen. En el modo carrera, A pasa a la etapa siguiente (o reintenta la que no se superó) y B vuelve al mapa de la carrera.
 
 **En Android:** el botón "atrás" pausa el juego o vuelve al menú; la app se pausa sola al pasar a segundo plano.
 
@@ -189,6 +194,7 @@ Algunos logros regalan un color nuevo de carcasa. En la galería se pueden ver t
 | Retro | Blanca | Cien partidas |
 | Retro | Negra | 100 estrellas |
 | Retro | Dorada (con brillo metálico) | Los 99 (juega los 99 slots) |
+| Retro | Platino (con brillo metálico frío) | Campeón (completa las 99 etapas de la carrera) |
 | Cristal | Violeta | De serie |
 | Cristal | Hielo | Racha de 7 |
 | Cristal | Menta | Maratón (1 hora de juego) |
@@ -208,6 +214,14 @@ Los juegos dibujan con nombres de color (`'ink'`, `'cyan'`, `'red'`...) y con `g
 
 Los logros están en `src/core/Achievements.js`: cada uno mira una estadística (`games`, `stars`, `streak`, `total:lines`, `best:kmh`...) y se desbloquea al llegar a su meta. Todo se guarda en `localStorage` con `saveExtra()`, así que entra en la copia de seguridad. La racha cuenta los días en que terminas el desafío diario y sigue viva hasta el final del día siguiente.
 
+## Modo carrera
+
+Las 99 etapas son los 99 slots en orden. Una etapa se supera con **1 estrella**; los **jefes** (etapas 10, 20... 90 y 99) se juegan a **velocidad 2** y piden **2 estrellas**. Superar la siguiente etapa pendiente abre la otra, y las ya superadas se pueden repetir cuando quieras. Los puntos cuentan también para los récords del slot. El avance se guarda con `saveExtra('career')`, así que entra en la copia de seguridad. Logros de la carrera: *Primer jefe* (etapa 10), *Media carrera* (50 etapas) y *Campeón* (las 99, que regala la carcasa Retro Platino).
+
+## Compartir puntuación
+
+START en la pantalla de fin de partida dibuja con `<canvas>` una tarjeta PNG de 720×1040: la consola con el tema y el color de carcasa que estés usando (los colores se leen de las variables CSS del tema), la última imagen de la partida con un panel de puntos, estrellas, nivel y fecha, y la marca. En Android se guarda en la caché de la app (`@capacitor/filesystem`) y se abre el menú de compartir del sistema (`@capacitor/share`); en la web se usa la Web Share API y, si el navegador no comparte archivos, se descarga el PNG. Todo se hace en el móvil, sin servidor.
+
 ## Estructura
 
 ```text
@@ -220,15 +234,16 @@ retropocket-99in1/
 │   │   ├── SoundChip.js       # Sintetizador 8-bit y música en bucle (Web Audio API)
 │   │   ├── InputManager.js    # Multitáctil, teclado, mandos y vibración
 │   │   ├── StorageManager.js  # Récords (top 5 con iniciales), ajustes y datos extra en localStorage
-│   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario y menú de selección
+│   │   ├── Catalog99.js       # Los 99 slots, estrellas, desafío diario, etapas de la carrera y menú
 │   │   ├── Themes.js          # Los 11 temas (paletas, celdas, sonido, rótulos) y colores de carcasa
 │   │   ├── ThemeGallery.js    # Galería de temas y carcasas con vista previa
-│   │   ├── Progress.js        # Estadísticas, logros y racha del desafío diario
-│   │   ├── Achievements.js    # Los 37 logros: meta, icono y descripción
-│   │   ├── HubScreen.js       # START en el menú: JUEGOS, LOGROS, RACHA y DATOS
+│   │   ├── Progress.js        # Estadísticas, logros, racha del desafío diario y avance de la carrera
+│   │   ├── Achievements.js    # Los 40 logros: meta, icono y descripción
+│   │   ├── HubScreen.js       # START en el menú: JUEGOS, CARRERA, LOGROS, RACHA y DATOS
+│   │   ├── ShareCard.js       # Tarjeta PNG para compartir una puntuación
 │   │   ├── Screens.js         # Opciones, iniciales de récord y modo atracción/demo
 │   │   ├── LaunchScreens.js   # PREPARADO (velocidad, nivel, controles y favorito)
-│   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa y portapapeles
+│   │   ├── PlatformBridge.js  # Pantalla encendida, pantalla completa, portapapeles y compartir imagen
 │   │   └── BootScenes.js      # Las 3 animaciones de arranque y su turno de 2 días
 │   ├── games/
 │   │   └── BaseCartridge.js   # Clase base de todos los motores

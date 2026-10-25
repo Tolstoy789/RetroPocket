@@ -376,6 +376,10 @@ const SPEED_KEYS = ['speed', 'ghostSpeed', 'enemySpeed', 'trafficSpeed', 'riverS
 export const LAUNCH_SPEEDS = [1, 1.15, 1.3, 1.45, 1.6];
 /** NIVEL inicial máximo que se puede elegir antes de jugar. */
 export const MAX_START_LEVEL = 9;
+/** VELOCIDAD a la que se juegan los jefes del modo carrera. */
+export const CAREER_BOSS_SPEED = 2;
+/** Jefes de la carrera: etapas 10, 20... 90 y 99. */
+export const CAREER_BOSSES = 10;
 
 /** Giros del desafío diario: se aplican sobre el variantConfig del slot elegido. */
 export const DAILY_TWISTS = [
@@ -549,6 +553,23 @@ export class Catalog99 {
     config.startLevel = (Number.isFinite(config.startLevel) ? config.startLevel : 1) + (l - 1);
     config.scoreMultiplier = 1 + (s - 1) * 0.25;
     return Object.freeze({ ...slot, launchSpeed: s, launchLevel: l, variantConfig: Object.freeze(config) });
+  }
+
+  /** Las etapas 10, 20... 90 y la 99 son jefes: más velocidad y más estrellas para superarlas. */
+  isCareerBoss(stage) {
+    return stage % 10 === 0 || stage === TOTAL_SLOTS;
+  }
+
+  /**
+   * Etapa del modo carrera: el slot del mismo número con su meta de estrellas.
+   * Los jefes se juegan a VELOCIDAD 2 y piden 2 estrellas; el resto, 1 estrella a velocidad normal.
+   */
+  careerSlot(stage) {
+    const base = this.getSlot(stage);
+    if (!base) return null;
+    const boss = this.isCareerBoss(stage);
+    const slot = boss ? this.customizeSlot(base, { speed: CAREER_BOSS_SPEED }) : base;
+    return Object.freeze({ ...slot, career: Object.freeze({ stage, boss, need: boss ? 2 : 1 }) });
   }
 
   createMenu(engine, initialSlot = 1) {
@@ -776,6 +797,6 @@ export class CatalogMenu {
 
     // Ayuda de controles
     g.text('◀▶ JUEGO   ▲▼ MOTOR   A JUGAR', cx, 175, { align: 'center', color: 'mid' });
-    g.text('B OPCIONES  START JUEGOS Y LOGROS', cx, 184, { align: 'center', color: 'mid' });
+    g.text('B OPCIONES  START CARRERA Y LOGROS', cx, 184, { align: 'center', color: 'mid' });
   }
 }

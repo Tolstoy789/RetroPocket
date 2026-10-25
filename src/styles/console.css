@@ -1004,6 +1004,20 @@ button:focus-visible {
   background: linear-gradient(160deg, #fff1b8 0%, #e7b730 22%, #c08a12 46%, #f3cf5c 64%, #b88410 84%, #8e6306 100%);
 }
 
+[data-skin="retro"][data-shell="platinum"] {
+  --shell: #c9ccd3;
+  --shell-light: #f1f3f6;
+  --shell-dark: #9aa0aa;
+  --shell-shadow: #5f646d;
+  --label: #2e323a;
+  --brand: #283a8c;
+}
+
+/* El platino (premio del modo carrera) lleva un brillo metálico frío. */
+[data-skin="retro"][data-shell="platinum"] .console {
+  background: linear-gradient(160deg, #ffffff 0%, #d6d9df 20%, #a9aeb7 44%, #eef0f3 62%, #a3a8b1 82%, #7d828b 100%);
+}
+
 [data-skin="crystal"][data-shell="ice"] {
   --glass-hi: rgba(205, 242, 255, 0.6);
   --glass-mid: rgba(110, 190, 235, 0.5);

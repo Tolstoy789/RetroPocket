@@ -7,6 +7,7 @@
 
 import { ACTIONS } from './InputManager.js';
 import { SCREEN_WIDTH } from './ConsoleEngine.js';
+import { MenuPreview } from './MenuPreview.js';
 
 // Vite incluye solo los motores que existan en src/games/. Si un archivo todavía no está,
 // el slot aparece en el menú como "PRÓXIMAMENTE" y la consola muestra "CARTUCHO NO INSERTADO".
@@ -611,6 +612,7 @@ export class CatalogMenu {
     this.time = 0;
     this.arrowFlash = { left: 0, right: 0, up: 0, down: 0 };
     this.slide = 0;
+    this.preview = new MenuPreview(engine);
     this._refresh();
   }
 
@@ -637,6 +639,8 @@ export class CatalogMenu {
     this.completed = this.catalog.completedCount(storage);
     this.favorite = !slot.daily && storage.isFavorite(slot.number);
     this.streak = slot.daily && this.engine.progress ? this.engine.progress.streakInfo() : null;
+    if (this.installed) this.preview.show(slot);
+    else this.preview.stop();
   }
 
   /** Coloca el menú en un slot (por ejemplo, al elegirlo en la pestaña JUEGOS). */
@@ -722,12 +726,14 @@ export class CatalogMenu {
       const step = dt * 60;
       this.slide = Math.abs(this.slide) <= step ? 0 : this.slide - Math.sign(this.slide) * step;
     }
+    this.preview.update(dt);
   }
 
   render(g) {
     const slot = this.slot;
     const engineDef = slot.engine;
     const cx = SCREEN_WIDTH / 2;
+    const lx = 34; // centro de la columna izquierda
     const blink = Math.floor(this.time * 2) % 2 === 0;
 
     g.clear();
@@ -739,57 +745,69 @@ export class CatalogMenu {
     const vol = this.engine.sound.volumeLevel;
     g.text(vol.id === 'off' ? '♪×' : vol.id === 'low' ? '♪' : '♪♪', SCREEN_WIDTH - 3, 4, { align: 'right', color: 'bg' });
 
-    // Número de slot grande con flechas
-    const numberY = 20;
-    g.text(slot.code, cx + Math.round(this.slide), numberY, { align: 'center', scale: 5, color: slot.daily ? 'yellow' : engineDef.color });
-    g.text('◀', 12, numberY + 6, { scale: 2, color: this.arrowFlash.left > 0 ? 'ink' : 'mid' });
-    g.text('▶', SCREEN_WIDTH - 18, numberY + 6, { scale: 2, color: this.arrowFlash.right > 0 ? 'ink' : 'mid' });
+    // Columna izquierda: número de slot con flechas, nombre, variante, estrellas y récord
+    const numberY = 18;
+    g.text(slot.code, lx + Math.round(this.slide), numberY, { align: 'center', scale: 4, color: slot.daily ? 'yellow' : engineDef.color });
+    g.text('◀', 2, numberY + 7, { color: this.arrowFlash.left > 0 ? 'ink' : 'mid' });
+    g.text('▶', 63, numberY + 7, { color: this.arrowFlash.right > 0 ? 'ink' : 'mid' });
 
-    // Racha del desafío diario junto al número
-    if (this.streak && this.streak.current > 0) {
-      const sx = SCREEN_WIDTH - 24;
-      g.sprite(STREAK_FLAME, sx, numberY + 18, { colors: { '#': 'orange', '+': 'yellow' } });
-      g.text(String(this.streak.current), sx + 3, numberY + 27, { align: 'center', color: this.streak.playedToday ? 'ink' : 'mid' });
-    }
-
-    // Nombre del motor y variante
     if (slot.daily) {
-      g.text(blink ? 'DESAFIO DIARIO' : `DESAFIO ${slot.day.slice(5).replace('-', '/')}`, cx, 50, { align: 'center', color: 'yellow' });
-      g.text(`${engineDef.name} + ${slot.label}`, cx, 59, { align: 'center' });
+      g.text(blink ? 'DESAFIO' : slot.day.slice(5).split('-').reverse().join('/'), lx, 43, { align: 'center', color: 'yellow' });
+      g.text(engineDef.name, lx, 52, { align: 'center', color: engineDef.color });
+      g.text(slot.label, lx, 61, { align: 'center' });
     } else {
-      g.text(engineDef.name, cx, 50, { align: 'center', color: engineDef.color });
-      g.text(`${slot.variantIndex + 1}/${engineDef.variants.length} ${slot.label}`, cx, 59, { align: 'center' });
-      if (this.favorite) g.text('♥', SCREEN_WIDTH - 22, numberY + 22, { color: 'magenta', scale: 2 });
+      g.text(engineDef.name, lx, 43, { align: 'center', color: engineDef.color });
+      g.text(slot.label, lx, 52, { align: 'center' });
+      g.text(`${slot.variantIndex + 1}/${engineDef.variants.length}`, lx, 61, { align: 'center', color: 'mid' });
     }
 
-    // Vista previa animada
-    const boxSize = 56;
-    const bx = Math.floor(cx - boxSize / 2);
-    const by = 70;
-    g.rect(bx, by, boxSize, boxSize, 'ghost');
-    g.frame(bx - 2, by - 2, boxSize + 4, boxSize + 4, slot.daily && blink ? 'yellow' : 'ink');
-    g.text('▲', bx - 12, by + boxSize / 2 - 8, { color: this.arrowFlash.up > 0 ? 'ink' : 'mid' });
-    g.text('▼', bx - 12, by + boxSize / 2 + 3, { color: this.arrowFlash.down > 0 ? 'ink' : 'mid' });
-    const frame = engineDef.icon[Math.floor(this.time * 2) % engineDef.icon.length];
-    g.sprite(frame, bx + 4, by + 4, { scale: 6, colors: { '#': engineDef.color, '+': 'mid' } });
+    if (this.installed) {
+      this.engine.drawStars(g, lx - 7, 71, this.stars);
+      if (this.favorite) g.text('♥', 6, 71, { color: 'magenta' });
+      g.text('RECORD', lx, 81, { align: 'center', color: 'mid' });
+      g.text(String(this.highScore).padStart(7, '0'), lx, 90, { align: 'center' });
+      if (this.highName) g.text(this.highName, lx, 99, { align: 'center', color: 'mid' });
+    } else if (blink) {
+      g.text('PROXIMAMENTE', lx, 76, { align: 'center', color: 'red' });
+    }
+
+    // Racha del desafío diario
+    if (this.streak && this.streak.current > 0) {
+      g.sprite(STREAK_FLAME, 6, 103, { colors: { '#': 'orange', '+': 'yellow' } });
+      g.text(`${this.streak.current} ${this.streak.current === 1 ? 'DIA' : 'DIAS'}`, 16, 104, { color: this.streak.playedToday ? 'ink' : 'mid' });
+    }
+
+    // Columna derecha: miniatura del juego (o el icono del motor mientras se carga)
+    const px = 70;
+    const py = 17;
+    const pw = SCREEN_WIDTH / 2;
+    const ph = 96;
+    g.frame(px - 1, py - 1, pw + 2, ph + 2, slot.daily && blink ? 'yellow' : 'ink');
+    if (!this.preview.render(g, px, py)) {
+      g.rect(px, py, pw, ph, 'ghost');
+      const frame = engineDef.icon[Math.floor(this.time * 2) % engineDef.icon.length];
+      g.sprite(frame, px + pw / 2 - 16, py + ph / 2 - 16, { scale: 4, colors: { '#': engineDef.color, '+': 'mid' } });
+    }
+
+    // Tira de motores (▲▼ saltan de uno a otro)
+    const stripY = 121;
+    g.text('▲', 1, stripY + 2, { color: this.arrowFlash.up > 0 ? 'ink' : 'mid' });
+    g.text('▼', SCREEN_WIDTH - 4, stripY + 2, { color: this.arrowFlash.down > 0 ? 'ink' : 'mid' });
+    this.catalog.engines.forEach((e, i) => {
+      const ix = 8 + i * 13;
+      const current = e === engineDef;
+      g.sprite(e.icon[current ? Math.floor(this.time * 2) % e.icon.length : 0], ix, stripY, { colors: { '#': current ? e.color : 'mid', '+': current ? 'mid' : 'ghost' } });
+      if (current) g.frame(ix - 2, stripY - 2, 12, 12, slot.daily ? 'yellow' : blink ? 'ink' : 'mid');
+    });
 
     // Descripción
     this.descLines.forEach((line, i) => {
-      g.text(line, cx, 132 + i * 8, { align: 'center', color: 'mid' });
+      g.text(line, cx, 138 + i * 8, { align: 'center', color: 'mid' });
     });
-
-    // Estrellas y récord, o aviso de cartucho ausente
-    if (this.installed) {
-      this.engine.drawStars(g, cx - 7, 149, this.stars);
-      const name = this.highName ? ` ${this.highName}` : '';
-      g.text(`RECORD ${String(this.highScore).padStart(7, '0')}${name}`, cx, 157, { align: 'center' });
-    } else if (blink) {
-      g.text('PROXIMAMENTE', cx, 153, { align: 'center', color: 'red' });
-    }
 
     // Barra de posición 00-99
     const barX = Math.floor((SCREEN_WIDTH - POSITIONS) / 2);
-    const barY = 167;
+    const barY = 165;
     g.rect(barX, barY, POSITIONS, 1, 'mid');
     g.rect(barX, barY - 1, 1, 3, 'yellow');
     for (const e of this.catalog.engines) g.rect(barX + e.firstSlot, barY - 1, 1, 3, 'mid');

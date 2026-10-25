@@ -390,6 +390,15 @@ export class Gfx {
     }
   }
 
+  /** Dibuja otro canvas escalado (la miniatura del juego en el menú). `smooth` promedia al reducir. */
+  image(source, x, y, w, h, { smooth = false } = {}) {
+    const ctx = this.ctx;
+    ctx.imageSmoothingEnabled = smooth;
+    if (smooth) ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    ctx.imageSmoothingEnabled = false;
+  }
+
   /** Velo semitransparente para menús superpuestos. */
   veil() {
     this.ctx.fillStyle = this.palette.overlay;
@@ -544,6 +553,18 @@ export class ConsoleEngine {
     this.gfx = new Gfx(this.buffer.getContext('2d', { alpha: false }), SCREEN_WIDTH, SCREEN_HEIGHT);
     this.fx = new FxLayer();
     this.scale = 1;
+    // Estela de LCD: la imagen que se ve se acerca a la nueva poco a poco (ver _composeGhost).
+    this.ghostCanvas = document.createElement('canvas');
+    this.ghostCanvas.width = SCREEN_WIDTH;
+    this.ghostCanvas.height = SCREEN_HEIGHT;
+    this.ghostCtx = this.ghostCanvas.getContext('2d', { alpha: false });
+    this.ghostFresh = true;
+    // Brillo de los temas de tubo: copia difuminada de la pantalla que se suma encima (ver _renderCrt).
+    this.bloomCanvas = document.createElement('canvas');
+    this.bloomCanvas.width = SCREEN_WIDTH;
+    this.bloomCanvas.height = SCREEN_HEIGHT;
+    this.bloomCtx = this.bloomCanvas.getContext('2d');
+    this.bloomSupported = typeof this.bloomCtx.filter === 'string';
 
     this.state = STATES.BOOT;
     this.stateTime = 0;
@@ -610,6 +631,7 @@ export class ConsoleEngine {
     this.fx.flashEnabled = !!s.flashes;
     this.input.setRepeatSpeed(s.repeat);
     document.documentElement.dataset.big = s.bigButtons ? '1' : '0';
+    document.documentElement.dataset.fx = s.flashes ? 'on' : 'off';
     document.documentElement.dataset.hand = s.hand === 'left' ? 'left' : 'right';
     if (this.platform) {
       if (this.platform.native) this.platform.setFullscreen(s.fullscreen);
@@ -674,7 +696,7 @@ export class ConsoleEngine {
 
     this.sound.updateMusic();
     this._render();
-    this._present();
+    this._present(dt);
     this.rafId = requestAnimationFrame(this._frame);
   }
 
@@ -702,7 +724,7 @@ export class ConsoleEngine {
     this.ctx.imageSmoothingEnabled = false;
   }
 
-  _present() {
+  _present(dt) {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -713,7 +735,64 @@ export class ConsoleEngine {
       ctx.fillStyle = this.gfx.palette.bg;
       ctx.fillRect(0, 0, w, h);
     }
-    ctx.drawImage(this.buffer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ox, oy, w, h);
+    const source = this._composeGhost(dt);
+    ctx.drawImage(source, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ox, oy, w, h);
+    this._renderCrt(source, ox, oy, w, h);
+  }
+
+  /**
+   * Estela de LCD (o de fósforo en las pantallas oscuras): lo que se enciende aparece al momento y lo
+   * que se apaga se desvanece en `ghost` segundos (Themes.js). En las pantallas claras se queda el tono
+   * más oscuro de los dos (darken) y en las oscuras el más claro (lighten).
+   */
+  _composeGhost(dt) {
+    const tau = this.settings.ghosting ? this.themeInfo.ghost || 0 : 0;
+    if (tau <= 0) {
+      this.ghostFresh = true;
+      return this.buffer;
+    }
+    const ctx = this.ghostCtx;
+    if (this.ghostFresh) {
+      ctx.drawImage(this.buffer, 0, 0);
+      this.ghostFresh = false;
+      return this.ghostCanvas;
+    }
+    ctx.globalAlpha = 1 - Math.exp(-Math.max(0, dt) / tau);
+    ctx.drawImage(this.buffer, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = this.gfx.palette.dark ? 'lighten' : 'darken';
+    ctx.drawImage(this.buffer, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    return this.ghostCanvas;
+  }
+
+  /** Temas de tubo (`crt` en Themes.js): brillo alrededor de lo encendido y una línea oscura por fila de píxeles. */
+  _renderCrt(source, ox, oy, w, h) {
+    const crt = this.themeInfo.crt;
+    if (!crt || !this.settings.flashes) return;
+    const ctx = this.ctx;
+    if (crt.bloom > 0 && this.bloomSupported) {
+      const b = this.bloomCtx;
+      b.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+      b.filter = 'blur(1.5px)';
+      b.drawImage(source, 0, 0);
+      b.filter = 'none';
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = crt.bloom;
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(this.bloomCanvas, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ox, oy, w, h);
+      ctx.imageSmoothingEnabled = false;
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    // Las líneas necesitan al menos 3 píxeles reales por fila para no comerse la imagen.
+    if (crt.scan > 0 && this.scale >= 3) {
+      const line = Math.max(1, Math.round(this.scale * 0.3));
+      ctx.fillStyle = `rgba(0, 0, 0, ${crt.scan})`;
+      for (let row = 1; row <= SCREEN_HEIGHT; row++) {
+        ctx.fillRect(0, Math.round(oy + row * this.scale) - line, w, line);
+      }
+    }
   }
 
   /**
@@ -796,6 +875,7 @@ export class ConsoleEngine {
     }
     if (state === STATES.PAUSED) this.pauseIndex = 0;
     if (state === STATES.MENU) this.menuIdle = 0;
+    else this.menu?.preview.stop();
     this._syncKeepAwake();
   }
 

@@ -55,6 +55,7 @@ export class OptionsScreen {
       },
       { label: 'REPETICION', ...choice('repeat', ['slow', 'normal', 'fast'], ['LENTA', 'NORMAL', 'RAPIDA']) },
       { label: 'CONTRASTE', ...choice('contrast', ['normal', 'high'], ['NORMAL', 'ALTO']) },
+      { label: 'ESTELA LCD', ...toggle('ghosting') },
       { label: 'MUSICA', ...level('music') },
       { label: 'EFECTOS', ...level('sfx') },
       { label: 'VIBRACION', ...toggle('haptics', (on) => on && e.input.vibrate('medium')) },

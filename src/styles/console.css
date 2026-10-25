@@ -208,6 +208,11 @@ button:focus-visible {
   image-rendering: crisp-edges;
 }
 
+/* Sin «Destellos» tampoco hay resplandor alrededor de la pantalla en los temas luminosos. */
+html[data-fx="off"] #lcd {
+  filter: none;
+}
+
 .brand {
   display: flex;
   align-items: baseline;
@@ -647,10 +652,9 @@ button:focus-visible {
     inset 0 0 24px rgba(0, 240, 255, 0.12);
 }
 
+/* Las líneas de barrido y el brillo de tubo los pinta el canvas (crt en Themes.js), alineados con los píxeles. */
 [data-skin="future"] .screen::after {
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px),
-    linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, transparent 35%, transparent 70%, rgba(255, 43, 214, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, transparent 35%, transparent 70%, rgba(255, 43, 214, 0.08) 100%);
 }
 
 [data-skin="future"] #lcd {
@@ -1252,9 +1256,7 @@ button:focus-visible {
 }
 
 [data-skin="amber"] .screen::after {
-  background:
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
-    radial-gradient(ellipse at 50% 50%, rgba(255, 176, 0, 0.06) 0%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.45) 100%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 176, 0, 0.06) 0%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.45) 100%);
 }
 
 [data-skin="amber"] #lcd {
@@ -1409,7 +1411,6 @@ button:focus-visible {
 [data-skin="arcade"] .screen::after {
   border-radius: inherit;
   background:
-    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
     radial-gradient(ellipse at 35% 25%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 45%),
     radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
 }

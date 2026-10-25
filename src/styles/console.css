@@ -21,6 +21,15 @@
   --btn-system-dark: #1f2130;
   --label: #5b4708;
   --page: #1b1d2a;
+  --page-light: #2a2d42;
+  --brand: #283a8c;
+  --arrow: #8b8fa8;
+  --btn-system-light: #555970;
+  --stripe-a: #8a2b5c;
+  --stripe-b: #2b4a8a;
+  --tag-bg: #ff2bd6;
+  --tag-fg: #05050f;
+  --tag-glow: rgba(255, 43, 214, 0.7);
   --radius-shell: 28px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -41,7 +50,7 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 30%, #2a2d42 0%, var(--page) 70%);
+  background: radial-gradient(circle at 50% 30%, var(--page-light) 0%, var(--page) 70%);
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -89,6 +98,9 @@ button:focus-visible {
     inset 0 2px 0 rgba(255, 255, 255, 0.45),
     inset 0 -6px 0 var(--shell-dark),
     0 20px 50px rgba(0, 0, 0, 0.55);
+  /* Contexto de apilado propio: las decoraciones de algunos temas (::before con z-index -1)
+     quedan sobre el fondo de la carcasa y bajo los controles. */
+  isolation: isolate;
 }
 
 @media (min-width: 481px) {
@@ -138,8 +150,15 @@ button:focus-visible {
   content: "";
   flex: 1;
   height: 2px;
-  background: linear-gradient(90deg, #8a2b5c 0 50%, #2b4a8a 50% 100%);
+  background: linear-gradient(90deg, var(--stripe-a) 0 50%, var(--stripe-b) 50% 100%);
   border-radius: 1px;
+}
+
+.bezel__text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bezel__led {
@@ -196,7 +215,7 @@ button:focus-visible {
   margin: 10px 4px 0;
   font-size: 20px;
   line-height: 1;
-  color: #283a8c;
+  color: var(--brand);
   font-style: italic;
   font-weight: 900;
   letter-spacing: 0.02em;
@@ -277,7 +296,7 @@ button:focus-visible {
   border-radius: 8px 8px 0 0;
 }
 .dpad__btn--up::after {
-  border-bottom-color: #8b8fa8;
+  border-bottom-color: var(--arrow);
   margin-top: -4px;
 }
 
@@ -287,7 +306,7 @@ button:focus-visible {
   border-radius: 8px 0 0 8px;
 }
 .dpad__btn--left::after {
-  border-right-color: #8b8fa8;
+  border-right-color: var(--arrow);
   margin-left: -4px;
 }
 
@@ -302,7 +321,7 @@ button:focus-visible {
   border-radius: 0 8px 8px 0;
 }
 .dpad__btn--right::after {
-  border-left-color: #8b8fa8;
+  border-left-color: var(--arrow);
   margin-left: 4px;
 }
 
@@ -312,7 +331,7 @@ button:focus-visible {
   border-radius: 0 0 8px 8px;
 }
 .dpad__btn--down::after {
-  border-top-color: #8b8fa8;
+  border-top-color: var(--arrow);
   margin-top: 4px;
 }
 
@@ -398,7 +417,7 @@ button:focus-visible {
   width: clamp(46px, 14vw, 58px);
   height: 14px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #555970 0%, var(--btn-system) 50%, var(--btn-system-dark) 100%);
+  background: linear-gradient(180deg, var(--btn-system-light) 0%, var(--btn-system) 50%, var(--btn-system-dark) 100%);
   box-shadow:
     0 3px 0 var(--btn-system-dark),
     0 4px 6px rgba(0, 0, 0, 0.3);
@@ -548,9 +567,10 @@ button:focus-visible {
 }
 
 /* =====================================================================
-   MODOS DE CARCASA
-   El motor pone data-skin="retro" | "future" en <html>. La lógica es la
-   misma; solo cambian la carcasa, la pantalla y el timbre del sonido.
+   TEMAS DE CARCASA
+   El motor pone data-skin="<tema>" en <html> (y data-season en el tema
+   estacional), y escribe el rótulo del bisel y la etiqueta de la marca.
+   La lógica es la misma; solo cambian la carcasa, la pantalla y el sonido.
    ===================================================================== */
 
 .console,
@@ -564,16 +584,6 @@ button:focus-visible {
     box-shadow 0.35s,
     border-color 0.35s,
     color 0.35s;
-}
-
-.skin-only {
-  display: none;
-}
-
-[data-skin="retro"] .skin-only--retro,
-[data-skin="future"] .skin-only--future,
-[data-skin="crystal"] .skin-only--crystal {
-  display: inline;
 }
 
 /* ---------- Modo futurista ---------- */
@@ -668,10 +678,10 @@ button:focus-visible {
   font-size: 10px;
   font-style: normal;
   letter-spacing: 0.2em;
-  color: #05050f;
-  background: var(--neon-magenta, #ff2bd6);
+  color: var(--tag-fg);
+  background: var(--tag-bg);
   border-radius: 2px;
-  box-shadow: 0 0 10px rgba(255, 43, 214, 0.7);
+  box-shadow: 0 0 10px var(--tag-glow);
   text-shadow: none;
 }
 
@@ -844,10 +854,10 @@ button:focus-visible {
   color: #ffe08a;
 }
 
-.brand__tag--crystal {
-  color: #3a2266;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: none;
+[data-skin="crystal"] {
+  --tag-bg: rgba(255, 255, 255, 0.85);
+  --tag-fg: #3a2266;
+  --tag-glow: transparent;
 }
 
 [data-skin="crystal"] .dpad__btn,
@@ -894,6 +904,1081 @@ button:focus-visible {
 
 [data-skin="crystal"] .speaker span {
   background: rgba(30, 15, 60, 0.35);
+}
+
+/* ---------- Bolsillo clásico: gris claro, cruceta negra y botones granate ---------- */
+
+[data-skin="pocket"] {
+  --shell: #c8c4bc;
+  --shell-light: #dcd9d2;
+  --shell-dark: #a29e95;
+  --shell-shadow: #7e7a72;
+  --bezel: #61646f;
+  --bezel-dark: #4f525c;
+  --bezel-text: #d0d1da;
+  --dpad: #1b1b1e;
+  --dpad-light: #34343a;
+  --arrow: #5c5c63;
+  --btn-red: #9e2457;
+  --btn-red-dark: #5f1233;
+  --btn-system: #8d8a83;
+  --btn-system-light: #a7a49d;
+  --btn-system-dark: #69665f;
+  --label: #34337a;
+  --brand: #2a2f80;
+  --page: #1d1e1c;
+  --page-light: #3a3b37;
+  --stripe-a: #8c2f63;
+  --stripe-b: #2f3f8c;
+  --tag-bg: #2a2f80;
+  --tag-fg: #e8e6e0;
+  --tag-glow: transparent;
+}
+
+[data-skin="pocket"] .bezel {
+  border-radius: 10px 10px 48px 10px;
+}
+
+[data-skin="pocket"] .screen {
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 2px rgba(15, 56, 15, 0.45);
+}
+
+[data-skin="pocket"] .screen::after {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 40%);
+}
+
+[data-skin="pocket"] .action-btn {
+  color: rgba(255, 255, 255, 0.6);
+  background: radial-gradient(circle at 35% 30%, #c4467c 0%, var(--btn-red) 45%, var(--btn-red-dark) 100%);
+}
+
+[data-skin="pocket"] .system-btn--reset {
+  background: linear-gradient(180deg, var(--btn-system-light) 0%, var(--btn-system) 50%, var(--btn-system-dark) 100%);
+  box-shadow:
+    0 3px 0 var(--btn-system-dark),
+    0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-skin="pocket"] .speaker span {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- Fósforo ámbar: metal negro con tornillos, estilo terminal ---------- */
+
+[data-skin="amber"] {
+  --amber: #ffb000;
+  --amber-dim: rgba(255, 176, 0, 0.6);
+  --shell: #1c1c1c;
+  --shell-light: #2e2e2e;
+  --shell-dark: #0d0d0d;
+  --shell-shadow: #000000;
+  --bezel: #0f0f0f;
+  --bezel-dark: #070707;
+  --bezel-text: var(--amber);
+  --led-off: #3a2600;
+  --led-on: var(--amber);
+  --dpad: #1a1a1a;
+  --dpad-light: #303030;
+  --arrow: var(--amber);
+  --btn-red: #2a2a2a;
+  --btn-red-dark: #0a0a0a;
+  --btn-system: #2a2a2a;
+  --btn-system-light: #3c3c3c;
+  --btn-system-dark: #0e0e0e;
+  --label: var(--amber-dim);
+  --brand: var(--amber);
+  --page: #050505;
+  --page-light: #1a1610;
+  --stripe-a: var(--amber);
+  --stripe-b: #7a5200;
+  --tag-bg: var(--amber);
+  --tag-fg: #120c00;
+  --tag-glow: rgba(255, 176, 0, 0.5);
+  font-family: "Courier New", "Lucida Console", monospace;
+}
+
+[data-skin="amber"] .console {
+  background:
+    radial-gradient(circle at 10px 10px, #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at calc(100% - 10px) 10px, #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at 10px calc(100% - 10px), #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
+    linear-gradient(170deg, #2b2b2b 0%, #1a1a1a 50%, #0e0e0e 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px #000000,
+    0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+@media (min-width: 481px) {
+  /* Con las esquinas redondeadas, el tornillo de abajo a la derecha se mete hacia dentro. */
+  [data-skin="amber"] .console {
+    background:
+      radial-gradient(circle at 12px 12px, #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+      radial-gradient(circle at calc(100% - 12px) 12px, #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+      radial-gradient(circle at 12px calc(100% - 12px), #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+      radial-gradient(circle at calc(100% - 34px) calc(100% - 34px), #9a9a9a 0 2px, #4a4a4a 2.5px 3.5px, rgba(0, 0, 0, 0) 4px),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
+      linear-gradient(170deg, #2b2b2b 0%, #1a1a1a 50%, #0e0e0e 100%);
+  }
+}
+
+[data-skin="amber"] .bezel {
+  background: linear-gradient(180deg, #121212 0%, #060606 100%);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 176, 0, 0.25),
+    inset 0 2px 6px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+[data-skin="amber"] .bezel__label {
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+}
+
+[data-skin="amber"] .bezel__led.is-on {
+  box-shadow: 0 0 10px var(--amber);
+}
+
+[data-skin="amber"] .screen {
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 2px #000000,
+    inset 0 0 30px rgba(0, 0, 0, 0.9);
+}
+
+[data-skin="amber"] .screen::after {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 176, 0, 0.06) 0%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+[data-skin="amber"] #lcd {
+  filter: drop-shadow(0 0 2px rgba(255, 176, 0, 0.6)) drop-shadow(0 0 6px rgba(255, 140, 0, 0.25));
+}
+
+[data-skin="amber"] .brand {
+  font-size: 16px;
+  font-style: normal;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255, 176, 0, 0.6);
+}
+
+[data-skin="amber"] .brand__model {
+  color: var(--amber-dim);
+}
+
+[data-skin="amber"] .dpad__btn,
+[data-skin="amber"] .dpad__center {
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 0, 0.25);
+}
+
+[data-skin="amber"] .action-btn {
+  color: var(--amber);
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.7);
+  background: radial-gradient(circle at 40% 30%, #3a3a3a 0%, #222222 55%, #111111 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 176, 0, 0.55),
+    0 4px 0 #000000,
+    0 7px 10px rgba(0, 0, 0, 0.5);
+}
+
+[data-skin="amber"] .action-btn.is-pressed {
+  color: #120c00;
+  text-shadow: none;
+  background: var(--amber);
+  box-shadow: 0 0 18px rgba(255, 176, 0, 0.7);
+}
+
+[data-skin="amber"] .system-btn {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 176, 0, 0.35),
+    0 3px 0 #000000;
+}
+
+[data-skin="amber"] .system-btn--reset {
+  background: linear-gradient(180deg, #3c3c3c 0%, #2a2a2a 50%, #0e0e0e 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 90, 0, 0.55),
+    0 3px 0 #000000;
+}
+
+[data-skin="amber"] .system__label {
+  text-shadow: 0 0 5px rgba(255, 176, 0, 0.4);
+}
+
+[data-skin="amber"] .speaker span {
+  background: #050505;
+  box-shadow:
+    inset 0 1px 2px #000000,
+    0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Arcade: mueble de madera negra, vinilo con rayas y botón rojo grande ---------- */
+
+[data-skin="arcade"] {
+  --shell: #24170e;
+  --shell-light: #3a2617;
+  --shell-dark: #140c07;
+  --shell-shadow: #000000;
+  --bezel: #0a0a0f;
+  --bezel-dark: #000000;
+  --bezel-text: #ffe81a;
+  --led-off: #3a0d0d;
+  --led-on: #ff2a2a;
+  --dpad: #15151c;
+  --dpad-light: #2c2c38;
+  --arrow: #ffe81a;
+  --btn-red: #e8231f;
+  --btn-red-dark: #8a0f0c;
+  --btn-system: #e8e8f0;
+  --btn-system-light: #ffffff;
+  --btn-system-dark: #8c8c98;
+  --label: #ffe81a;
+  --brand: #ffe81a;
+  --page: #08060a;
+  --page-light: #2a1616;
+  --stripe-a: #ff2a2a;
+  --stripe-b: #1ae8ff;
+  --tag-bg: #ff2a2a;
+  --tag-fg: #ffffff;
+  --tag-glow: rgba(255, 42, 42, 0.6);
+}
+
+[data-skin="arcade"] .console {
+  background:
+    /* Vinilo lateral con rayas */
+    linear-gradient(
+      90deg,
+      #ff2a2a 0 4px,
+      #ff8a1a 4px 8px,
+      #ffe81a 8px 12px,
+      rgba(0, 0, 0, 0) 12px calc(100% - 12px),
+      #ffe81a calc(100% - 12px) calc(100% - 8px),
+      #ff8a1a calc(100% - 8px) calc(100% - 4px),
+      #ff2a2a calc(100% - 4px)
+    ),
+    /* Vetas de la madera */
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0 2px, rgba(0, 0, 0, 0) 2px 9px, rgba(255, 255, 255, 0.03) 9px 10px, rgba(0, 0, 0, 0) 10px 17px),
+    linear-gradient(160deg, #3a2617 0%, #24170e 50%, #140c07 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -6px 0 #0a0603,
+    0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+[data-skin="arcade"] .bezel {
+  background: linear-gradient(180deg, #0d0d14 0%, #000000 100%);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 0 0 2px #2a2a38,
+    inset 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+[data-skin="arcade"] .bezel__label {
+  text-shadow: 0 0 6px rgba(255, 232, 26, 0.7);
+}
+
+[data-skin="arcade"] .bezel__text {
+  animation: arcade-coin 1.6s steps(1, end) infinite;
+}
+
+@keyframes arcade-coin {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+[data-skin="arcade"] .bezel__label::after {
+  background: linear-gradient(90deg, #ff2a2a, #ff8a1a, #ffe81a, #2aff4a, #1ae8ff, #3a5bff, #ff3ad8);
+}
+
+/* Monitor CRT: esquinas curvas, viñeta y líneas de barrido. */
+[data-skin="arcade"] .screen {
+  border-radius: 12px / 10px;
+  box-shadow:
+    inset 0 0 0 3px #000000,
+    inset 0 0 40px rgba(0, 0, 0, 0.85);
+}
+
+[data-skin="arcade"] .screen::after {
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
+    radial-gradient(ellipse at 35% 25%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+[data-skin="arcade"] #lcd {
+  filter: saturate(1.15) drop-shadow(0 0 3px rgba(255, 255, 255, 0.22));
+}
+
+[data-skin="arcade"] .brand {
+  font-size: 18px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow:
+    2px 2px 0 #ff2a2a,
+    0 0 10px rgba(255, 232, 26, 0.4);
+}
+
+[data-skin="arcade"] .brand__model {
+  color: #1ae8ff;
+  text-shadow: 0 0 8px rgba(26, 232, 255, 0.6);
+}
+
+/* La cruceta lleva una bola roja en el centro, como una palanca. */
+[data-skin="arcade"] .dpad__center {
+  background: radial-gradient(circle at 40% 35%, #ff8080 0%, #e8231f 35%, #7a0a08 70%, var(--dpad) 74%);
+}
+
+[data-skin="arcade"] .actions::before {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+[data-skin="arcade"] .action-btn {
+  color: rgba(255, 255, 255, 0.85);
+  background: radial-gradient(circle at 35% 30%, #ff7a76 0%, #e8231f 45%, #8a0f0c 100%);
+  box-shadow:
+    0 0 0 4px #15151c,
+    0 0 0 5px #3a3a48,
+    0 5px 0 4px #000000,
+    0 8px 12px rgba(0, 0, 0, 0.5);
+}
+
+[data-skin="arcade"] .actions__item--a .action-btn {
+  width: clamp(60px, 18.5vw, 76px);
+  height: clamp(60px, 18.5vw, 76px);
+  font-size: 20px;
+}
+
+[data-big="1"][data-skin="arcade"] .actions__item--a .action-btn {
+  width: clamp(72px, 22vw, 94px);
+  height: clamp(72px, 22vw, 94px);
+  font-size: 24px;
+}
+
+[data-skin="arcade"] .actions__item--b .action-btn {
+  background: radial-gradient(circle at 35% 30%, #7ab0ff 0%, #3a5bff 45%, #16248a 100%);
+}
+
+[data-skin="arcade"] .action-btn.is-pressed {
+  box-shadow:
+    0 0 0 4px #15151c,
+    0 0 0 5px #3a3a48,
+    0 1px 0 4px #000000;
+}
+
+[data-skin="arcade"] .system-btn {
+  box-shadow:
+    0 3px 0 #4a4a55,
+    0 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-skin="arcade"] .system-btn--reset {
+  background: linear-gradient(180deg, #ff6b66 0%, #e8231f 50%, #8a0f0c 100%);
+  box-shadow: 0 3px 0 #5a0806;
+}
+
+[data-skin="arcade"] .system__label {
+  text-shadow: 0 0 4px rgba(255, 232, 26, 0.5);
+}
+
+[data-skin="arcade"] .speaker span {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Madera 80s: imitación madera, franja naranja y botones cromados ---------- */
+
+[data-skin="wood"] {
+  --shell: #6b3f1f;
+  --shell-light: #8a5530;
+  --shell-dark: #4a2a12;
+  --shell-shadow: #2a1608;
+  --bezel: #1c1410;
+  --bezel-dark: #0f0a08;
+  --bezel-text: #f2dcb4;
+  --led-on: #ff7a1c;
+  --dpad: #8d949a;
+  --dpad-light: #e6eaed;
+  --arrow: #3a3f44;
+  --btn-red: #c9ced2;
+  --btn-red-dark: #6c7378;
+  --btn-system: #b7bdc2;
+  --btn-system-light: #eef1f3;
+  --btn-system-dark: #6c7378;
+  --label: #f2dcb4;
+  --brand: #f6e7c8;
+  --page: #140c06;
+  --page-light: #3a2414;
+  --stripe-a: #f08a24;
+  --stripe-b: #c95f12;
+  --tag-bg: #f08a24;
+  --tag-fg: #2a1608;
+  --tag-glow: transparent;
+}
+
+[data-skin="wood"] .console {
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.12) 0 2px, rgba(0, 0, 0, 0) 2px 7px, rgba(255, 220, 170, 0.06) 7px 9px, rgba(0, 0, 0, 0) 9px 15px),
+    repeating-linear-gradient(88deg, rgba(0, 0, 0, 0.08) 0 1px, rgba(0, 0, 0, 0) 1px 23px),
+    radial-gradient(ellipse 40% 6% at 30% 42%, rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0) 70%),
+    radial-gradient(ellipse 30% 5% at 72% 78%, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0) 70%),
+    linear-gradient(160deg, #8a5530 0%, #6b3f1f 45%, #55301a 100%);
+}
+
+/* Franja naranja de lado a lado entre la pantalla y los controles. */
+[data-skin="wood"] .console__controls::before {
+  content: "";
+  position: absolute;
+  left: calc(-14px - var(--safe-left));
+  right: calc(-14px - var(--safe-right));
+  top: 4px;
+  height: 8px;
+  background: linear-gradient(180deg, #f6a04a 0%, #f08a24 40%, #c95f12 100%);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.35),
+    0 -1px 0 rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+[data-skin="wood"] .bezel {
+  background: linear-gradient(180deg, #221812 0%, #0f0a08 100%);
+  box-shadow:
+    0 0 0 2px #cfd4d8,
+    0 0 0 3px #7c8288,
+    inset 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+[data-skin="wood"] .brand {
+  font-family: Georgia, "Times New Roman", serif;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+[data-skin="wood"] .brand__model {
+  color: #f08a24;
+}
+
+[data-skin="wood"] .dpad::before {
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.12) 65%, rgba(0, 0, 0, 0) 72%);
+}
+
+[data-skin="wood"] .dpad__btn,
+[data-skin="wood"] .dpad__center {
+  background: linear-gradient(180deg, #f4f6f7 0%, #b9bfc4 45%, #8d949a 55%, #cfd4d8 100%);
+}
+
+[data-skin="wood"] .action-btn {
+  color: #3a3f44;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+  background: radial-gradient(circle at 35% 28%, #ffffff 0%, #d9dee2 30%, #9aa1a6 70%, #6c7378 100%);
+}
+
+[data-skin="wood"] .system-btn--reset {
+  background: linear-gradient(180deg, #f6a04a 0%, #f08a24 50%, #a8500f 100%);
+  box-shadow:
+    0 3px 0 #6a3208,
+    0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-skin="wood"] .speaker span {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- Vaporwave: degradado rosa y turquesa con rejilla ---------- */
+
+[data-skin="vapor"] {
+  --shell: #b967ff;
+  --shell-light: #ff71ce;
+  --shell-dark: #01cdfe;
+  --shell-shadow: #5a2a8a;
+  --bezel: #2b1055;
+  --bezel-dark: #1a0b30;
+  --bezel-text: #fdf0ff;
+  --led-on: #05ffa1;
+  --dpad: #2b1055;
+  --dpad-light: #4a2a8a;
+  --arrow: #01cdfe;
+  --btn-red: #ff71ce;
+  --btn-red-dark: #b0307e;
+  --label: #fdf0ff;
+  --brand: #ffffff;
+  --page: #12062a;
+  --page-light: #3a1060;
+  --stripe-a: #ff71ce;
+  --stripe-b: #01cdfe;
+  --tag-bg: #01cdfe;
+  --tag-fg: #2b1055;
+  --tag-glow: rgba(1, 205, 254, 0.6);
+}
+
+[data-skin="vapor"] body {
+  background:
+    linear-gradient(rgba(255, 113, 206, 0.12) 1px, rgba(0, 0, 0, 0) 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, rgba(255, 113, 206, 0.12) 1px, rgba(0, 0, 0, 0) 1px) 0 0 / 32px 32px,
+    linear-gradient(180deg, #12062a 0%, #3a1060 60%, #8a2a7a 100%);
+}
+
+[data-skin="vapor"] .console {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.14) 1px, rgba(255, 255, 255, 0) 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, rgba(255, 255, 255, 0) 1px) 0 0 / 22px 22px,
+    linear-gradient(165deg, #ff71ce 0%, #b967ff 50%, #01cdfe 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -6px 0 rgba(43, 16, 85, 0.45),
+    0 0 40px rgba(255, 113, 206, 0.25),
+    0 20px 50px rgba(0, 0, 0, 0.55);
+}
+
+[data-skin="vapor"] .bezel {
+  background: linear-gradient(180deg, #2b1055 0%, #1a0b30 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 113, 206, 0.6),
+    inset 0 0 18px rgba(1, 205, 254, 0.2);
+}
+
+[data-skin="vapor"] .bezel__label {
+  text-shadow:
+    1px 0 0 #ff71ce,
+    -1px 0 0 #01cdfe;
+}
+
+[data-skin="vapor"] .screen {
+  box-shadow:
+    inset 0 0 0 1px rgba(1, 205, 254, 0.5),
+    inset 0 0 24px rgba(255, 113, 206, 0.18);
+}
+
+[data-skin="vapor"] .screen::after {
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 1px, rgba(255, 255, 255, 0) 1px 3px),
+    linear-gradient(135deg, rgba(255, 113, 206, 0.1) 0%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0) 65%, rgba(1, 205, 254, 0.1) 100%);
+}
+
+[data-skin="vapor"] #lcd {
+  filter: drop-shadow(0 0 2px rgba(255, 138, 226, 0.55)) drop-shadow(0 0 6px rgba(111, 243, 255, 0.25));
+}
+
+[data-skin="vapor"] .brand {
+  letter-spacing: 0.12em;
+  text-shadow:
+    2px 0 0 #ff71ce,
+    -2px 0 0 #01cdfe;
+}
+
+[data-skin="vapor"] .brand__model {
+  color: #fffb96;
+}
+
+[data-skin="vapor"] .dpad__btn,
+[data-skin="vapor"] .dpad__center {
+  background: linear-gradient(180deg, #4a2a8a 0%, #2b1055 100%);
+  box-shadow: inset 0 0 0 1px rgba(1, 205, 254, 0.5);
+}
+
+[data-skin="vapor"] .action-btn {
+  color: #ffffff;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+  background: radial-gradient(circle at 35% 30%, #ffd0f0 0%, #ff71ce 45%, #b0307e 100%);
+  box-shadow:
+    0 4px 0 #8a2a6a,
+    0 0 14px rgba(255, 113, 206, 0.5);
+}
+
+[data-skin="vapor"] .actions__item--b .action-btn {
+  background: radial-gradient(circle at 35% 30%, #c8f6ff 0%, #01cdfe 45%, #0a7ea0 100%);
+  box-shadow:
+    0 4px 0 #0a5f7a,
+    0 0 14px rgba(1, 205, 254, 0.5);
+}
+
+[data-skin="vapor"] .action-btn.is-pressed {
+  box-shadow:
+    0 1px 0 #8a2a6a,
+    0 0 22px rgba(255, 113, 206, 0.8);
+}
+
+[data-skin="vapor"] .actions__item--b .action-btn.is-pressed {
+  box-shadow:
+    0 1px 0 #0a5f7a,
+    0 0 22px rgba(1, 205, 254, 0.8);
+}
+
+[data-skin="vapor"] .system-btn {
+  background: linear-gradient(180deg, #fffdc8 0%, #fffb96 50%, #c9c45a 100%);
+  box-shadow:
+    0 3px 0 #8a8540,
+    0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+[data-skin="vapor"] .system-btn--reset {
+  background: linear-gradient(180deg, #b4ffe0 0%, #05ffa1 50%, #0a9a62 100%);
+  box-shadow: 0 3px 0 #066a43;
+}
+
+[data-skin="vapor"] .system__label {
+  text-shadow: 0 1px 0 rgba(43, 16, 85, 0.6);
+}
+
+[data-skin="vapor"] .speaker span {
+  background: rgba(43, 16, 85, 0.35);
+}
+
+/* ---------- OLED nocturno: negro puro sin adornos, rojo tenue ---------- */
+
+[data-skin="oled"] {
+  --shell: #000000;
+  --shell-light: #000000;
+  --shell-dark: #000000;
+  --shell-shadow: rgba(0, 0, 0, 0);
+  --bezel: #000000;
+  --bezel-dark: #000000;
+  --bezel-text: #5a1610;
+  --led-off: #1a0503;
+  --led-on: #8a1d16;
+  --dpad: #0b0b0b;
+  --dpad-light: #121212;
+  --arrow: #6a1a12;
+  --btn-red: #0b0b0b;
+  --btn-red-dark: #050505;
+  --btn-system: #0b0b0b;
+  --btn-system-light: #0b0b0b;
+  --btn-system-dark: #050505;
+  --label: #5a1610;
+  --brand: #4a120d;
+  --page: #000000;
+  --page-light: #000000;
+  --stripe-a: #2a0806;
+  --stripe-b: #2a0806;
+  --tag-bg: rgba(0, 0, 0, 0);
+  --tag-fg: #5a1610;
+  --tag-glow: rgba(0, 0, 0, 0);
+}
+
+[data-skin="oled"] .console {
+  background: #000000;
+  box-shadow: none;
+}
+
+[data-skin="oled"] .bezel {
+  background: #000000;
+  box-shadow: inset 0 0 0 1px #140403;
+}
+
+[data-skin="oled"] .bezel__led.is-on {
+  box-shadow: 0 0 4px var(--led-on);
+}
+
+[data-skin="oled"] .screen {
+  box-shadow: none;
+}
+
+[data-skin="oled"] .screen::after {
+  display: none;
+}
+
+[data-skin="oled"] .brand {
+  text-shadow: none;
+}
+
+[data-skin="oled"] .dpad {
+  filter: none;
+}
+
+[data-skin="oled"] .dpad::before {
+  display: none;
+}
+
+[data-skin="oled"] .dpad__btn,
+[data-skin="oled"] .dpad__center {
+  background: var(--dpad);
+  box-shadow: inset 0 0 0 1px #2e0b08;
+}
+
+[data-skin="oled"] .actions::before {
+  background: rgba(0, 0, 0, 0);
+  box-shadow: inset 0 0 0 1px #1a0605;
+}
+
+[data-skin="oled"] .action-btn {
+  color: #7a1e15;
+  background: var(--btn-red);
+  box-shadow: inset 0 0 0 1px #3e100b;
+}
+
+[data-skin="oled"] .action-btn.is-pressed {
+  background: #1a0605;
+  box-shadow: inset 0 0 0 1px #5a1610;
+}
+
+[data-skin="oled"] .system-btn,
+[data-skin="oled"] .system-btn--reset {
+  background: var(--btn-system);
+  box-shadow: inset 0 0 0 1px #3e100b;
+}
+
+[data-skin="oled"] .system-btn.is-pressed {
+  background: #1a0605;
+  box-shadow: inset 0 0 0 1px #5a1610;
+}
+
+[data-skin="oled"] .speaker {
+  display: none;
+}
+
+/* ---------- Papel: libreta de rayas y tinta azul de bolígrafo ---------- */
+
+[data-skin="paper"] {
+  --pen: #1f3a9e;
+  --pen-red: #c8302c;
+  --paper: #fbfaf4;
+  --shell: var(--paper);
+  --shell-light: var(--paper);
+  --shell-dark: #e6e2d4;
+  --shell-shadow: rgba(31, 58, 158, 0.2);
+  --bezel-text: var(--pen);
+  --led-off: #f0d0d0;
+  --led-on: var(--pen-red);
+  --arrow: var(--pen);
+  --btn-red-dark: var(--pen);
+  --label: var(--pen);
+  --brand: var(--pen);
+  --page: #d9d4c4;
+  --page-light: #ece8dc;
+  --stripe-a: var(--pen-red);
+  --stripe-b: var(--pen);
+  --tag-bg: rgba(255, 236, 90, 0.85);
+  --tag-fg: var(--pen);
+  --tag-glow: rgba(0, 0, 0, 0);
+  color-scheme: light;
+  font-family: "Comic Sans MS", "Segoe Print", "Bradley Hand", "Chalkboard SE", "Marker Felt", cursive;
+}
+
+[data-skin="paper"] .console {
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0) 0 30px, rgba(200, 48, 44, 0.45) 30px 31px, rgba(0, 0, 0, 0) 31px),
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 21px, rgba(31, 58, 158, 0.16) 21px 22px),
+    var(--paper);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+[data-skin="paper"] .bezel {
+  background: var(--paper);
+  border: 2px solid var(--pen);
+  border-radius: 16px 12px 42px 14px / 12px 16px 38px 16px;
+  box-shadow: 2px 3px 0 rgba(31, 58, 158, 0.18);
+}
+
+[data-skin="paper"] .bezel__label::after {
+  height: 0;
+  background: none;
+  border-top: 2px dashed rgba(31, 58, 158, 0.5);
+}
+
+[data-skin="paper"] .screen {
+  border: 1.5px solid var(--pen);
+  border-radius: 3px 6px 4px 5px;
+  box-shadow: none;
+}
+
+[data-skin="paper"] .screen::after {
+  display: none;
+}
+
+[data-skin="paper"] .brand {
+  font-style: normal;
+  text-shadow: none;
+  transform: rotate(-2deg);
+}
+
+[data-skin="paper"] .brand__model {
+  color: var(--pen-red);
+}
+
+[data-skin="paper"] .brand__tag {
+  transform: rotate(3deg);
+}
+
+[data-skin="paper"] .dpad {
+  filter: none;
+}
+
+[data-skin="paper"] .dpad::before {
+  inset: -6px;
+  background: none;
+  border: 1.5px dashed rgba(31, 58, 158, 0.35);
+}
+
+[data-skin="paper"] .dpad__btn,
+[data-skin="paper"] .dpad__center {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px var(--pen);
+}
+
+[data-skin="paper"] .dpad__btn.is-pressed {
+  filter: none;
+  background: rgba(31, 58, 158, 0.18);
+}
+
+[data-skin="paper"] .actions::before {
+  background: none;
+  border: 1.5px dashed rgba(31, 58, 158, 0.35);
+}
+
+[data-skin="paper"] .action-btn {
+  font-size: 20px;
+  color: var(--pen);
+  background: var(--paper);
+  border: 2px solid var(--pen);
+  border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
+  box-shadow: 2px 3px 0 rgba(31, 58, 158, 0.25);
+}
+
+[data-skin="paper"] .action-btn.is-pressed {
+  background: rgba(31, 58, 158, 0.15);
+  box-shadow: 0 1px 0 rgba(31, 58, 158, 0.25);
+}
+
+[data-skin="paper"] .system-btn {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px var(--pen);
+}
+
+[data-skin="paper"] .system-btn--reset {
+  box-shadow: inset 0 0 0 1.5px var(--pen-red);
+}
+
+[data-skin="paper"] .system-btn.is-pressed {
+  background: rgba(31, 58, 158, 0.18);
+  box-shadow: inset 0 0 0 1.5px var(--pen);
+}
+
+[data-skin="paper"] .speaker span {
+  width: 2px;
+  background: rgba(31, 58, 158, 0.45);
+  box-shadow: none;
+}
+
+/* ---------- Estacional: la carcasa cambia con la estación (data-season) ---------- */
+
+[data-skin="seasonal"] {
+  --tag-glow: rgba(0, 0, 0, 0);
+}
+
+[data-skin="seasonal"] .brand::after {
+  /* Adorno de la estación junto a la marca: calabaza, muñeco de nieve, flor o sol. */
+  content: "";
+  flex: 0 0 auto;
+  align-self: center;
+  width: 30px;
+  height: 26px;
+  margin-left: auto;
+}
+
+[data-season="autumn"] {
+  --shell: #d9732a;
+  --shell-light: #ee9a4a;
+  --shell-dark: #a24a14;
+  --shell-shadow: #6a2c08;
+  --bezel: #3a1d0c;
+  --bezel-dark: #26120a;
+  --bezel-text: #f6d7a8;
+  --led-on: #ffb02e;
+  --dpad: #3a1d0c;
+  --dpad-light: #5a2e14;
+  --arrow: #e6b07a;
+  --btn-red: #6a2a7a;
+  --btn-red-dark: #3a1446;
+  --btn-system: #5a2e14;
+  --btn-system-light: #7a4220;
+  --btn-system-dark: #3a1d0c;
+  --label: #4a1f08;
+  --brand: #3a1d0c;
+  --page: #1a0d06;
+  --page-light: #4a2410;
+  --stripe-a: #6a2a7a;
+  --stripe-b: #2f5a1a;
+  --tag-bg: #3a1d0c;
+  --tag-fg: #ffb02e;
+}
+
+[data-season="autumn"] .console {
+  background:
+    radial-gradient(ellipse 9px 5px at 7% 63%, rgba(168, 52, 20, 0.75) 0 90%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(ellipse 7px 4px at 94% 57%, rgba(122, 56, 16, 0.7) 0 90%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(ellipse 8px 4px at 55% 97%, rgba(200, 140, 20, 0.7) 0 90%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(ellipse 6px 3px at 30% 98%, rgba(168, 52, 20, 0.6) 0 90%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(ellipse 6px 3px at 80% 99%, rgba(110, 50, 14, 0.6) 0 90%, rgba(0, 0, 0, 0) 100%),
+    linear-gradient(160deg, var(--shell-light) 0%, var(--shell) 40%, var(--shell-dark) 100%);
+}
+
+[data-season="autumn"] .brand::after {
+  background:
+    linear-gradient(#3f6a1a, #3f6a1a) 13px 1px / 4px 6px no-repeat,
+    radial-gradient(7px 9px at 15px 16px, #f59a3a 0 92%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(9px 8px at 9px 17px, #c8561a 0 92%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(9px 8px at 21px 17px, #c8561a 0 92%, rgba(0, 0, 0, 0) 100%);
+}
+
+[data-season="winter"] {
+  --shell: #cfe3f1;
+  --shell-light: #eef6fc;
+  --shell-dark: #9cbfd8;
+  --shell-shadow: #6e94b0;
+  --bezel: #183256;
+  --bezel-dark: #0f2240;
+  --bezel-text: #d6e8f6;
+  --led-on: #ff4a4a;
+  --dpad: #183256;
+  --dpad-light: #2a4a78;
+  --arrow: #9cc3e6;
+  --btn-red: #c1121f;
+  --btn-red-dark: #7a0a12;
+  --btn-system: #8fb3cf;
+  --btn-system-light: #b9d3e6;
+  --btn-system-dark: #5f86a6;
+  --label: #183256;
+  --brand: #183256;
+  --page: #0b1626;
+  --page-light: #24476b;
+  --stripe-a: #c1121f;
+  --stripe-b: #21734f;
+  --tag-bg: #c1121f;
+  --tag-fg: #ffffff;
+}
+
+[data-season="winter"] .console {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 1.5px, rgba(255, 255, 255, 0) 2px) 0 0 / 26px 26px,
+    radial-gradient(circle, rgba(255, 255, 255, 0.75) 0 1px, rgba(255, 255, 255, 0) 1.5px) 13px 13px / 26px 26px,
+    linear-gradient(160deg, var(--shell-light) 0%, var(--shell) 40%, var(--shell-dark) 100%);
+}
+
+[data-season="winter"] .brand::after {
+  background:
+    radial-gradient(circle at 13px 7px, #183256 0 0.9px, rgba(0, 0, 0, 0) 1.3px),
+    radial-gradient(circle at 17px 7px, #183256 0 0.9px, rgba(0, 0, 0, 0) 1.3px),
+    radial-gradient(3px 1.5px at 16px 10px, #f08a24 0 90%, rgba(0, 0, 0, 0) 100%),
+    radial-gradient(circle at 15px 8px, #ffffff 0 5px, rgba(255, 255, 255, 0) 5.5px),
+    radial-gradient(circle at 15px 19px, #ffffff 0 7px, rgba(255, 255, 255, 0) 7.5px);
+  filter: drop-shadow(0 1px 0 rgba(24, 50, 86, 0.35));
+}
+
+[data-season="spring"] {
+  --shell: #bfe0a8;
+  --shell-light: #e2f2d2;
+  --shell-dark: #8cc070;
+  --shell-shadow: #5f8f48;
+  --bezel: #2b4526;
+  --bezel-dark: #1c3018;
+  --bezel-text: #e9f1d4;
+  --led-on: #ff7ab0;
+  --dpad: #2b4526;
+  --dpad-light: #44683c;
+  --arrow: #bfe0a8;
+  --btn-red: #e05a8a;
+  --btn-red-dark: #9a2f5a;
+  --btn-system: #8cc070;
+  --btn-system-light: #b4dc98;
+  --btn-system-dark: #5f8f48;
+  --label: #2b4526;
+  --brand: #2b4526;
+  --page: #10200e;
+  --page-light: #35602c;
+  --stripe-a: #e05a8a;
+  --stripe-b: #f2c40f;
+  --tag-bg: #e05a8a;
+  --tag-fg: #ffffff;
+}
+
+[data-season="spring"] .console {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.75) 0 2px, rgba(255, 255, 255, 0) 2.5px) 0 0 / 34px 30px,
+    radial-gradient(circle, rgba(224, 90, 138, 0.55) 0 2.5px, rgba(224, 90, 138, 0) 3px) 17px 15px / 34px 30px,
+    linear-gradient(160deg, var(--shell-light) 0%, var(--shell) 40%, var(--shell-dark) 100%);
+}
+
+[data-season="spring"] .brand::after {
+  background:
+    radial-gradient(circle at 15px 10px, #f2c40f 0 2.5px, rgba(0, 0, 0, 0) 3px),
+    radial-gradient(circle at 15px 4.5px, #e05a8a 0 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at 20.2px 8.3px, #e05a8a 0 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at 18.2px 14.4px, #e05a8a 0 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at 11.8px 14.4px, #e05a8a 0 3.5px, rgba(0, 0, 0, 0) 4px),
+    radial-gradient(circle at 9.8px 8.3px, #e05a8a 0 3.5px, rgba(0, 0, 0, 0) 4px),
+    linear-gradient(#348a32, #348a32) 14px 15px / 2px 11px no-repeat;
+}
+
+[data-season="summer"] {
+  --shell: #ffd36e;
+  --shell-light: #ffe9a8;
+  --shell-dark: #f0a830;
+  --shell-shadow: #b8761a;
+  --bezel: #0d4a66;
+  --bezel-dark: #083348;
+  --bezel-text: #fbe7b2;
+  --led-on: #ff6f59;
+  --dpad: #0d4a66;
+  --dpad-light: #1a6f94;
+  --arrow: #9ee3f5;
+  --btn-red: #ff6f59;
+  --btn-red-dark: #b8382a;
+  --btn-system: #1a8fb0;
+  --btn-system-light: #5cc3df;
+  --btn-system-dark: #0d5f78;
+  --label: #0d4a66;
+  --brand: #0d4a66;
+  --page: #062a3a;
+  --page-light: #1a6f94;
+  --stripe-a: #ff6f59;
+  --stripe-b: #1a8fb0;
+  --tag-bg: #1a8fb0;
+  --tag-fg: #ffffff;
+}
+
+[data-season="summer"] .console {
+  background: linear-gradient(180deg, #8fd8f2 0%, #bfe8f4 30%, #ffe9a8 55%, #ffd36e 80%, #f0a830 100%);
+}
+
+[data-season="summer"] .brand::after {
+  background:
+    radial-gradient(circle at 15px 13px, #ffd23f 0 6px, #f08a24 6.5px 7px, rgba(0, 0, 0, 0) 7.5px),
+    radial-gradient(circle at 26px 13px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 22.8px 20.8px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 15px 24px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 7.2px 20.8px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 4px 13px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 7.2px 5.2px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 15px 2px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px),
+    radial-gradient(circle at 22.8px 5.2px, #f08a24 0 1.6px, rgba(0, 0, 0, 0) 2px);
+}
+
+/* En horizontal las etiquetas de los botones van sobre la carcasa: en las claras, en su color. */
+@media (orientation: landscape) and (max-height: 600px) {
+  [data-skin="pocket"] .system__label,
+  [data-skin="paper"] .system__label,
+  [data-skin="seasonal"] .system__label {
+    color: var(--label);
+  }
+
+  [data-skin="wood"] .console__controls::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-skin="arcade"] .bezel__text {
+    animation: none;
+  }
 }
 
 /* ---------- Botones grandes (accesibilidad) ---------- */

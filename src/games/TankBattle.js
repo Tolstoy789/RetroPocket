@@ -587,7 +587,7 @@ export default class TankBattle extends BaseCartridge {
 
   draw(g) {
     g.clear();
-    const neon = g.palette.cellStyle === 'neon';
+    const colorful = g.palette.colorful;
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         const t = this.map[y][x];
@@ -610,7 +610,7 @@ export default class TankBattle extends BaseCartridge {
         if (Math.floor(e.spawning * 10) % 2 === 0) g.frame(OX + e.x + 2, OY + e.y + 2, SIZE - 4, SIZE - 4, 'mid');
         continue;
       }
-      this._drawTank(g, e, TANK_ENEMY, neon ? 'red' : 'mid');
+      this._drawTank(g, e, TANK_ENEMY, colorful ? 'red' : 'mid');
     }
     const p = this.player;
     if (!p.dead && (p.shield <= 0 || Math.floor(this.time * 12) % 2 === 0)) this._drawTank(g, p, TANK_PLAYER, 'yellow');

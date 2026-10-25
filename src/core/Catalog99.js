@@ -17,6 +17,7 @@ const GAME_MODULES = import.meta.glob(['../games/*.js', '!../games/BaseCartridge
  * - file: nombre del archivo en src/games/ (y de la clase exportada).
  * - defaults: todas las claves de variantConfig que el motor debe leer.
  * - variants: overrides por slot (en orden; los números de slot se asignan consecutivamente).
+ * - controls: dos líneas de ayuda que se ven antes de jugar.
  */
 export const ENGINES = [
   {
@@ -24,6 +25,7 @@ export const ENGINES = [
     file: 'BlockDrop',
     name: 'BLOCK DROP',
     color: 'cyan',
+    controls: ['◀▶ MOVER  ▼ BAJAR  ▲ CAER', 'A/B GIRAR   A+B GUARDAR'],
     defaults: {
       speed: 1, // multiplicador de la velocidad de caída
       startLevel: 1, // nivel inicial (1-10)
@@ -34,7 +36,8 @@ export const ENGINES = [
       goalLines: 0, // líneas para ganar (0 = sin fin)
       mirror: false, // controles izquierda/derecha invertidos
       cascade: false, // los bloques sueltos caen tras limpiar líneas
-      ghost: true // mostrar la sombra de caída
+      ghost: true, // mostrar la sombra de caída
+      hold: true // guardar pieza con A+B (o C)
     },
     variants: [
       { label: 'CLASICO', desc: 'Encaja piezas y completa lineas.' },
@@ -60,6 +63,7 @@ export const ENGINES = [
     file: 'MazeMuncher',
     name: 'MAZE MUNCHER',
     color: 'yellow',
+    controls: ['CRUCETA: MOVERTE', 'PULSA EL GIRO ANTES DEL CRUCE'],
     defaults: {
       speed: 1, // velocidad del jugador
       ghostSpeed: 1, // velocidad de los fantasmas
@@ -93,6 +97,7 @@ export const ENGINES = [
     file: 'CyberSnake',
     name: 'CYBER SNAKE',
     color: 'green',
+    controls: ['CRUCETA: GIRAR', 'MANTEN A: ACELERAR'],
     defaults: {
       speed: 1, // pasos por segundo relativos
       walls: 'solid', // 'solid' (chocar = perder) | 'wrap' (atraviesa los bordes)
@@ -125,6 +130,7 @@ export const ENGINES = [
     file: 'BrickBreaker',
     name: 'BRICK BREAKER',
     color: 'magenta',
+    controls: ['◀▶ MOVER LA PALETA  ▲ RAPIDO', 'A: LANZAR LA BOLA'],
     defaults: {
       speed: 1, // velocidad de la bola
       paddleWidth: 24, // ancho de la paleta en píxeles
@@ -157,6 +163,7 @@ export const ENGINES = [
     file: 'RoadRacer',
     name: 'ROAD RACER',
     color: 'red',
+    controls: ['◀▶ CARRIL  ▲ ACELERA  ▼ FRENA', 'A: DISPARAR (MODO ARMADO)'],
     defaults: {
       speed: 1, // velocidad inicial
       lanes: 3, // carriles (3 o 5)
@@ -189,6 +196,7 @@ export const ENGINES = [
     file: 'TankBattle',
     name: 'TANK BATTLE',
     color: 'orange',
+    controls: ['CRUCETA: MOVERTE', 'A: DISPARAR'],
     defaults: {
       enemyCount: 10, // tanques enemigos por nivel
       maxOnScreen: 3, // enemigos simultáneos
@@ -221,6 +229,7 @@ export const ENGINES = [
     file: 'SpaceShooter',
     name: 'SPACE SHOOTER',
     color: 'green',
+    controls: ['◀▶ MOVER LA NAVE', 'A: DISPARAR'],
     defaults: {
       formation: 'invaders', // 'invaders' | 'galaxy' | 'asteroids' | 'waves'
       rows: 4, // filas de enemigos
@@ -254,6 +263,7 @@ export const ENGINES = [
     file: 'FrogCrossing',
     name: 'FROG CROSSING',
     color: 'green',
+    controls: ['CRUCETA: UN SALTO POR TOQUE', 'LLEGA A LAS CASAS DE ARRIBA'],
     defaults: {
       trafficSpeed: 1,
       trafficDensity: 1,
@@ -287,6 +297,7 @@ export const ENGINES = [
     file: 'FlappyPixel',
     name: 'FLAPPY PIXEL',
     color: 'yellow',
+    controls: ['A O ▲: ALETEAR', 'NO TOQUES LOS OBSTACULOS'],
     defaults: {
       gravity: 1,
       flap: 1, // fuerza del aleteo
@@ -317,6 +328,7 @@ export const ENGINES = [
     file: 'MemoryMatrix',
     name: 'MEMORY MATRIX',
     color: 'blue',
+    controls: ['CRUCETA: PULSA LOS BOTONES', 'MATRIZ: CRUCETA MUEVE, A ELIGE'],
     defaults: {
       mode: 'simon', // 'simon' | 'reverse' | 'reflex' | 'grid' | 'pairs' | 'mixed'
       startLength: 1, // longitud inicial de la secuencia
@@ -359,6 +371,11 @@ export const STAR_THRESHOLDS = {
 };
 
 const SPEED_KEYS = ['speed', 'ghostSpeed', 'enemySpeed', 'trafficSpeed', 'riverSpeed', 'scrollSpeed'];
+
+/** VELOCIDAD 1-5 de la pantalla PREPARADO: multiplica las velocidades de la variante. */
+export const LAUNCH_SPEEDS = [1, 1.15, 1.3, 1.45, 1.6];
+/** NIVEL inicial máximo que se puede elegir antes de jugar. */
+export const MAX_START_LEVEL = 9;
 
 /** Giros del desafío diario: se aplican sobre el variantConfig del slot elegido. */
 export const DAILY_TWISTS = [
@@ -517,6 +534,23 @@ export class Catalog99 {
     });
   }
 
+  /**
+   * Slot con la VELOCIDAD (1-5) y el NIVEL inicial (1-9) elegidos en la pantalla PREPARADO.
+   * Más velocidad da más puntos (x1,25 por punto de velocidad); el nivel ya multiplica los puntos en cada motor.
+   * Los récords se guardan en el mismo slot. El desafío diario no se modifica.
+   */
+  customizeSlot(slot, { speed = 1, level = 1 } = {}) {
+    const s = Math.max(1, Math.min(LAUNCH_SPEEDS.length, Math.round(speed)));
+    const l = Math.max(1, Math.min(MAX_START_LEVEL, Math.round(level)));
+    if (slot.daily || (s === 1 && l === 1)) return slot;
+    const factor = LAUNCH_SPEEDS[s - 1];
+    const config = { ...slot.variantConfig };
+    for (const key of SPEED_KEYS) if (typeof config[key] === 'number') config[key] = +(config[key] * factor).toFixed(2);
+    config.startLevel = (Number.isFinite(config.startLevel) ? config.startLevel : 1) + (l - 1);
+    config.scoreMultiplier = 1 + (s - 1) * 0.25;
+    return Object.freeze({ ...slot, launchSpeed: s, launchLevel: l, variantConfig: Object.freeze(config) });
+  }
+
   createMenu(engine, initialSlot = 1) {
     return new CatalogMenu(engine, this, initialSlot);
   }
@@ -578,6 +612,14 @@ export class CatalogMenu {
     this.installed = this.catalog.isInstalled(slot);
     this.descLines = wrapText(slot.desc, 34).slice(0, 2);
     this.completed = this.catalog.completedCount(storage);
+    this.favorite = !slot.daily && storage.isFavorite(slot.number);
+  }
+
+  /** Coloca el menú en un slot (por ejemplo, al elegirlo en MIS JUEGOS). */
+  jumpTo(number) {
+    this.index = Math.max(0, Math.min(TOTAL_SLOTS, number));
+    this.slide = 0;
+    this._refresh();
   }
 
   select(index, direction) {
@@ -629,9 +671,14 @@ export class CatalogMenu {
         break;
       }
       case ACTIONS.A:
-      case ACTIONS.START:
         sound.sfx('confirm');
-        this.engine.launch(slot);
+        // El desafío diario es igual para todos: se juega sin cambiar velocidad ni nivel.
+        if (slot.daily || !this.installed) this.engine.launch(slot);
+        else this.engine.openLaunch(slot);
+        break;
+      case ACTIONS.START:
+        sound.sfx('select');
+        this.engine.openMyGames();
         break;
       case ACTIONS.B:
         sound.sfx('select');
@@ -681,6 +728,7 @@ export class CatalogMenu {
     } else {
       g.text(engineDef.name, cx, 50, { align: 'center', color: engineDef.color });
       g.text(`${slot.variantIndex + 1}/${engineDef.variants.length} ${slot.label}`, cx, 59, { align: 'center' });
+      if (this.favorite) g.text('♥', SCREEN_WIDTH - 22, numberY + 22, { color: 'magenta', scale: 2 });
     }
 
     // Vista previa animada
@@ -717,7 +765,7 @@ export class CatalogMenu {
     g.rect(barX + this.index - 1, barY - 2, 3, 5, 'ink');
 
     // Ayuda de controles
-    g.text('◀▶ JUEGO   ▲▼ MOTOR', cx, 175, { align: 'center', color: 'mid' });
-    g.text('A JUGAR   B OPCIONES', cx, 184, { align: 'center', color: 'mid' });
+    g.text('◀▶ JUEGO   ▲▼ MOTOR   A JUGAR', cx, 175, { align: 'center', color: 'mid' });
+    g.text('B OPCIONES   START MIS JUEGOS', cx, 184, { align: 'center', color: 'mid' });
   }
 }

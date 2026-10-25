@@ -8,6 +8,7 @@ import { SoundChip } from './core/SoundChip.js';
 import { InputManager } from './core/InputManager.js';
 import { StorageManager } from './core/StorageManager.js';
 import { Catalog99 } from './core/Catalog99.js';
+import { PlatformBridge } from './core/PlatformBridge.js';
 
 function boot() {
   const root = document.getElementById('console');
@@ -22,12 +23,13 @@ function boot() {
   const sound = new SoundChip({ volumeLevel: settings.volume });
   const input = new InputManager({ root, dpad, actionsZone, haptics: settings.haptics });
   const catalog = new Catalog99();
+  const platform = new PlatformBridge();
 
-  const engine = new ConsoleEngine({ canvas, screen, led, input, sound, storage, catalog });
+  const engine = new ConsoleEngine({ canvas, screen, led, input, sound, storage, catalog, platform });
   engine.start();
 
   if (Capacitor.isNativePlatform()) {
-    setupNative(engine, sound, input);
+    setupNative(engine, sound, input, platform);
   } else {
     registerServiceWorker();
   }
@@ -45,8 +47,8 @@ function registerServiceWorker() {
   else window.addEventListener('load', register, { once: true });
 }
 
-/** Integración con Android: botón "atrás" y pausa al pasar a segundo plano. */
-async function setupNative(engine, sound, input) {
+/** Integración con Android: botón "atrás", pausa al pasar a segundo plano y pantalla completa al volver. */
+async function setupNative(engine, sound, input, platform) {
   try {
     const { App } = await import('@capacitor/app');
     App.addListener('backButton', () => {
@@ -56,10 +58,12 @@ async function setupNative(engine, sound, input) {
     App.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
         sound.resume();
+        platform.reapply();
       } else {
         input.releaseAll();
         engine.pause();
         sound.suspend();
+        platform.suspend();
       }
     });
   } catch (err) {

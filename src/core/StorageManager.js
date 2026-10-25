@@ -1,10 +1,13 @@
 // src/core/StorageManager.js
-// Persistencia local: récords por slot (top 5), ajustes y último juego elegido.
+// Persistencia local: récords por slot (top 5), ajustes, último juego elegido, favoritos,
+// juegos recientes y la velocidad/nivel preferidos de cada motor.
 // Usa localStorage con un espacio de nombres propio y tolera navegadores sin almacenamiento.
 
 const NAMESPACE = 'retropocket99';
 const SCHEMA_VERSION = 1;
 const MAX_SCORES_PER_SLOT = 5;
+const MAX_RECENT = 6;
+const CODE_PREFIX = 'RP99-';
 
 const DEFAULT_SETTINGS = Object.freeze({
   volume: 'high', // volumen general: 'off' | 'low' | 'high' (botón SOUND)
@@ -22,6 +25,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   flashes: true, // destellos de pantalla completa
   breakReminder: true, // aviso de descanso cada 30 min de juego
   boot: 'auto', // animación de arranque: 'auto' (cambia cada 2 días) | 'brick' | 'neon' | 'cartridge'
+  fullscreen: true, // Android: oculta las barras del sistema
+  keepAwake: true, // la pantalla no se apaga mientras se juega
   initials: 'AAA', // últimas iniciales usadas
   lastSlot: 1
 });
@@ -104,6 +109,61 @@ export class StorageManager {
     settings[key] = value;
     this._write('settings', settings);
     return settings;
+  }
+
+  // ---------- Favoritos, recientes y preferencias de lanzamiento ----------
+
+  _numberList(name) {
+    const list = this._read(name, []);
+    return Array.isArray(list) ? list.filter((n) => Number.isInteger(n) && n >= 1 && n <= 99) : [];
+  }
+
+  /** Slots favoritos (números 1..99) en el orden en que se marcaron. */
+  getFavorites() {
+    return this._numberList('favorites');
+  }
+
+  isFavorite(slot) {
+    return this.getFavorites().includes(slot);
+  }
+
+  /** Marca o desmarca un favorito. Devuelve true si queda marcado. */
+  toggleFavorite(slot) {
+    const list = this.getFavorites();
+    const i = list.indexOf(slot);
+    if (i >= 0) list.splice(i, 1);
+    else list.push(slot);
+    this._write('favorites', list);
+    return i < 0;
+  }
+
+  /** Últimos slots jugados, el más reciente primero. */
+  getRecent() {
+    return this._numberList('recent');
+  }
+
+  pushRecent(slot) {
+    if (!Number.isInteger(slot)) return;
+    const list = this.getRecent().filter((n) => n !== slot);
+    list.unshift(slot);
+    this._write('recent', list.slice(0, MAX_RECENT));
+  }
+
+  /** Velocidad (1-5) y nivel inicial (1-9) elegidos la última vez para un motor. */
+  getLaunchPrefs(engineId) {
+    const all = this._read('launch', {});
+    const p = all && typeof all === 'object' ? all[engineId] : null;
+    return {
+      speed: Number.isInteger(p?.speed) ? Math.min(5, Math.max(1, p.speed)) : 1,
+      level: Number.isInteger(p?.level) ? Math.min(9, Math.max(1, p.level)) : 1
+    };
+  }
+
+  setLaunchPrefs(engineId, { speed, level }) {
+    const all = this._read('launch', {});
+    const next = all && typeof all === 'object' ? all : {};
+    next[engineId] = { speed, level };
+    this._write('launch', next);
   }
 
   // ---------- Récords ----------
@@ -201,7 +261,15 @@ export class StorageManager {
 
   /** Exporta todo como texto JSON (copia de seguridad). */
   exportData() {
-    return JSON.stringify({ version: SCHEMA_VERSION, settings: this.getSettings(), scores: this._allScores() });
+    return JSON.stringify({
+      version: SCHEMA_VERSION,
+      settings: this.getSettings(),
+      scores: this._allScores(),
+      favorites: this.getFavorites(),
+      recent: this.getRecent(),
+      launch: this._read('launch', {}),
+      extras: this.exportExtras()
+    });
   }
 
   /** Importa una copia de seguridad generada con exportData(). */
@@ -209,9 +277,72 @@ export class StorageManager {
     try {
       const data = JSON.parse(json);
       if (!data || typeof data !== 'object') return false;
+      if (!data.settings && !data.scores) return false;
       if (data.settings && typeof data.settings === 'object') this._write('settings', { ...DEFAULT_SETTINGS, ...data.settings });
       if (data.scores && typeof data.scores === 'object') this._write('scores', data.scores);
+      if (Array.isArray(data.favorites)) this._write('favorites', data.favorites);
+      if (Array.isArray(data.recent)) this._write('recent', data.recent);
+      if (data.launch && typeof data.launch === 'object') this._write('launch', data.launch);
+      if (data.extras && typeof data.extras === 'object') this.importExtras(data.extras);
       return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Datos guardados por otros módulos con saveExtra() (logros, estadísticas...).
+   * Se incluyen en la copia de seguridad.
+   */
+  exportExtras() {
+    const extras = {};
+    for (const name of this._read('extraKeys', [])) extras[name] = this._read(`x:${name}`, null);
+    return extras;
+  }
+
+  importExtras(extras) {
+    for (const [name, value] of Object.entries(extras)) {
+      if (/^[a-z][a-zA-Z0-9]*$/.test(name)) this.saveExtra(name, value);
+    }
+  }
+
+  /** Lee un bloque de datos propio de un módulo. */
+  loadExtra(name, fallback) {
+    const value = this._read(`x:${name}`, null);
+    return value === null ? fallback : value;
+  }
+
+  /** Guarda un bloque de datos propio de un módulo (y lo registra para la copia de seguridad). */
+  saveExtra(name, value) {
+    const keys = this._read('extraKeys', []);
+    if (!keys.includes(name)) {
+      keys.push(name);
+      this._write('extraKeys', keys);
+    }
+    return this._write(`x:${name}`, value);
+  }
+
+  /**
+   * Código de copia de seguridad en una sola línea (texto seguro para copiar y pegar):
+   * "RP99-" + JSON en base64.
+   */
+  exportCode() {
+    const bytes = new TextEncoder().encode(this.exportData());
+    let binary = '';
+    for (const b of bytes) binary += String.fromCharCode(b);
+    return CODE_PREFIX + btoa(binary);
+  }
+
+  /** Importa un código de exportCode() (o el JSON en bruto). Devuelve true si funcionó. */
+  importCode(text) {
+    const clean = String(text || '').trim();
+    if (!clean) return false;
+    if (clean.startsWith('{')) return this.importData(clean);
+    if (!clean.startsWith(CODE_PREFIX)) return false;
+    try {
+      const binary = atob(clean.slice(CODE_PREFIX.length).replace(/\s+/g, ''));
+      const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+      return this.importData(new TextDecoder().decode(bytes));
     } catch {
       return false;
     }

@@ -64,6 +64,17 @@ export class OptionsScreen {
       { label: 'DESCANSO 30M', ...toggle('breakReminder') },
       { label: 'ARRANQUE', ...choice('boot', ['auto', 'brick', 'neon', 'cartridge'], ['AUTO', 'LADRILLO', 'NEON', 'CARTUCHO']) },
       { label: 'DEMO', ...toggle('demo') },
+      {
+        label: 'PANT. COMPLETA',
+        value: () => YES_NO(e.settings.fullscreen),
+        change: () => {
+          e.updateSetting('fullscreen', !e.settings.fullscreen);
+          e.platform?.setFullscreen(e.settings.fullscreen, { fromGesture: true });
+        }
+      },
+      { label: 'NO APAGAR PANT.', ...toggle('keepAwake') },
+      { label: 'COPIAR RECORDS', action: () => this._exportCode() },
+      { label: 'PEGAR RECORDS', action: () => this._importCode() },
       { label: 'BORRAR RECORDS', action: () => this._erase() },
       { label: 'VOLVER', action: () => this._exit() }
     ];
@@ -78,6 +89,37 @@ export class OptionsScreen {
   _exit() {
     this.engine.sound.sfx('back');
     this.engine.closeOptions();
+  }
+
+  /** Copia de seguridad: copia un código con récords, ajustes, favoritos y logros. */
+  async _exportCode() {
+    const e = this.engine;
+    if (!e.platform) return;
+    const code = e.storage.exportCode();
+    e.sound.sfx('select');
+    const copied = await e.platform.copyText(code, 'Copia este código y guárdalo (por ejemplo, en una nota):');
+    e.input.releaseAll();
+    e.toast(copied ? 'CODIGO COPIADO' : 'GUARDA EL CODIGO', 1.6);
+  }
+
+  /** Restaura una copia de seguridad pegando el código. */
+  async _importCode() {
+    const e = this.engine;
+    if (!e.platform) return;
+    e.sound.sfx('select');
+    const text = await e.platform.readText('Pega aquí el código de RetroPocket (empieza por RP99-):');
+    e.input.releaseAll();
+    if (!text.trim()) return;
+    if (e.storage.importCode(text)) {
+      e.settings = e.storage.getSettings();
+      e.applySettings();
+      e.onDataImported?.();
+      e.sound.sfx('levelup');
+      e.toast('DATOS RESTAURADOS', 1.6);
+    } else {
+      e.sound.sfx('error');
+      e.toast('CODIGO NO VALIDO', 1.6);
+    }
   }
 
   _erase() {

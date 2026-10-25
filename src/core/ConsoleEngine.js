@@ -5,8 +5,11 @@
 
 import { ACTIONS } from './InputManager.js';
 import { OptionsScreen, InitialsScreen, AttractScreen } from './Screens.js';
+import { LaunchScreen, MyGamesScreen } from './LaunchScreens.js';
 import { BOOT_DURATION, pickBootScene } from './BootScenes.js';
 
+/* global __APP_VERSION__ */
+export const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'DEV';
 export const SCREEN_WIDTH = 144;
 export const SCREEN_HEIGHT = 192;
 const STEP = 1 / 60;
@@ -16,6 +19,8 @@ export const STATES = Object.freeze({
   BOOT: 'boot',
   MENU: 'menu',
   OPTIONS: 'options',
+  LAUNCH: 'launch',
+  MYGAMES: 'mygames',
   ATTRACT: 'attract',
   DEMO: 'demo',
   INITIALS: 'initials',
@@ -543,8 +548,9 @@ export class ConsoleEngine {
    * @param {import('./SoundChip.js').SoundChip} o.sound
    * @param {import('./StorageManager.js').StorageManager} o.storage
    * @param {import('./Catalog99.js').Catalog99} o.catalog
+   * @param {import('./PlatformBridge.js').PlatformBridge} [o.platform] Pantalla encendida, pantalla completa y portapapeles.
    */
-  constructor({ canvas, screen, led = null, input, sound, storage, catalog }) {
+  constructor({ canvas, screen, led = null, input, sound, storage, catalog, platform = null }) {
     this.canvas = canvas;
     this.screenEl = screen;
     this.led = led;
@@ -552,6 +558,7 @@ export class ConsoleEngine {
     this.sound = sound;
     this.storage = storage;
     this.catalog = catalog;
+    this.platform = platform;
 
     // Todo se dibuja en un búfer de resolución lógica y se escala al canvas visible.
     this.ctx = canvas.getContext('2d', { alpha: false });
@@ -588,6 +595,8 @@ export class ConsoleEngine {
 
     this.menu = catalog.createMenu(this, this.settings.lastSlot);
     this.options = new OptionsScreen(this);
+    this.launchScreen = new LaunchScreen(this);
+    this.myGames = new MyGamesScreen(this);
     this.initials = new InitialsScreen(this);
     this.attract = new AttractScreen(this);
 
@@ -621,7 +630,17 @@ export class ConsoleEngine {
     this.input.setRepeatSpeed(s.repeat);
     document.documentElement.dataset.big = s.bigButtons ? '1' : '0';
     document.documentElement.dataset.hand = s.hand === 'left' ? 'left' : 'right';
+    if (this.platform) {
+      if (this.platform.native) this.platform.setFullscreen(s.fullscreen);
+      this._syncKeepAwake();
+    }
     requestAnimationFrame(() => this._resize());
+  }
+
+  /** La pantalla no se apaga mientras se juega (si el ajuste está activo). */
+  _syncKeepAwake() {
+    if (!this.platform) return;
+    this.platform.setKeepAwake(this.settings.keepAwake && this.state === STATES.PLAYING);
   }
 
   /** Cambia un ajuste, lo guarda y lo aplica al momento. */
@@ -754,6 +773,7 @@ export class ConsoleEngine {
     }
     if (state === STATES.PAUSED) this.pauseIndex = 0;
     if (state === STATES.MENU) this.menuIdle = 0;
+    this._syncKeepAwake();
   }
 
   goToMenu() {
@@ -775,6 +795,24 @@ export class ConsoleEngine {
     this._setState(STATES.MENU);
   }
 
+  /** Pantalla PREPARADO: controles, velocidad, nivel y favorito antes de jugar. */
+  openLaunch(slot) {
+    this.launchScreen.open(slot);
+    this._setState(STATES.LAUNCH);
+  }
+
+  /** MIS JUEGOS: favoritos y recientes. */
+  openMyGames() {
+    this.myGames.onEnter();
+    this._setState(STATES.MYGAMES);
+  }
+
+  /** Vuelve al menú sin tocar la música (desde PREPARADO o MIS JUEGOS). */
+  closeToMenu() {
+    this.menu.onEnter();
+    this._setState(STATES.MENU);
+  }
+
   /** Pantalla de atracción: se alternan logo, récords, juegos y demos jugadas por la consola. */
   startAttract() {
     this._unloadCartridge();
@@ -792,7 +830,10 @@ export class ConsoleEngine {
   async launch(slotRef, { demo = false } = {}) {
     const slot = typeof slotRef === 'object' && slotRef ? slotRef : this.catalog.getSlot(slotRef);
     if (!slot) return;
-    if (!demo) this.storage.setSetting('lastSlot', slot.daily ? 0 : slot.number);
+    if (!demo) {
+      this.storage.setSetting('lastSlot', slot.daily ? 0 : slot.number);
+      if (!slot.daily) this.storage.pushRecent(slot.number);
+    }
     this._unloadCartridge();
     this.fx.reset();
     this.currentSlot = slot;
@@ -991,6 +1032,14 @@ export class ConsoleEngine {
         this.options.handleAction(e);
         break;
 
+      case STATES.LAUNCH:
+        this.launchScreen.handleAction(e);
+        break;
+
+      case STATES.MYGAMES:
+        this.myGames.handleAction(e);
+        break;
+
       case STATES.INITIALS:
         this.initials.handleAction(e);
         break;
@@ -1055,8 +1104,10 @@ export class ConsoleEngine {
       this.input.releaseAll();
       this.pause();
       this.sound.suspend();
+      this.platform?.suspend();
     } else {
       this.sound.resume();
+      this.platform?.reapply();
       this.lastTimestamp = performance.now();
     }
   }
@@ -1072,6 +1123,10 @@ export class ConsoleEngine {
         return true;
       case STATES.OPTIONS:
         this.closeOptions();
+        return true;
+      case STATES.LAUNCH:
+      case STATES.MYGAMES:
+        this.closeToMenu();
         return true;
       case STATES.INITIALS:
         this.initials.confirm();
@@ -1107,6 +1162,12 @@ export class ConsoleEngine {
         break;
       case STATES.OPTIONS:
         this.options.update(dt);
+        break;
+      case STATES.LAUNCH:
+        this.launchScreen.update(dt);
+        break;
+      case STATES.MYGAMES:
+        this.myGames.update(dt);
         break;
       case STATES.INITIALS:
         this.initials.update(dt);
@@ -1176,6 +1237,12 @@ export class ConsoleEngine {
       case STATES.OPTIONS:
         this.options.render(g);
         break;
+      case STATES.LAUNCH:
+        this.launchScreen.render(g);
+        break;
+      case STATES.MYGAMES:
+        this.myGames.render(g);
+        break;
       case STATES.ATTRACT:
         this.attract.render(g);
         break;
@@ -1231,7 +1298,7 @@ export class ConsoleEngine {
     if (!this.bootScene) this.bootScene = pickBootScene(this.settings.boot);
     const icons = this.menu.catalog.engines.map((engine) => engine.icon[0]);
     this.bootScene.draw(g, this.stateTime, icons);
-    g.text('V0.6', SCREEN_WIDTH - 4, SCREEN_HEIGHT - 8, { align: 'right', color: '#7a7a8c' });
+    g.text(`V${APP_VERSION}`, SCREEN_WIDTH - 4, SCREEN_HEIGHT - 8, { align: 'right', color: '#7a7a8c' });
   }
 
   /** Logotipo de la consola (arranque y pantalla de atracción). */

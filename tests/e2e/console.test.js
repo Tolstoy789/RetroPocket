@@ -523,11 +523,35 @@ step('accesibilidad: texto grande sin pisar otros textos, velocidad del juego y 
   });
 });
 
+/** La pantalla abraza el LCD (sin franjas vacías) y los botones de sistema caben en la ventana. */
+async function checkLayout(label) {
+  const m = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const screen = box(document.getElementById('screen'));
+    const lcd = box(document.getElementById('lcd'));
+    const system = [...document.querySelectorAll('.system-btn, .system__label')].map(box);
+    return { screen, lcd, system, vw: innerWidth, vh: innerHeight };
+  });
+  assert.ok(Math.abs(m.screen.width - m.lcd.width) <= 2 && Math.abs(m.screen.height - m.lcd.height) <= 2, `${label}: franjas vacías alrededor del LCD`);
+  for (const b of m.system) assert.ok(b.bottom <= m.vh && b.right <= m.vw && b.left >= 0, `${label}: botón de sistema fuera de la pantalla`);
+  for (const b of m.system) {
+    const over = b.right > m.screen.left && b.left < m.screen.right && b.bottom > m.screen.top && b.top < m.screen.bottom;
+    assert.ok(!over, `${label}: botón de sistema encima del LCD`);
+  }
+}
+
 step('girar la pantalla y volver', async () => {
-  await page.setViewportSize({ width: 844, height: 390 });
-  await page.waitForTimeout(400);
+  await checkLayout('vertical');
+  for (const [w, h] of [[844, 390], [640, 360]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(400);
+    await checkLayout(`horizontal ${w}x${h}`);
+  }
   await press('ArrowRight');
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForTimeout(400);
+  for (const [w, h] of [[360, 640], [412, 915], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(400);
+    await checkLayout(`vertical ${w}x${h}`);
+  }
   assert.equal(await state(), 'menu');
 });

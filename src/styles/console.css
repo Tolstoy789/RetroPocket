@@ -125,10 +125,13 @@ button:focus-visible {
 }
 
 .console__top {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* El bisel no crece más de lo que pide un LCD 3:4 a todo lo ancho: en los móviles altos
+     el sobrante va a los controles en vez de quedar como franjas vacías en la pantalla. */
+  container-type: inline-size;
 }
 
 /* ---------- Bisel y pantalla ---------- */
@@ -138,6 +141,7 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: calc((100cqw - 36px) * 4 / 3 + 45px);
   padding: 10px 18px 18px;
   background: linear-gradient(180deg, var(--bezel) 0%, var(--bezel-dark) 100%);
   border-radius: 14px 14px 44px 14px;
@@ -147,6 +151,7 @@ button:focus-visible {
 }
 
 .bezel__label {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -193,7 +198,9 @@ button:focus-visible {
 
 .screen {
   position: relative;
-  flex: 1 1 auto;
+  /* ConsoleEngine._resize le da el tamaño exacto del LCD y la centra en el bisel. */
+  flex: 0 0 auto;
+  margin: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -227,6 +234,7 @@ html[data-fx="off"] #lcd {
 }
 
 .brand {
+  flex: none;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -251,13 +259,14 @@ html[data-fx="off"] #lcd {
 
 .console__controls {
   position: relative;
-  flex: 0 0 auto;
+  flex: 1 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-areas:
     "dpad actions"
     "system system";
   align-items: center;
+  align-content: space-evenly;
   row-gap: 14px;
   padding: 18px 4px 6px;
 }
@@ -511,13 +520,21 @@ html[data-fx="off"] #lcd {
       calc(10px + var(--safe-left));
   }
 
+  .console {
+    container-type: size;
+    justify-content: space-evenly;
+  }
+
+  /* El bisel tan ancho como el LCD 3:4 que cabe en el alto: el resto de la anchura es para los controles. */
   .console__top {
     order: 2;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
+    width: calc((100cqh - 38px) * 3 / 4 + 28px);
     margin: 0 12px;
   }
 
   .bezel {
+    height: auto;
     padding: 6px 12px 12px;
     border-radius: 12px 12px 30px 12px;
   }
@@ -542,18 +559,21 @@ html[data-fx="off"] #lcd {
     width: 140px;
   }
 
+  /* SOUND / START / RESET bajo los botones A/B, sin pisar la pantalla ni salirse por abajo. */
   .system {
     position: absolute;
-    left: 50%;
-    bottom: calc(4px + var(--safe-bottom));
-    transform: translateX(-50%);
-    gap: 18px;
+    right: calc(10px + var(--safe-right));
+    bottom: calc(8px + var(--safe-bottom));
+    width: 140px;
+    justify-content: space-between;
+    gap: 4px;
     z-index: 2;
   }
 
   .system__item {
     transform: none;
-    flex-direction: row;
+    flex-direction: column;
+    gap: 3px;
   }
 
   .system-btn {
@@ -563,11 +583,6 @@ html[data-fx="off"] #lcd {
 
   .system__label {
     font-size: 8px;
-    color: rgba(255, 255, 255, 0.55);
-  }
-
-  .bezel {
-    padding-bottom: 22px;
   }
 
   .speaker {
@@ -2222,7 +2237,8 @@ html[data-fx="off"] #lcd {
 }
 
 @media (orientation: landscape) and (max-height: 600px) {
-  [data-big="1"] .actions {
+  [data-big="1"] .actions,
+  [data-big="1"] .system {
     width: 170px;
   }
 }
@@ -2294,5 +2310,10 @@ html[data-fx="off"] #lcd {
 
   [data-hand="left"] .system__item {
     transform: none;
+  }
+
+  [data-hand="left"] .system {
+    right: auto;
+    left: calc(10px + var(--safe-left));
   }
 }

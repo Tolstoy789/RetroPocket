@@ -795,7 +795,8 @@ export class ConsoleEngine {
     window.addEventListener('resize', this._resize);
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(this._resize);
-      this.resizeObserver.observe(this.screenEl);
+      // Se mide el bisel (el hueco disponible), no la pantalla: la pantalla se ajusta al tamaño del LCD.
+      this.resizeObserver.observe(this.screenEl.parentElement || this.screenEl);
     }
     this._resize();
   }
@@ -963,21 +964,50 @@ export class ConsoleEngine {
    * si no, se usa la escala exacta con vecino más cercano (sigue nítido, sin desenfoque).
    */
   _resize() {
-    const rect = this.screenEl.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
+    const area = this._screenArea();
+    if (area.width <= 0 || area.height <= 0) return;
     const dpr = window.devicePixelRatio || 1;
-    const fit = Math.min(rect.width / SCREEN_WIDTH, rect.height / SCREEN_HEIGHT) * dpr;
+    const fit = Math.min(area.width / SCREEN_WIDTH, area.height / SCREEN_HEIGHT) * dpr;
     const whole = Math.floor(fit);
     const scale = whole >= 1 && whole / fit >= 0.9 ? whole : Math.max(1, fit);
-    this.scale = scale;
     const w = Math.round(SCREEN_WIDTH * scale);
     const h = Math.round(SCREEN_HEIGHT * scale);
+    // La pantalla abraza el LCD: sin franjas vacías arriba/abajo ni a los lados (el sobrante es bisel).
+    const scs = typeof getComputedStyle === 'function' ? getComputedStyle(this.screenEl) : null;
+    const bx = scs ? (parseFloat(scs.borderLeftWidth) || 0) + (parseFloat(scs.borderRightWidth) || 0) : 0;
+    const by = scs ? (parseFloat(scs.borderTopWidth) || 0) + (parseFloat(scs.borderBottomWidth) || 0) : 0;
+    this.screenEl.style.width = `${w / dpr + bx}px`;
+    this.screenEl.style.height = `${h / dpr + by}px`;
+    if (this.canvas.width === w && this.canvas.height === h && this.scale === scale) return;
+    this.scale = scale;
     this.canvas.width = w;
     this.canvas.height = h;
     this.canvas.style.width = `${w / dpr}px`;
     this.canvas.style.height = `${h / dpr}px`;
     this.ctx.imageSmoothingEnabled = false;
     this.shownHash = 0; // cambiar el tamaño borra el lienzo visible
+  }
+
+  /** Hueco que deja el bisel para la pantalla: su caja interior menos el rótulo y lo demás que contenga. */
+  _screenArea() {
+    const bezel = this.screenEl.parentElement;
+    if (!bezel || typeof getComputedStyle !== 'function') {
+      const rect = this.screenEl.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    }
+    const cs = getComputedStyle(bezel);
+    const px = (v) => parseFloat(v) || 0;
+    let width = bezel.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight);
+    let height = bezel.clientHeight - px(cs.paddingTop) - px(cs.paddingBottom);
+    const column = !cs.flexDirection.startsWith('row');
+    for (const child of bezel.children) {
+      if (child === this.screenEl) continue;
+      const ccs = getComputedStyle(child);
+      if (ccs.position === 'absolute' || ccs.position === 'fixed' || ccs.display === 'none') continue;
+      if (column) height -= child.offsetHeight + px(ccs.marginTop) + px(ccs.marginBottom);
+      else width -= child.offsetWidth + px(ccs.marginLeft) + px(ccs.marginRight);
+    }
+    return { width: Math.floor(width), height: Math.floor(height) };
   }
 
   _present(dt) {
@@ -2322,7 +2352,8 @@ export class ConsoleEngine {
     const b = this.banner;
     if (!b) return;
     const a = b.achievement;
-    const h = 22;
+    // Con TEXTO GRANDE las dos líneas miden 7 px: el aviso crece para que no pisen el marco.
+    const h = g.bigText ? 25 : 22;
     const slide = Math.max(0, Math.min(1, b.time / BANNER_SLIDE, (BANNER_TIME - b.time) / BANNER_SLIDE));
     const x = 3;
     const y = Math.round(-h + slide * (h + 2));
@@ -2332,7 +2363,7 @@ export class ConsoleEngine {
     g.frame(x + 2, y + 2, w - 4, h - 4, 'mid');
     g.sprite(a.icon, x + 5, y + 4, { scale: 2, colors: { '#': achievementColor(a), '+': 'mid' } });
     g.text('★ LOGRO DESBLOQUEADO', x + 23, y + 5, { color: 'yellow' });
-    g.text(a.name, x + 23, y + 13);
+    g.text(a.name, x + 23, y + (g.bigText ? 14 : 13));
   }
 
   _renderToast(g) {
